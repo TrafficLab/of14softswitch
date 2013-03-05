@@ -916,6 +916,7 @@ ofl_structs_table_properties_print(FILE * stream, struct ofl_table_feature_prop_
                     fprintf(stream, ", " );
                 }
                 ofl_oxm_type_print(stream, oxms->oxm_ids[oxms->oxm_num -1]);
+	    }
             fprintf(stream, "]");                                    
             break;
         }
