@@ -2838,12 +2838,14 @@ set_table_features_match(struct vconn *vconn, int argc, char *argv[]) {
 	table_feat->table_features[i]->table_id = t;
 	table_feat->table_features[i]->name[0] = '\0';
 	t++;
-	if(t > last_table)
+	if(t > last_table) {
+	  i++;
 	  break;
+	}
       }
 
       /* Set the request parameters. */
-      table_feat->tables_num = t - prev_t;
+      table_feat->tables_num = i;
 
 #if 0
       {
