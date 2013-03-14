@@ -1434,9 +1434,12 @@ OFP_ASSERT(sizeof(struct ofp_packet_in) == 32);
 
 /* Why is this packet being sent to the controller? */
 enum ofp_packet_in_reason {
-    OFPR_NO_MATCH = 0,    /* No matching flow. */
-    OFPR_ACTION = 1,      /* Action explicitly output to controller. */
-    OFPR_INVALID_TTL = 2, /* Packet has invalid TTL */
+    OFPR_TABLE_MISS   = 0,   /* No matching flow (table-miss flow entry). */
+    OFPR_APPLY_ACTION = 1,   /* Output to controller in apply-actions. */
+    OFPR_INVALID_TTL  = 2,   /* Packet has invalid TTL */
+    OFPR_ACTION_SET   = 3,   /* Output to controller in action set. */
+    OFPR_GROUP        = 4,   /* Output to controller in group bucket. */
+    OFPR_PACKET_OUT   = 5,   /* Output to controller in packet-out. */
 };
 
 /* Flow removed (datapath -> controller). */

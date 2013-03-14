@@ -124,6 +124,19 @@ flow_entry_matches(struct flow_entry *entry, struct ofl_msg_flow_mod *mod, bool 
 }
 
 bool
+flow_entry_is_table_miss(struct flow_entry *entry) {
+    struct ofl_match all_wildcard;
+
+    all_wildcard.header.type = OFPMT_OXM;   /* Unused. */
+    all_wildcard.header.length = 0;         /* Wildcard */
+    /* No need to initialise match_fields. */
+
+    return ( (entry->stats->priority == 0) &&
+             match_std_strict(&all_wildcard,
+                                (struct ofl_match *)entry->stats->match));
+}
+
+bool
 flow_entry_overlaps(struct flow_entry *entry, struct ofl_msg_flow_mod *mod) {
         return (entry->stats->priority == mod->priority &&
             (mod->out_port == OFPP_ANY || flow_entry_has_out_port(entry, mod->out_port)) &&

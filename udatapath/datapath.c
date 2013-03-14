@@ -468,11 +468,17 @@ send_openflow_buffer(struct datapath *dp, struct ofpbuf *buffer,
                     case (OFPT_PACKET_IN):{
                         struct ofp_packet_in *p = (struct ofp_packet_in*)buffer->data; 
                         /* Do not send message if the reason is not enabled */
-                        if((p->reason == OFPR_NO_MATCH) && !(r->config.packet_in_mask[0] & 0x1))
+                        if((p->reason == OFPR_TABLE_MISS) && !(r->config.packet_in_mask[0] & 0x1))
                             continue;
-                        if((p->reason == OFPR_ACTION) && !(r->config.packet_in_mask[0] & 0x2))                        
+                        if((p->reason == OFPR_APPLY_ACTION) && !(r->config.packet_in_mask[0] & 0x2))                        
                             continue;
                         if((p->reason == OFPR_INVALID_TTL) && !(r->config.packet_in_mask[0] & 0x4))                        
+                            continue;                            
+                        if((p->reason == OFPR_ACTION_SET) && !(r->config.packet_in_mask[0] & 0x8))                        
+                            continue;                            
+                        if((p->reason == OFPR_GROUP) && !(r->config.packet_in_mask[0] & 0x10))                        
+                            continue;                            
+                        if((p->reason == OFPR_PACKET_OUT) && !(r->config.packet_in_mask[0] & 0x20))                        
                             continue;                            
                         break;
                     }

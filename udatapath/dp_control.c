@@ -152,7 +152,7 @@ handle_control_packet_out(struct datapath *dp, struct ofl_msg_packet_out *msg,
         return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BUFFER_EMPTY);
     }
     
-    dp_execute_action_list(pkt, msg->actions_num, msg->actions, 0xffffffffffffffff);
+    dp_execute_action_list(pkt, msg->actions_num, msg->actions, 0xffffffffffffffff, OFPR_PACKET_OUT);
 
     packet_destroy(pkt);
     ofl_msg_free_packet_out(msg, false, dp->exp);

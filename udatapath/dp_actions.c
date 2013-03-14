@@ -780,7 +780,7 @@ dp_execute_action(struct packet *pkt,
 
 void
 dp_execute_action_list(struct packet *pkt,
-                size_t actions_num, struct ofl_action_header **actions, uint64_t cookie) {
+                size_t actions_num, struct ofl_action_header **actions, uint64_t cookie, uint32_t reason) {
     size_t i;
 
     VLOG_DBG_RL(LOG_MODULE, &rl, "Executing action list.");
@@ -801,8 +801,8 @@ dp_execute_action_list(struct packet *pkt,
             pkt->out_port = OFPP_ANY;
             pkt->out_port_max_len = 0;
             pkt->out_queue = 0;
-            VLOG_DBG_RL(LOG_MODULE, &rl, "Port action; sending to port (%u).", port);
-            dp_actions_output_port(pkt, port, queue, max_len, cookie);
+            VLOG_DBG_RL(LOG_MODULE, &rl, "Port action; sending to port (%u), reason=%d.", port, reason);
+            dp_actions_output_port(pkt, port, queue, max_len, cookie, reason);
         }
 
     }
@@ -810,7 +810,7 @@ dp_execute_action_list(struct packet *pkt,
 
 
 void
-dp_actions_output_port(struct packet *pkt, uint32_t out_port, uint32_t out_queue, uint16_t max_len, uint64_t cookie) {
+dp_actions_output_port(struct packet *pkt, uint32_t out_port, uint32_t out_queue, uint16_t max_len, uint64_t cookie, uint32_t reason) {
 
     switch (out_port) {
         case (OFPP_TABLE): {
@@ -832,7 +832,7 @@ dp_actions_output_port(struct packet *pkt, uint32_t out_port, uint32_t out_queue
             struct ofl_match *m; 
             msg.header.type = OFPT_PACKET_IN;
             msg.total_len   = pkt->buffer->size;
-            msg.reason = OFPR_ACTION;
+            msg.reason = (uint8_t) reason;
             msg.table_id = pkt->table_id;
             msg.data        = pkt->buffer->data;
             msg.cookie = cookie;

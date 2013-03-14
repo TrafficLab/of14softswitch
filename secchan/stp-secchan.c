@@ -100,7 +100,7 @@ stp_local_packet_cb(struct relay *r, void *stp_)
         return false;
     }
     */
-    if (opi->reason == OFPR_ACTION) {
+    if ((opi->reason == OFPR_APPLY_ACTION) || (opi->reason == OFPR_ACTION_SET) || (opi->reason == OFPR_GROUP)) {
         /* The controller set up a flow for this, so we won't intercept it. */
         return false;
     }
