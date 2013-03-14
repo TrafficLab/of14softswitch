@@ -150,6 +150,7 @@ struct remote {
     /* Multipart request message pending reassembly. */
     struct ofl_msg_multipart_request_header *mp_req_msg; /* Message. */
     uint32_t mp_req_xid;     /* Multipart request OpenFlow transaction ID. */
+    time_t mp_req_lasttime;  /* Last time seen. */
 };
 
 /* Creates a new datapath */

@@ -379,6 +379,7 @@ pipeline_handle_stats_request_table_features_request(struct pipeline *pl,
 
       /* Merge the request with previous fragments. */
       nomore = ofl_msg_merge_multipart_request_table_features((struct ofl_msg_multipart_request_table_features *) sender->remote->mp_req_msg, feat);
+      sender->remote->mp_req_lasttime = time_now();
 
       /* Check if incomplete. */
       if(!nomore)
@@ -417,6 +418,7 @@ pipeline_handle_stats_request_table_features_request(struct pipeline *pl,
 	ofl_msg_merge_multipart_request_table_features(saved_msg, feat);
 	sender->remote->mp_req_msg = (struct ofl_msg_multipart_request_header *) saved_msg;
 	sender->remote->mp_req_xid = sender->xid;
+	sender->remote->mp_req_lasttime = time_now();
 
 	return 0;
       }
