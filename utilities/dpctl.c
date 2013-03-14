@@ -2881,6 +2881,8 @@ set_table_features_match(struct vconn *vconn, int argc, char *argv[]) {
 	/* No reply. */
       } else {
 	table_feat->header.flags = 0;
+	/* Create a timeout. */
+	table_feat->header.flags = OFPMPF_REQ_MORE;
 
 	dpctl_transact_and_print(vconn, (struct ofl_msg_header *)table_feat, NULL);
       }
