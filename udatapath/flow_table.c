@@ -173,7 +173,7 @@ flow_table_eviction_importance(struct flow_table *table,  struct ofl_msg_flow_mo
     			*insts_kept = true;
 			
 			list_insert(&tmp_entry->match_node, &new_entry->match_node); 
-			flow_entry_remove(tmp_entry, OFPRR_EVICTION_IMPORTANCE) ;
+			flow_entry_remove(tmp_entry, OFPRR_EVICTION) ;
      		      add_to_timeout_lists(table, new_entry);
 			return 0;
 		}else{
