@@ -543,10 +543,10 @@ ofl_structs_flow_stats_print(FILE *stream, struct ofl_flow_stats *s, struct ofl_
     ofl_table_print(stream, s->table_id);
     fprintf(stream, "\", match=\"");
     ofl_structs_match_print(stream, s->match, exp);
-    fprintf(stream, "\", dur_s=\"%u\", dur_ns=\"%u\", prio=\"%u\", "
+    fprintf(stream, "\", dur_s=\"%u\", dur_ns=\"%u\", prio=\"%u\", impo=\"%u\", " //modified by dingwanfu
                           "idle_to=\"%u\", hard_to=\"%u\", cookie=\"0x%"PRIx64"\", "
                           "pkt_cnt=\"%"PRIu64"\", byte_cnt=\"%"PRIu64"\", insts=[",
-                  s->duration_sec, s->duration_nsec, s->priority,
+                  s->duration_sec, s->duration_nsec, s->priority, s->importance, //modified by dingwanfu
                   s->idle_timeout, s->hard_timeout, s->cookie,
                   s->packet_count, s->byte_count);
 

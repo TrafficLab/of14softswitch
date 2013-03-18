@@ -37,7 +37,8 @@
 #include "timeval.h"
 
 
-#define FLOW_TABLE_MAX_ENTRIES 1024
+//#define FLOW_TABLE_MAX_ENTRIES 1024
+#define FLOW_TABLE_MAX_ENTRIES 10 //modified by dingwanfu
 #define TABLE_FEATURES_NUM 14
 // EEDJAS: N_OXM_FIELDS is an enum value exported by oxm-match.h via ofl-structs.h
 // #define N_OXM_FIELDS 40
@@ -84,6 +85,9 @@ flow_table_timeout(struct flow_table *table);
 /* Creates a flow table. */
 struct flow_table *
 flow_table_create(struct datapath *dp, uint8_t table_id);
+
+ofl_err
+flow_table_eviction_importance(struct flow_table *table,  struct ofl_msg_flow_mod *mod, bool *match_kept, bool *insts_kept );
 
 /* Destroys a flow table. */
 void

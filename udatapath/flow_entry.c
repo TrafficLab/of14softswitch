@@ -329,6 +329,7 @@ flow_entry_create(struct datapath *dp, struct flow_table *table, struct ofl_msg_
     entry->stats->duration_sec     = 0;
     entry->stats->duration_nsec    = 0;
     entry->stats->priority         = mod->priority;
+    entry->stats->importance = mod->importance;  //modified by dingwanfu.
     entry->stats->idle_timeout     = mod->idle_timeout;
     entry->stats->hard_timeout     = mod->hard_timeout;
     entry->stats->cookie           = mod->cookie;
