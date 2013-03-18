@@ -156,6 +156,7 @@ flow_table_eviction_importance(struct flow_table *table,  struct ofl_msg_flow_mo
 	struct flow_entry *entry, * tmp_entry, *new_entry; 
 	uint16_t min_imp= 0xFFFF;
 
+	tmp_entry = NULL;
 	LIST_FOR_EACH (entry, struct flow_entry, match_node, &table->match_entries) { 
 		if (entry->stats->importance < min_imp) {
 					//需要在ofl_flow_stats结构中添加importance域
@@ -163,7 +164,7 @@ flow_table_eviction_importance(struct flow_table *table,  struct ofl_msg_flow_mo
 			tmp_entry = entry;
 		}
 	}
- 		if (min_imp < mod->importance) {
+	if ((tmp_entry != NULL) && (min_imp < mod->importance)) {
 					//需要在ofl_msg_flow_mod结构中添加importance域
 			table->stats->active_count++;
 					//modified by dingwanfu.
