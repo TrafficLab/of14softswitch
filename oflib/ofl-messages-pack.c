@@ -260,11 +260,12 @@ ofl_msg_pack_flow_mod(struct ofl_msg_flow_mod *msg, uint8_t **buf, size_t *buf_l
     flow_mod->idle_timeout = htons( msg->idle_timeout);
     flow_mod->hard_timeout = htons( msg->hard_timeout);
     flow_mod->priority     = htons( msg->priority);
+    flow_mod->importance   = htons( msg->importance); //modified by dingwanfu.
     flow_mod->buffer_id    = htonl( msg->buffer_id);
     flow_mod->out_port     = htonl( msg->out_port);
     flow_mod->out_group    = htonl( msg->out_group);
     flow_mod->flags        = htons( msg->flags);
-    memset(flow_mod->pad, 0x00, 2);
+//    memset(flow_mod->pad, 0x00, 2); //modified by dingwanfu.
 
     ptr  = (*buf) + sizeof(struct ofp_flow_mod)- 4;
     ofl_structs_match_pack(msg->match, &(flow_mod->match), ptr, HOST_ORDER, exp);

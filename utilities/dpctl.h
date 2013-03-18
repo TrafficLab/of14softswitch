@@ -164,6 +164,9 @@ static struct names16 band_names[] = {
 #define FLOW_MOD_IDLE          "idle"
 #define FLOW_MOD_HARD          "hard"
 #define FLOW_MOD_PRIO          "prio"
+
+#define FLOW_MOD_IMPO          "impo"  //modified by dingwanfu
+
 #define FLOW_MOD_BUFFER        "buffer"
 #define FLOW_MOD_OUT_PORT      "out_port"
 #define FLOW_MOD_OUT_GROUP     "out_group"

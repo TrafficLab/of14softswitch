@@ -447,6 +447,8 @@ ofl_msg_unpack_flow_mod(struct ofp_header *src,uint8_t* buf, size_t *len, struct
     dm->idle_timeout = ntohs( sm->idle_timeout);
     dm->hard_timeout = ntohs( sm->hard_timeout);
     dm->priority =     ntohs( sm->priority);
+    dm->importance =     ntohs( sm->importance); //modified by dingwanfu.
+	
     dm->buffer_id =    ntohl( sm->buffer_id);
     dm->out_port =     ntohl( sm->out_port);
     dm->out_group =    ntohl( sm->out_group);
