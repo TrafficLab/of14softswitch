@@ -632,7 +632,7 @@ enum ofp_table_config {
     OFPTC_TABLE_MISS_DROP = 1 << 1,     /* Drop the packet. */
     OFPTC_TABLE_MISS_MASK = 3,
 
-    OFPTC_EVICTION = 4,	/*Authorize table to evict flows. modified by dingwanfu. */
+    OFPTC_EVICTION = 1 << 2,	/*Authorize table to evict flows. modified by dingwanfu. */
 };
 
 #define OFP_DEFAULT_PRIORITY 0x8000
@@ -1004,10 +1004,10 @@ struct ofp_flow_stats {
 	uint16_t priority;      /* Priority of the entry. */
 	uint16_t idle_timeout;  /* Number of seconds idle before expiration. */
 	uint16_t hard_timeout;  /* Number of seconds before expiration. */
+        uint16_t flags;         /* One of OFPFF_*. */
 	uint16_t importance; //modified by dingwanfu.
-	uint8_t pad2[4];        /* Align to 64-bits. */
-	
-//	uint8_t pad2[6];        /* Align to 64-bits. */
+	uint8_t pad2[2];        /* Align to 64-bits. */
+//	uint8_t pad2[4];        /* Align to 64-bits. */
 	uint64_t cookie;        /* Opaque controller-issued identifier. */
 	uint64_t packet_count;  /* Number of packets in flow. */
 	uint64_t byte_count;    /* Number of bytes in flow. */
@@ -1471,7 +1471,7 @@ enum ofp_flow_removed_reason {
     OFPRR_DELETE = 2,       /* Evicted by a DELETE flow mod. */
     OFPRR_GROUP_DELETE = 3, /* Group was removed. */
     OFPRR_METER_DELETE = 4, /* Meter was removed. */
-    OFPRR_EVICTION_IMPORTANCE = 5, /* Switch eviction  policy according to IMPORTANCE field. modified by dingwanfu. */
+    OFPRR_EVICTION     = 5, /* Switch eviction  policy according to IMPORTANCE field. modified by dingwanfu. */
 };
 
 /* A physical port has changed in the datapath */
