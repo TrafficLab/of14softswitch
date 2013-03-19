@@ -810,7 +810,7 @@ ofl_structs_queue_prop_unpack(struct ofp_queue_prop_header *src, size_t *len, st
                 return ofl_error(OFPET_BAD_ACTION, OFPBRC_BAD_LEN);
             }
             *len -= sizeof(struct ofp_queue_prop_experimenter);   
-            dp->data = sp->data;
+            dp->experimenter_data = sp->experimenter_data;
 
             *dst = (struct ofl_queue_prop_header *)dp;
             break;    

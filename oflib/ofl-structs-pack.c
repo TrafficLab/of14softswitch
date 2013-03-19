@@ -746,7 +746,6 @@ size_t
 ofl_structs_queue_prop_pack(struct ofl_queue_prop_header *src,
                             struct ofp_queue_prop_header *dst) {
     dst->property = htons(src->type);
-    memset(dst->pad, 0x00, 4);
 
     switch (src->type) {
        
@@ -756,7 +755,7 @@ ofl_structs_queue_prop_pack(struct ofl_queue_prop_header *src,
 
             dp->prop_header.len = htons(sizeof(struct ofp_queue_prop_min_rate));
             dp->rate            = htons(sp->rate);
-            memset(dp->pad, 0x00, 6);
+            memset(dp->pad, 0x00, 2);
 
             return sizeof(struct ofp_queue_prop_min_rate);
         }
@@ -765,7 +764,7 @@ ofl_structs_queue_prop_pack(struct ofl_queue_prop_header *src,
             struct ofp_queue_prop_max_rate *dp = (struct ofp_queue_prop_max_rate *)dst;
             dp->prop_header.len = htons(sizeof(struct ofp_queue_prop_max_rate));
             dp->rate            = htons(sp->rate);
-            memset(dp->pad, 0x00, 6);
+            memset(dp->pad, 0x00, 2);
 
             return sizeof(struct ofp_queue_prop_max_rate);
         }
@@ -773,7 +772,6 @@ ofl_structs_queue_prop_pack(struct ofl_queue_prop_header *src,
             //struct ofl_queue_prop_experimenter *sp = (struct ofl_queue_prop_experimenter *)src;
             struct ofp_queue_prop_experimenter *dp = (struct ofp_queue_prop_experimenter*)dst;
             dp->prop_header.len = htons(sizeof(struct ofp_queue_prop_experimenter));
-            memset(dp->pad, 0x00, 4);
             /*TODO Eder: How to copy without a know len?? */
             //dp->data = sp->data;
             return sizeof(struct ofp_queue_prop_experimenter);
@@ -812,7 +810,7 @@ ofl_structs_packet_queue_pack(struct ofl_packet_queue *src, struct ofp_packet_qu
                                                      src->properties_num);
 
     dst->len = htons(total_len);
-    memset(dst->pad, 0x00, 2);
+    memset(dst->pad, 0x00, 6);
     dst->queue_id = htonl(src->queue_id);
 
     data = (uint8_t *)dst + sizeof(struct ofp_packet_queue);

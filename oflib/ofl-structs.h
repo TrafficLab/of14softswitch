@@ -76,7 +76,7 @@ struct ofl_queue_prop_max_rate {
 struct ofl_queue_prop_experimenter {
     struct ofl_queue_prop_header prop_header; /* prop: OFPQT_EXPERIMENTER, len: 16. */
     uint32_t experimenter;
-    uint8_t *data; /* Experimenter defined data. */
+    uint8_t *experimenter_data; /* Experimenter defined data. */
 };
 
 
