@@ -438,7 +438,7 @@ ofl_structs_table_features_pack(struct ofl_table_features *src, struct ofp_table
     strncpy(dst->name,src->name, OFP_MAX_TABLE_NAME_LEN);
     dst->metadata_match = hton64(src->metadata_match);
     dst->metadata_write = hton64(src->metadata_write);
-    dst->config = htonl(src->config);
+    dst->capabilities = htonl(src->capabilities);
     dst->max_entries = htonl(src->max_entries); 
     
     ptr = (uint8_t*) (data + sizeof(struct ofp_table_features));

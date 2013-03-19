@@ -430,6 +430,15 @@ struct ofp_instruction_meter {
 };
 OFP_ASSERT(sizeof(struct ofp_instruction_meter) == 8);
 
+/* Instruction structure for experimental instructions */
+struct ofp_instruction_experimenter {
+    uint16_t type;		/* OFPIT_EXPERIMENTER */
+    uint16_t len;               /* Length of this struct in bytes */
+    uint32_t experimenter;      /* Experimenter ID which takes the same form
+                                   as in struct ofp_experimenter_header. */
+    /* Experimenter-defined arbitrary additional data. */
+};
+OFP_ASSERT(sizeof(struct ofp_instruction_experimenter) == 8);
 
 enum ofp_action_type {
     OFPAT_OUTPUT = 0,        /* Output to switch port. */
@@ -615,13 +624,42 @@ enum ofp_table {
 };
 
 /* Configure/Modify behavior of a flow table */
+enum ofp_table_mod_prop_type {
+	OFPTMPT_EXPERIMENTER	= 0xffff, /* Experimenter property. */
+};
+
+/* Common header for all Table Mod Properties */
+struct ofp_table_mod_prop_header {
+	uint16_t type;		/* One of OFPTMPT_*. */
+	uint16_t length;	/* Length in bytes of this property. */
+};
+OFP_ASSERT(sizeof(struct ofp_table_mod_prop_header) == 4);
+
 struct ofp_table_mod {
 	struct ofp_header header;
-	uint8_t table_id; /* ID of the table, OFPTT_ALL indicates all tables */
-	uint8_t pad[3];   /* Pad to 32 bits */
-	uint32_t config;  /* Bitmap of OFPTC_* flags */
+	uint8_t table_id;	/* ID of the table, OFPTT_ALL indicates all tables */
+	uint8_t pad[3];		/* Pad to 32 bits */
+	uint32_t config;	/* Bitmap of OFPTC_* flags */
+
+	struct ofp_table_mod_prop_header properties[0];
 };
 OFP_ASSERT(sizeof(struct ofp_table_mod) == 16);
+
+/* Experimenter table mod property. */
+struct ofp_table_mod_prop_experimenter {
+	uint16_t type;		/* One of the OFPTMPT_EXPERIMENTER. */
+	uint16_t length;	/* Length in bytes of this property. */
+	uint32_t experimenter;	/* Experimenter ID which takes the same
+				 * form as in struct
+				 * ofp_experimenter_header. */
+	uint32_t exp_type;	/* Experimenter defined. */
+	/* Followed by:
+	 *  - Exactly (length - 12) bytes containing the experimenter data, then
+	 *  - Exactly (length + 7)/8* - (length) (between 0 and 7)
+	 *  bytes of the all-zero bytes */
+	uint32_t experimenter_data[0];
+};
+OFP_ASSERT(sizeof(struct ofp_table_mod_prop_experimenter) == 12);
 
 enum ofp_table_config {
     OFPTC_TABLE_MISS_CONTROLLER = 0,    /* Send to controller. */
@@ -946,6 +984,10 @@ enum ofp_multipart_types {
     * The request body is empty.
     * The reply body is an array of struct ofp_port. */
     OFPMP_PORT_DESC = 13,
+    /* Table description.
+     * The request body is empty.
+     * The reply body is an array of struct ofp_table_desc. */
+    OFPMP_TABLE_DESC = 14,
     /* Experimenter extension.
     * The request and reply bodies begin with
     * struct ofp_experimenter_stats_header.
@@ -1067,7 +1109,7 @@ struct ofp_table_features {
     char name[OFP_MAX_TABLE_NAME_LEN];
     uint64_t metadata_match; /* Bits of metadata table can match. */
     uint64_t metadata_write; /* Bits of metadata table can write. */
-    uint32_t config;         /* Bitmap of OFPTC_* values */
+    uint32_t capabilities;   /* Bitmap of OFPTC_* values */
     uint32_t max_entries;    /* Max number of entries supported. */
     /* Table Feature Property list */
     struct ofp_table_feature_prop_header properties[0];

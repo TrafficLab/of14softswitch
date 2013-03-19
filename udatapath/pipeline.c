@@ -279,10 +279,10 @@ pipeline_handle_table_mod(struct pipeline *pl,
         size_t i;
 
         for (i=0; i<PIPELINE_TABLES; i++) {
-            pl->tables[i]->features->config = msg->config;
+            pl->tables[i]->features->capabilities = msg->config;
         }
     } else {
-        pl->tables[msg->table_id]->features->config = msg->config;
+        pl->tables[msg->table_id]->features->capabilities = msg->config;
     }
 
     ofl_msg_free((struct ofl_msg_header *)msg, pl->dp->exp);

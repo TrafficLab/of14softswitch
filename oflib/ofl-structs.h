@@ -216,7 +216,7 @@ struct ofl_table_features {
     char *name;
     uint64_t metadata_match; /* Bits of metadata table can match. */
     uint64_t metadata_write; /* Bits of metadata table can write. */
-    uint32_t config;         /* Bitmap of OFPTC_* values */
+    uint32_t capabilities;   /* Bitmap of OFPTC_* values */
     uint32_t max_entries;    /* Max number of entries supported. */
     size_t properties_num;  /* Number of properties*/
     /* Table Feature Property list */
