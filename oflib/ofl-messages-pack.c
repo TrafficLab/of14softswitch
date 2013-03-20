@@ -357,18 +357,56 @@ ofl_msg_pack_meter_mod(struct ofl_msg_meter_mod *msg, uint8_t ** buf, size_t *bu
 }
 
 static int
+ofl_msg_pack_async_config_prop_reasons(struct ofp_async_config_prop_header *acph,
+                                       uint16_t type, uint32_t mask)
+{
+    struct ofp_async_config_prop_reasons *acpr =
+        (struct ofp_async_config_prop_reasons *)acph;
+
+    acpr->type = htons(type);
+    acpr->length = htons(sizeof(*acpr));
+    acpr->mask = htonl(mask);
+
+    return sizeof(*acpr);
+}
+
+static int
 ofl_msg_pack_async_config(struct ofl_msg_async_config *msg, uint8_t **buf, size_t *buf_len){
     struct ofp_async_config *ac;
+    struct ofp_async_config_prop_header *acph;
+    size_t bytes = 0;
     int i;
-    *buf_len = sizeof(struct ofp_async_config);
+    *buf_len = sizeof(struct ofp_async_config) + (6 * sizeof(struct ofp_async_config_prop_reasons));
     *buf = malloc(*buf_len);
 
     ac = (struct ofp_async_config*)(*buf);
-    for(i = 0; i < 2; i++){
-        ac->packet_in_mask[i] = msg->config->packet_in_mask[i];
-        ac->port_status_mask[i] = msg->config->port_status_mask[i];
-        ac->flow_removed_mask[i] =  msg->config->flow_removed_mask[i];
-    }
+
+    acph = ac->properties;
+
+    bytes = ofl_msg_pack_async_config_prop_reasons(
+        acph, OFPACPT_PACKET_IN_MASTER, msg->config->packet_in_mask[0]);
+    acph = (struct ofp_async_config_prop_header *)(((uint8_t *)acph) + bytes);
+
+    bytes = ofl_msg_pack_async_config_prop_reasons(
+        acph, OFPACPT_PACKET_IN_SLAVE, msg->config->packet_in_mask[1]);
+    acph = (struct ofp_async_config_prop_header *)(((uint8_t *)acph) + bytes);
+
+    bytes = ofl_msg_pack_async_config_prop_reasons(
+        acph, OFPACPT_PORT_STATUS_MASTER, msg->config->port_status_mask[0]);
+    acph = (struct ofp_async_config_prop_header *)(((uint8_t *)acph) + bytes);
+
+    bytes = ofl_msg_pack_async_config_prop_reasons(
+        acph, OFPACPT_PORT_STATUS_SLAVE, msg->config->port_status_mask[1]);
+    acph = (struct ofp_async_config_prop_header *)(((uint8_t *)acph) + bytes);
+
+    bytes = ofl_msg_pack_async_config_prop_reasons(
+        acph, OFPACPT_FLOW_REMOVED_MASTER, msg->config->flow_removed_mask[0]);
+    acph = (struct ofp_async_config_prop_header *)(((uint8_t *)acph) + bytes);
+
+    bytes = ofl_msg_pack_async_config_prop_reasons(
+        acph, OFPACPT_FLOW_REMOVED_SLAVE, msg->config->flow_removed_mask[1]);
+    acph = (struct ofp_async_config_prop_header *)(((uint8_t *)acph) + bytes);
+
     return 0;
 }
 

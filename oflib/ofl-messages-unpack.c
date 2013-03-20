@@ -184,11 +184,61 @@ ofl_msg_unpack_set_config(struct ofp_header *src, size_t *len, struct ofl_msg_he
      return 0;
 }
 
+static int
+ofl_msg_unpack_async_config_prop(struct ofp_async_config_prop_header *acph,
+                                 struct ofl_msg_async_config *dac)
+{
+    int role_index;
+    uint16_t prop_type;
+    uint16_t prop_size;
+
+    prop_type = ntohs(acph->type);
+    prop_size = ntohs(acph->length);
+
+    /* Low order bit set indicates a property for the master/equal role */
+    role_index = ((prop_type & 0x1) == 0x1) ? 0 : 1;
+
+    switch (prop_type) {
+        case OFPACPT_PACKET_IN_SLAVE:
+        case OFPACPT_PACKET_IN_MASTER: {
+            struct ofp_async_config_prop_reasons *acpr;
+            acpr = (struct ofp_async_config_prop_reasons *)acph;
+            dac->config->packet_in_mask[role_index] = ntohl(acpr->mask);
+            break;
+        }
+
+        case OFPACPT_PORT_STATUS_SLAVE:
+        case OFPACPT_PORT_STATUS_MASTER: {
+            struct ofp_async_config_prop_reasons *acpr;
+            acpr = (struct ofp_async_config_prop_reasons *)acph;
+            dac->config->port_status_mask[role_index] = ntohl(acpr->mask);
+            break;
+        }
+
+        case OFPACPT_FLOW_REMOVED_SLAVE:
+        case OFPACPT_FLOW_REMOVED_MASTER: {
+            struct ofp_async_config_prop_reasons *acpr;
+            acpr = (struct ofp_async_config_prop_reasons *)acph;
+            dac->config->flow_removed_mask[role_index] = ntohl(acpr->mask);
+            break;
+        }
+
+        case OFPACPT_EXPERIMENTER_SLAVE:
+        case OFPACPT_EXPERIMENTER_MASTER:
+        default:
+            break;
+            /* no experimenters */
+    }
+
+    return prop_size;
+}
+
 static ofl_err 
 ofl_msg_unpack_async_config(struct ofp_header *src, size_t *len, struct ofl_msg_header **msg){
     struct ofp_async_config *sac;
+    struct ofp_async_config_prop_header *acph;
     struct ofl_msg_async_config *dac;
-    int i;
+    size_t bytes_read = 0;
     
     if (*len < sizeof(struct ofp_async_config)) {
         OFL_LOG_WARN(LOG_MODULE, "Received ASYNC CONFIG message has invalid length (%zu).", *len);
@@ -200,12 +250,19 @@ ofl_msg_unpack_async_config(struct ofp_header *src, size_t *len, struct ofl_msg_
     sac = (struct ofp_async_config*)src;
     dac = (struct ofl_msg_async_config*)malloc(sizeof(struct ofl_msg_async_config));
     dac->config = (struct ofl_async_config*) malloc(sizeof(struct ofl_async_config));
-    for(i = 0; i < 2; i++){
-        dac->config->packet_in_mask[i] = sac->packet_in_mask[i];
-        dac->config->port_status_mask[i] = sac->port_status_mask[i];
-        dac->config->flow_removed_mask[i] =  sac->flow_removed_mask[i];
-    }
     
+    acph = sac->properties;
+    while (*len >= sizeof(*acph)) {
+        acph = (struct ofp_async_config_prop_header *)((uint8_t *)acph + bytes_read);
+        bytes_read = ofl_msg_unpack_async_config_prop(acph, dac);
+        if (bytes_read > *len || bytes_read == 0) {
+            /* TODO: some cleanup */
+            return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
+        }
+
+        *len -= bytes_read;
+    }
+
     *msg = (struct ofl_msg_header*)dac;
     return 0;
 }

@@ -1502,14 +1502,57 @@ enum ofp_controller_role {
     OFPCR_ROLE_SLAVE = 3,    /* Read-only access. */
 };
 
+/* Async Config property types.
+ * Low order bit cleared indicates a property for the slave role.
+ * Low order bit set indicates a property for the master/equal role.
+ */
+enum ofp_async_config_prop_type {
+    OFPACPT_PACKET_IN_SLAVE     = 0, /* Packet-in mask for slave. */
+    OFPACPT_PACKET_IN_MASTER    = 1, /* Packet-in mask for master. */
+    OFPACPT_PORT_STATUS_SLAVE   = 2, /* Port-status mask for slave. */
+    OFPACPT_PORT_STATUS_MASTER  = 3, /* Port-status mask for master. */
+    OFPACPT_FLOW_REMOVED_SLAVE  = 4, /* Flow removed mask for slave. */
+    OFPACPT_FLOW_REMOVED_MASTER = 5, /* Flow removed mask for master. */
+    OFPACPT_EXPERIMENTER_SLAVE  = 0xFFFE, /* Experimenter for slave. */
+    OFPACPT_EXPERIMENTER_MASTER = 0xFFFF, /* Experimenter for master. */
+};
+
+/* Common header for all async config Properties */
+struct ofp_async_config_prop_header {
+    uint16_t        type;       /* One of OFPACPT_*. */
+    uint16_t        length;     /* Length in bytes of this property. */
+};
+OFP_ASSERT(sizeof(struct ofp_async_config_prop_header) == 4);
+
+/* Various reason based properties */
+struct ofp_async_config_prop_reasons {
+    uint16_t        type;       /* One of OFPACPT_PACKET_IN_*,
+                                   OFPACPT_PORT_STATUS_*,
+                                   OFPACPT_FLOW_REMOVED_*. */
+    uint16_t        length;     /* Length in bytes of this property. */
+    uint32_t        mask;       /* Bitmasks of reason values. */
+};
+OFP_ASSERT(sizeof(struct ofp_async_config_prop_reasons) == 8);
+
+/* Experimenter async config property */
+struct ofp_async_config_prop_experimenter {
+    uint16_t        type;
+    uint16_t        length;
+    uint32_t        experimenter;
+    uint32_t        exp_type;
+
+    uint32_t        experimenter_data[0];
+};
+OFP_ASSERT(sizeof(struct ofp_async_config_prop_experimenter) == 12);
+
 /* Asynchronous message configuration. */
 struct ofp_async_config {
     struct ofp_header header; /* OFPT_GET_ASYNC_REPLY or OFPT_SET_ASYNC. */
-    uint32_t packet_in_mask[2]; /* Bitmasks of OFPR_* values. */
-    uint32_t port_status_mask[2]; /* Bitmasks of OFPPR_* values. */
-    uint32_t flow_removed_mask[2];/* Bitmasks of OFPRR_* values. */
+
+    /* Async config Property list - 0 or more */
+    struct ofp_async_config_prop_header properties[0];
 };
-OFP_ASSERT(sizeof(struct ofp_async_config) == 32);
+OFP_ASSERT(sizeof(struct ofp_async_config) == 8);
 
 
 
