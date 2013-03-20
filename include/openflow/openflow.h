@@ -953,7 +953,7 @@ enum ofp_multipart_types {
     /* Queue statistics for a port
     * The request body is struct ofp_queue_stats_request.
     * The reply body is an array of struct ofp_queue_stats */
-    OFPMP_QUEUE = 5,
+    OFPMP_QUEUE_STATS = 5,
     /* Group counter statistics.
     * The request body is struct ofp_group_stats_request.
     * The reply is an array of struct ofp_group_stats. */

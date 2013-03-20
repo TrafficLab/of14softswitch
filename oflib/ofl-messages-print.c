@@ -336,7 +336,7 @@ ofl_msg_print_multipart_request(struct ofl_msg_multipart_request_header *msg, FI
             ofl_msg_print_stats_request_port((struct ofl_msg_multipart_request_port *)msg, stream);
             break;
         }
-        case OFPMP_QUEUE: {
+        case OFPMP_QUEUE_STATS: {
             ofl_msg_print_stats_request_queue((struct ofl_msg_multipart_request_queue *)msg, stream);
             break;
         }
@@ -608,7 +608,7 @@ ofl_msg_print_multipart_reply(struct ofl_msg_multipart_reply_header *msg, FILE *
             ofl_msg_print_stats_reply_port((struct ofl_msg_multipart_reply_port *)msg, stream);
             break;
         }
-        case OFPMP_QUEUE: {
+        case OFPMP_QUEUE_STATS: {
             ofl_msg_print_stats_reply_queue((struct ofl_msg_multipart_reply_queue *)msg, stream);
             break;
         }

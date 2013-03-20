@@ -770,7 +770,7 @@ dp_ports_handle_stats_request_queue(struct datapath *dp,
 
     struct ofl_msg_multipart_reply_queue reply =
             {{{.type = OFPT_MULTIPART_REPLY},
-              .type = OFPMP_QUEUE, .flags = 0x0000},
+              .type = OFPMP_QUEUE_STATS, .flags = 0x0000},
              .stats_num   = 0,
              .stats       = NULL};
 

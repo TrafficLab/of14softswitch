@@ -203,7 +203,7 @@ handle_control_stats_request(struct datapath *dp,
         case (OFPMP_PORT_STATS): {
             return dp_ports_handle_stats_request_port(dp, (struct ofl_msg_multipart_request_port *)msg, sender);
         }
-        case (OFPMP_QUEUE): {
+        case (OFPMP_QUEUE_STATS): {
             return dp_ports_handle_stats_request_queue(dp, (struct ofl_msg_multipart_request_queue *)msg, sender);
         }
         case (OFPMP_GROUP): {

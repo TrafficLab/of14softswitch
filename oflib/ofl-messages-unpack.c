@@ -892,7 +892,7 @@ ofl_msg_unpack_multipart_request(struct ofp_header *src,uint8_t *buf, size_t *le
             error = ofl_msg_unpack_multipart_request_port(os, len, msg);
             break;
         }
-        case OFPMP_QUEUE: {
+        case OFPMP_QUEUE_STATS: {
             error = ofl_msg_unpack_multipart_request_queue(os, len, msg);
             break;
         }
@@ -1410,7 +1410,7 @@ ofl_msg_unpack_multipart_reply(struct ofp_header *src, uint8_t *buf, size_t *len
             error = ofl_msg_unpack_multipart_reply_port(os, len, msg);
             break;
         }
-        case OFPMP_QUEUE: {
+        case OFPMP_QUEUE_STATS: {
             error = ofl_msg_unpack_multipart_reply_queue(os, len, msg);
             break;
         }

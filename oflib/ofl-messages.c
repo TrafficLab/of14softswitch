@@ -67,7 +67,7 @@ ofl_msg_free_multipart_request(struct ofl_msg_multipart_request_header *msg, str
         }
         case OFPMP_TABLE:
         case OFPMP_PORT_STATS :
-        case OFPMP_QUEUE:
+        case OFPMP_QUEUE_STATS:
         case OFPMP_GROUP:
         case OFPMP_GROUP_DESC:
         case OFPMP_GROUP_FEATURES:
@@ -133,7 +133,7 @@ ofl_msg_free_multipart_reply(struct ofl_msg_multipart_reply_header *msg, struct 
             OFL_UTILS_FREE_ARR(stat->stats, stat->stats_num);
             break;
         }
-        case OFPMP_QUEUE: {
+        case OFPMP_QUEUE_STATS: {
             struct ofl_msg_multipart_reply_queue *stat = (struct ofl_msg_multipart_reply_queue *)msg;
             OFL_UTILS_FREE_ARR(stat->stats, stat->stats_num);
             break;

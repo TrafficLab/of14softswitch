@@ -525,7 +525,7 @@ static void
 stats_queue(struct vconn *vconn, int argc, char *argv[]) {
     struct ofl_msg_multipart_request_queue req =
             {{{.type = OFPT_MULTIPART_REQUEST},
-              .type = OFPMP_QUEUE, .flags = 0x0000},
+              .type = OFPMP_QUEUE_STATS, .flags = 0x0000},
              .port_no = OFPP_ANY,
              .queue_id = OFPQ_ALL};
 

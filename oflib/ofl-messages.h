@@ -301,7 +301,7 @@ struct ofl_msg_multipart_request_port {
 };
 
 struct ofl_msg_multipart_request_queue {
-    struct ofl_msg_multipart_request_header   header; /* OFPMP_QUEUE */
+    struct ofl_msg_multipart_request_header   header; /* OFPMP_QUEUE_STATS */
     uint32_t   port_no; /* All ports if OFPP_ANY. */
     uint32_t   queue_id; /* All queues if OFPQ_ALL. */
 };
@@ -384,7 +384,7 @@ struct ofl_msg_multipart_reply_port {
 };
 
 struct ofl_msg_multipart_reply_queue {
-    struct ofl_msg_multipart_reply_header   header; /* OFPMP_QUEUE */
+    struct ofl_msg_multipart_reply_header   header; /* OFPMP_QUEUE_STATS */
 
     size_t                   stats_num;
     struct ofl_queue_stats **stats;
