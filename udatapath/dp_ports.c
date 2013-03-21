@@ -359,6 +359,7 @@ new_port(struct datapath *dp, struct sw_port *port, uint32_t port_no,
     port->dp = dp;
 
     port->conf = xmalloc(sizeof(struct ofl_port));
+    port->conf->type = OFPPDPT_ETHERNET;
     port->conf->port_no    = port_no;
     memcpy(port->conf->hw_addr, netdev_get_etheraddr(netdev), ETH_ADDR_LEN);
     port->conf->name       = strcpy(xmalloc(strlen(netdev_name) + 1), netdev_name);

@@ -1399,7 +1399,7 @@ ofl_msg_unpack_multipart_reply_port_desc(struct ofp_multipart_reply *src, size_t
             free (pd);
             return error;
         }
-        port = (struct ofp_port *)((uint8_t *)port + sizeof(struct ofp_port));		
+        port = (struct ofp_port *)((uint8_t *)port + ntohs(port->length));
 	}
     *msg = (struct ofl_msg_header *)pd;
     return 0;

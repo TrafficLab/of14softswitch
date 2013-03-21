@@ -46,6 +46,7 @@
 #include "stp.h"
 #include "timeval.h"
 #include "vlog.h"
+#include "oflib/ofl-structs.h"
 
 #define LOG_MODULE VLM_stp_secchan
 
@@ -235,6 +236,8 @@ stp_port_changed_cb(uint32_t port_no,
 {
     struct stp_data *stp = stp_;
     struct stp_port *p;
+    size_t newp_len;
+    struct ofl_port *newp;
 
     if (!stp_is_port_supported(port_no)) {
         return;
@@ -249,14 +252,24 @@ stp_port_changed_cb(uint32_t port_no,
         stp_port_disable(p);
     } else {
         int speed = 0;
+
+        newp_len = ntohs(new->length);
+        if (!ofl_structs_port_unpack(new, &newp_len, &newp)) {
+            /* EXT-262-TODO: Handle error */
+            return;
+        }
+
+        if (newp == NULL) {
+            return;
+        }
         stp_port_enable(p);
-        if (new->curr & (OFPPF_10MB_HD | OFPPF_10MB_FD)) {
+        if (newp->curr & (OFPPF_10MB_HD | OFPPF_10MB_FD)) {
             speed = 10;
-        } else if (new->curr & (OFPPF_100MB_HD | OFPPF_100MB_FD)) {
+        } else if (newp->curr & (OFPPF_100MB_HD | OFPPF_100MB_FD)) {
             speed = 100;
-        } else if (new->curr & (OFPPF_1GB_HD | OFPPF_1GB_FD)) {
+        } else if (newp->curr & (OFPPF_1GB_HD | OFPPF_1GB_FD)) {
             speed = 1000;
-        } else if (new->curr & OFPPF_10GB_FD) {
+        } else if (newp->curr & OFPPF_10GB_FD) {
             speed = 10000;
         }
         stp_port_set_speed(p, speed);

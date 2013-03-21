@@ -103,26 +103,96 @@ struct ofp_hello {
 
 /******** Common Structures **********************/
 
+/* Port description property types.
+ */
+enum ofp_port_desc_prop_type {
+	OFPPDPT_ETHERNET          = 0,      /* Ethernet property. */
+	OFPPDPT_OPTICAL           = 1,      /* Optical property. */
+	OFPPDPT_EXPERIMENTER      = 0xFFFF, /* Experimenter property. */
+};
+
+/* Common header for all port description properties. */
+struct ofp_port_desc_prop_header {
+	uint16_t         type;    /* One of OFPPDPT_*. */
+	uint16_t         length;  /* Length in bytes of this property. */
+};
+OFP_ASSERT(sizeof(struct ofp_port_desc_prop_header) == 4);
+
+/* Ethernet port description property. */
+struct ofp_port_desc_prop_ethernet {
+	uint16_t         type;    /* OFPPDPT_ETHERNET. */
+	uint16_t         length;  /* Length in bytes of this property. */
+	uint8_t          pad[4];  /* Align to 64 bits. */
+	/* Bitmaps of OFPPF_* that describe features.  All bits zeroed if
+	 * unsupported or unavailable. */
+	uint32_t curr;          /* Current features. */
+	uint32_t advertised;    /* Features being advertised by the port. */
+	uint32_t supported;     /* Features supported by the port. */
+	uint32_t peer;          /* Features advertised by peer. */
+
+	uint32_t curr_speed;    /* Current port bitrate in kbps. */
+	uint32_t max_speed;     /* Max port bitrate in kbps */
+};
+OFP_ASSERT(sizeof(struct ofp_port_desc_prop_ethernet) == 32);
+
+/* Features of optical ports available in switch. */
+enum ofp_optical_port_features {
+	OFPOPF_RX_TUNE   = 1 << 0,  /* Receiver is tunable */
+	OFPOPF_TX_TUNE   = 1 << 1,  /* Transmit is tunable */
+	OFPOPF_TX_PWR    = 1 << 2,  /* Power is configurable */
+	OFPOPF_USE_FREQ  = 1 << 3,  /* Use Frequency, not wavelength */
+};
+
+/* Optical port description property. */
+struct ofp_port_desc_prop_optical {
+	uint16_t         type;    /* OFPPDPT_3OPTICAL. */
+	uint16_t         length;  /* Length in bytes of this property. */
+	uint8_t          pad[4];  /* Align to 64 bits. */
+
+	uint32_t supported;     /* Features supported by the port. */
+	uint32_t tx_min_freq_lmda;   /* Minimum TX Frequency/Wavelength */
+	uint32_t tx_max_freq_lmda;   /* Maximum TX Frequency/Wavelength */
+	uint32_t tx_grid_freq_lmda;  /* TX Grid Spacing Frequency/Wavelength */
+	uint32_t rx_min_freq_lmda;   /* Minimum RX Frequency/Wavelength */
+	uint32_t rx_max_freq_lmda;   /* Maximum RX Frequency/Wavelength */
+	uint32_t rx_grid_freq_lmda;  /* RX Grid Spacing Frequency/Wavelength */
+	uint16_t tx_pwr_min;         /* Minimum TX power */
+	uint16_t tx_pwr_max;         /* Maximum TX power */
+};
+OFP_ASSERT(sizeof(struct ofp_port_desc_prop_optical) == 40);
+
+/* Experimenter port description property. */
+struct ofp_port_desc_prop_experimenter {
+	uint16_t         type;    /* OFPPDPT_EXPERIMENTER. */
+	uint16_t         length;  /* Length in bytes of this property. */
+	uint32_t         experimenter;  /* Experimenter ID which takes the same
+	                                   form as in struct
+	                                   ofp_experimenter_header. */
+	uint32_t         exp_type;      /* Experimenter defined. */
+	/* Followed by:
+	 *   - Exactly (length - 12) bytes containing the experimenter data, then
+	 *   - Exactly (length + 7)/8*8 - (length) (between 0 and 7)
+	 *     bytes of all-zero bytes */
+	uint32_t         experimenter_data[0];
+};
+OFP_ASSERT(sizeof(struct ofp_port_desc_prop_experimenter) == 12);
+
 
 /* Description of a port */
 struct ofp_port {
 	uint32_t port_no;
-	uint8_t pad[4];
+	uint16_t length;
+	uint8_t pad[2];
 	uint8_t hw_addr[OFP_ETH_ALEN];
 	uint8_t pad2[2];                  /* Align to 64 bits. */
 	char name[OFP_MAX_PORT_NAME_LEN]; /* Null-terminated */
 	uint32_t config;                  /* Bitmap of OFPPC_* flags. */
 	uint32_t state;                   /* Bitmap of OFPPS_* flags. */
-	/* Bitmaps of OFPPF_* that describe features. All bits zeroed if
-	* unsupported or unavailable. */
-	uint32_t curr;                    /* Current features. */
-	uint32_t advertised;              /* Features being advertised by the port. */
-	uint32_t supported;               /* Features supported by the port. */
-	uint32_t peer;                    /* Features advertised by peer. */
-	uint32_t curr_speed;              /* Current port bitrate in kbps. */
-	uint32_t max_speed;               /* Max port bitrate in kbps */
+
+	/* Port description property list - 0 or more properties */
+	struct ofp_port_desc_prop_header properties[0];
 };
-OFP_ASSERT(sizeof(struct ofp_port) == 64);
+OFP_ASSERT(sizeof(struct ofp_port) == 40);
 
 /* Flags to indicate behavior of the physical port. These flags are
 * used in ofp_port to describe the current configuration. They are
@@ -1619,7 +1689,7 @@ struct ofp_port_status {
 	uint8_t pad[7]; /* Align to 64-bits. */
 	struct ofp_port desc;
 };
-OFP_ASSERT(sizeof(struct ofp_port_status) == 80);
+OFP_ASSERT(sizeof(struct ofp_port_status) == 56);
 
 /* What changed about the physical port */
 enum ofp_port_reason {

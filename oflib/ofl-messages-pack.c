@@ -194,11 +194,24 @@ ofl_msg_pack_flow_removed(struct ofl_msg_flow_removed *msg, uint8_t **buf, size_
     return 0;
 }
 
+static size_t
+ofl_msg_pack_port_status_size(struct ofl_msg_port_status *msg) {
+    size_t status_size;
+
+    status_size = sizeof(struct ofp_port_status);
+
+    /* remove the base port size, and add the required properties size */
+    status_size +=
+        (ofl_structs_port_pack_size(msg->desc) - sizeof(struct ofp_port));
+
+    return status_size;
+}
+
 static int
 ofl_msg_pack_port_status(struct ofl_msg_port_status *msg, uint8_t **buf, size_t *buf_len) {
     struct ofp_port_status *status;
 
-    *buf_len = sizeof(struct ofp_port_status);
+    *buf_len = ofl_msg_pack_port_status_size(msg);
     *buf     = (uint8_t *)malloc(*buf_len);
 
     status = (struct ofp_port_status *)(*buf);
@@ -844,13 +857,26 @@ ofl_msg_pack_multipart_reply_meter_conf(struct ofl_msg_multipart_reply_meter_con
     return 0;
 }
 
+static size_t
+ofl_msg_pack_multipart_reply_port_status_desc_size(struct ofl_msg_multipart_reply_port_desc *msg) {
+    int i;
+    size_t desc_size;
+
+    desc_size = sizeof(struct ofp_multipart_reply);
+
+    for (i = 0; i < msg->stats_num; i++) {
+        desc_size += ofl_structs_port_pack_size(msg->stats[i]);
+    }
+
+    return desc_size;
+}
 
 static int
 ofl_msg_pack_multipart_reply_port_status_desc(struct ofl_msg_multipart_reply_port_desc *msg, uint8_t **buf, size_t *buf_len) {
     struct ofp_multipart_reply * resp;
 	uint8_t *data;
 	size_t i;
-    *buf_len = sizeof(struct ofp_multipart_reply) + msg->stats_num * sizeof(struct ofp_port);
+    *buf_len = ofl_msg_pack_multipart_reply_port_status_desc_size(msg);
     *buf     = (uint8_t *)malloc(*buf_len);
 
 	resp = (struct ofp_multipart_reply *)(*buf);

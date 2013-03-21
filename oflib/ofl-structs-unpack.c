@@ -860,10 +860,79 @@ ofl_structs_packet_queue_unpack(struct ofp_packet_queue *src, size_t *len, struc
     return 0;
 }
 
+static ofl_err
+ofl_structs_port_prop_unpack(struct ofl_port *pp,
+                             const struct ofp_port_desc_prop_header *opp,
+                             size_t *prop_bytes_read)
+{
+    *prop_bytes_read = 0;
+
+    switch (ntohl(opp->type)) {
+        case OFPPDPT_ETHERNET:
+        {
+            struct ofp_port_desc_prop_ethernet *opp_e;
+            opp_e = (struct ofp_port_desc_prop_ethernet *)opp;
+
+            if (ntohs(opp_e->length) != sizeof(*opp_e)) {
+                break;
+            }
+
+            pp->type = ntohl(opp_e->type);
+            pp->curr = ntohl(opp_e->curr);
+            pp->advertised = ntohl(opp_e->advertised);
+            pp->supported = ntohl(opp_e->supported);
+            pp->peer = ntohl(opp_e->peer);
+            pp->curr_speed = ntohl(opp_e->curr_speed);
+            pp->max_speed = ntohl(opp_e->max_speed);
+            
+            *prop_bytes_read += sizeof(*opp_e);
+            return 0;
+        }
+        case OFPPDPT_OPTICAL:
+        {
+            struct ofp_port_desc_prop_optical *opp_o;
+            opp_o = (struct ofp_port_desc_prop_optical *)opp;
+
+            if (ntohs(opp_o->length) != sizeof(*opp_o)) {
+                break;
+            }
+
+#if 0 /* EXT-262-TODO */
+            pp->type = ofputil_port_type_from_ofp(opp_o->type);
+            pp->supported = netdev_port_features_from_ofp11(opp_o->supported);
+            pp->tx_min_freq_lmda = ntohl(opp_o->tx_min_freq_lmda);
+            pp->tx_max_freq_lmda = ntohl(opp_o->tx_max_freq_lmda);
+            pp->tx_grid_freq_lmda = ntohl(opp_o->tx_grid_freq_lmda);
+            pp->rx_min_freq_lmda = ntohl(opp_o->rx_min_freq_lmda);
+            pp->rx_max_freq_lmda = ntohl(opp_o->rx_max_freq_lmda);
+            pp->rx_grid_freq_lmda = ntohl(opp_o->rx_grid_freq_lmda);
+            pp->tx_pwr_min = ntohs(opp_o->tx_pwr_min);
+            pp->tx_pwr_max = ntohs(opp_o->tx_pwr_max);
+#endif
+            *prop_bytes_read += sizeof(*opp_o);
+            return 0;
+        }
+        case OFPPDPT_EXPERIMENTER:
+        {
+            /* no known experimenters */
+            /* EXT-262-TODO: Switch to correct error type */
+            return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_EXPERIMENTER);
+        }
+        default:
+            break;
+    }
+
+    /* EXT-262-TODO: Switch to correct error type */
+    return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
+}
 
 ofl_err
-ofl_structs_port_unpack(struct ofp_port *src, size_t *len, struct ofl_port **dst) {
+ofl_structs_port_unpack(const struct ofp_port *src, size_t *len, struct ofl_port **dst) {
     struct ofl_port *p;
+    size_t ofp_len;
+    size_t bytes_read;
+    struct ofp_port_desc_prop_header *prop;
+    ofl_err err;
 
     if (*len < sizeof(struct ofp_port)) {
         OFL_LOG_WARN(LOG_MODULE, "Received port has invalid length (%zu).", *len);
@@ -880,21 +949,47 @@ ofl_structs_port_unpack(struct ofp_port *src, size_t *len, struct ofl_port **dst
         return ofl_error(OFPET_BAD_ACTION, OFPBRC_BAD_LEN);
     }
     *len -= sizeof(struct ofp_port);
+    bytes_read = sizeof(struct ofp_port);
     p = (struct ofl_port *)malloc(sizeof(struct ofl_port));
 
+    ofp_len = ntohs(src->length);
     p->port_no = ntohl(src->port_no);
     memcpy(p->hw_addr, src->hw_addr, ETH_ADDR_LEN);
     p->name = strcpy((char *)malloc(strlen(src->name) + 1), src->name);
     p->config = ntohl(src->config);
     p->state = ntohl(src->state);
-    p->curr = ntohl(src->curr);
-    p->advertised = ntohl(src->advertised);
-    p->supported = ntohl(src->supported);
-    p->peer = ntohl(src->peer);
-    p->curr_speed = ntohl(src->curr_speed);
-    p->max_speed = ntohl(src->max_speed);
 
     *dst = p;
+
+    prop = src->properties;
+    while (bytes_read < ofp_len) {
+        size_t prop_bytes_read;
+
+        /* not enough bytes to read */
+        if ((*len < sizeof(struct ofp_port_desc_prop_header)) ||
+            ((ofp_len - bytes_read) < sizeof(struct ofp_port_desc_prop_header))) {
+            /* EXT-262-TODO: Switch to correct error type */
+            return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
+        }
+
+        /* reading prop failed */
+        if ((err = ofl_structs_port_prop_unpack(p, prop, &prop_bytes_read)) != 0) {
+            /* EXT-262-TODO: Error handling */
+            return err;
+        }
+
+        /* don't get stuck without advancing */
+        if (prop_bytes_read == 0) {
+            /* EXT-262-TODO: Switch to correct error type */
+            return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
+        }
+
+        bytes_read += prop_bytes_read;
+        *len -= prop_bytes_read;
+
+        prop = (struct ofp_port_desc_prop_header *)((uint8_t *)prop + prop_bytes_read);
+    }
+
     return 0;
 }
 

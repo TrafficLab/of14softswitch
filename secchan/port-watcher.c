@@ -48,8 +48,9 @@
 #include "shash.h"
 #include "svec.h"
 #include "timeval.h"
-#include "xtoxll.h"
+//#include "xtoxll.h"
 #include "vlog.h"
+#include "oflib/ofl-structs.h"
 
 #define LOG_MODULE VLM_port_watcher
 
@@ -84,18 +85,14 @@ struct port_watcher {
 static int
 opp_differs(const struct ofp_port *a, const struct ofp_port *b)
 {
-    BUILD_ASSERT_DECL(sizeof *a == 64); /* Trips when we add or remove fields. */
+    /* EXT-262-TODO: Add property checks here? */
+    BUILD_ASSERT_DECL(sizeof *a == 40); /* Trips when we add or remove fields. */
     return ((a->port_no != b->port_no)
             + (memcmp(a->hw_addr, b->hw_addr, sizeof a->hw_addr) != 0)
             + (memcmp(a->name, b->name, sizeof a->name) != 0)
             + (a->config != b->config)
             + (a->state != b->state)
-            + (a->curr != b->curr)
-            + (a->advertised != b->advertised)
-            + (a->supported != b->supported)
-            + (a->peer != b->peer)
-            + (a->curr_speed != b->curr_speed)
-            + (a->max_speed != b->max_speed));
+            + (a->length != b->length));
 }
 
 static void
@@ -499,8 +496,24 @@ log_port_status(uint32_t port_no,
             }
         } else {
             struct ds ds = DS_EMPTY_INITIALIZER;
-            uint32_t curr = ntohl(new->curr);
-            uint32_t supported = ntohl(new->supported);
+            size_t newp_len;
+            struct ofl_port *newp;
+            uint32_t curr;
+            uint32_t supported;
+
+            newp_len = ntohs(new->length);
+            if (!ofl_structs_port_unpack(new, &newp_len, &newp)) {
+                VLOG_ERR(LOG_MODULE, "Port %d could not be read", port_no);
+                return;
+            }
+
+            if (newp == NULL) {
+                VLOG_ERR(LOG_MODULE, "Port %d could not be read", port_no);
+                return;
+            }
+
+            curr = newp->curr;
+            supported = newp->supported;
             ds_put_format(&ds, "\"%s\", "ETH_ADDR_FMT, new->name,
                           ETH_ADDR_ARGS(new->hw_addr));
             if (curr) {
@@ -511,6 +524,7 @@ log_port_status(uint32_t port_no,
             }
             VLOG_DBG(LOG_MODULE, "Port %d %s: %s",
                      port_no, old ? "changed" : "added", ds_cstr(&ds));
+            free(newp);
             ds_destroy(&ds);
         }
     }

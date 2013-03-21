@@ -322,6 +322,7 @@ struct ofl_port {
     uint8_t    hw_addr[OFP_ETH_ALEN];
     char      *name;
 
+    uint32_t   type;          /* OFPPDPT_* */
     uint32_t   config;        /* Bitmap of OFPPC_* flags. */
     uint32_t   state;         /* Bitmap of OFPPS_* flags. */
 
@@ -488,6 +489,9 @@ ofl_structs_port_stats_pack(struct ofl_port_stats *src, struct ofp_port_stats *d
 
 
 size_t
+ofl_structs_port_pack_size(struct ofl_port *src);
+
+size_t
 ofl_structs_port_pack(struct ofl_port *src, struct ofp_port *dst);
 
 size_t
@@ -525,7 +529,7 @@ ofl_err
 ofl_structs_packet_queue_unpack(struct ofp_packet_queue *src, size_t *len, struct ofl_packet_queue **dst);
 
 ofl_err
-ofl_structs_port_unpack(struct ofp_port *src, size_t *len, struct ofl_port **dst);
+ofl_structs_port_unpack(const struct ofp_port *src, size_t *len, struct ofl_port **dst);
 
 ofl_err
 ofl_structs_table_stats_unpack(struct ofp_table_stats *src, size_t *len, struct ofl_table_stats **dst);

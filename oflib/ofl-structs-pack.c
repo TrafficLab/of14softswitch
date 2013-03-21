@@ -824,24 +824,100 @@ ofl_structs_packet_queue_pack(struct ofl_packet_queue *src, struct ofp_packet_qu
     return total_len;
 }
 
+static size_t
+ofl_structs_port_prop_pack(const struct ofl_port *pp,
+                           struct ofp_port_desc_prop_header *opp)
+{
+    switch (pp->type) {
+        case OFPPDPT_ETHERNET:
+        {
+            struct ofp_port_desc_prop_ethernet *opp_e;
+            opp_e = (struct ofp_port_desc_prop_ethernet *)opp;
+
+            opp_e->type = htonl(pp->type);
+            opp_e->length = htons(sizeof(*opp_e));
+            opp_e->curr = htonl(pp->curr);
+            opp_e->advertised = htonl(pp->advertised);
+            opp_e->supported = htonl(pp->supported);
+            opp_e->peer = htonl(pp->peer);
+            opp_e->curr_speed = htonl(pp->curr_speed);
+            opp_e->max_speed = htonl(pp->max_speed);
+
+            return sizeof(*opp_e);
+        }
+        case OFPPDPT_OPTICAL:
+        {
+            struct ofp_port_desc_prop_optical *opp_o;
+            opp_o = (struct ofp_port_desc_prop_optical *)opp;
+
+            opp_o->type = htonl(pp->type);
+            opp_o->length = htons(sizeof(*opp_o));
+
+#if 0 /* EXT-262-TODO */
+            opp_o->tx_min_freq_lmda = htonl(pp->tx_min_freq_lmda);
+            opp_o->tx_max_freq_lmda = htonl(pp->tx_max_freq_lmda);
+            opp_o->tx_grid_freq_lmda = htonl(pp->tx_grid_freq_lmda);
+            opp_o->rx_min_freq_lmda = htonl(pp->rx_min_freq_lmda);
+            opp_o->rx_max_freq_lmda = htonl(pp->rx_max_freq_lmda);
+            opp_o->rx_grid_freq_lmda = htonl(pp->rx_grid_freq_lmda);
+            opp_o->tx_pwr_min = htons(pp->tx_pwr_min);
+            opp_o->tx_pwr_max = htons(pp->tx_pwr_max);
+#endif
+            return sizeof(*opp_o);
+        }
+        case OFPPDPT_EXPERIMENTER:
+            /* no known experimenters */
+            break;
+        default:
+            break;
+    }
+
+    return 0;
+}
+
+/* returns the required size of this port */
+size_t ofl_structs_port_pack_size(struct ofl_port *src)
+{
+    size_t port_size;
+
+    port_size = sizeof(struct ofp_port);
+
+    switch (src->type) {
+        case OFPPDPT_ETHERNET: {
+            port_size += sizeof(struct ofp_port_desc_prop_ethernet);
+            break;
+        }
+        case OFPPDPT_OPTICAL: {
+            port_size += sizeof(struct ofp_port_desc_prop_optical);
+            break;
+        }
+        default: {
+            break;
+        }
+    }
+
+    /* EXT-262-TODO: Add any experimenter sizes here */
+    return port_size;
+}
 
 size_t
 ofl_structs_port_pack(struct ofl_port *src, struct ofp_port *dst) {
+    size_t port_size;
+
+    port_size = sizeof(*dst);
+
     dst->port_no    = htonl(src->port_no);
-    memset(dst->pad, 0x00, 4);
+    memset(dst->pad, 0x00, sizeof(dst->pad));
     memcpy(dst->hw_addr, src->hw_addr, ETH_ADDR_LEN);
-    memset(dst->pad2, 0x00, 2);
+    memset(dst->pad2, 0x00, sizeof(dst->pad2));
     strncpy(dst->name, src->name, OFP_MAX_PORT_NAME_LEN);
     dst->config     = htonl(src->config);
     dst->state      = htonl(src->state);
-    dst->curr       = htonl(src->curr);
-    dst->advertised = htonl(src->advertised);
-    dst->supported  = htonl(src->supported);
-    dst->peer       = htonl(src->peer);
-    dst->curr_speed = htonl(src->curr_speed);
-    dst->max_speed  = htonl(src->max_speed);
 
-    return sizeof(struct ofp_port);
+    port_size += ofl_structs_port_prop_pack(src, dst->properties);
+
+    dst->length = htons(port_size);
+    return port_size;
 }
 
 size_t

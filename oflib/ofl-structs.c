@@ -162,7 +162,34 @@ ofl_utils_count_ofp_meter_bands(void *data, size_t data_len, size_t *count) {
 
 ofl_err
 ofl_utils_count_ofp_ports(void *data UNUSED, size_t data_len, size_t *count) {
-    *count = data_len / sizeof(struct ofp_port);
+    struct ofp_port *op;
+    size_t bytes_read = 0;
+    size_t op_length;
+
+    *count = 0;
+
+    op = (struct ofp_port *)data;
+    while (bytes_read < data_len) {
+        /* not enough bytes left to fit a port */
+        if ((data_len - bytes_read) < sizeof(struct ofp_port)) {
+            /* EXT-262-TODO: Fix return code */
+            return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
+        }
+
+        op_length = ntohs(op->length);
+        op = (struct ofp_port *)((uint8_t *)op + op_length);
+        bytes_read += op_length;
+
+        /* length fields are wrong */
+        if (op_length == 0 ||
+            (op_length < sizeof(struct ofp_port))) {
+            /* EXT-262-TODO: Fix return code */
+            return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
+        }
+
+        (*count)++;
+    }
+
     return 0;
 }
 
