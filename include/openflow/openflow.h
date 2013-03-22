@@ -862,6 +862,55 @@ enum ofp_group_type {
     OFPGT_FF = 3,       /* Fast failover group. */
 };
 
+/* Port mod property types.
+ */
+enum ofp_port_mod_prop_type {
+	OFPPMPT_ETHERNET = 0,		/* Ethernet property. */
+	OFPPMPT_OPTICAL = 1,		/* Optical property. */
+	OFPPMPT_EXPERIMENTER = 0xFFFF,  /* Experimenter property. */
+};
+
+/* Common header for all port mod properties. */
+struct ofp_port_mod_prop_header {
+	uint16_t type;    /* One of OFPPMPT_*. */
+	uint16_t length;  /* Length in bytes of this property. */
+};
+OFP_ASSERT(sizeof(struct ofp_port_mod_prop_header) == 4);
+
+struct ofp_port_mod_prop_ethernet {
+	uint16_t type;       /* OFPPMPT_ETHERNET. */
+	uint16_t length;     /* Length in bytes of this property. */
+	uint32_t advertise;            /* Bitmap of OFPPF_*. Zero all bits to prevent
+                                      any action taking place. */
+};
+OFP_ASSERT(sizeof(struct ofp_port_mod_prop_ethernet) == 8);
+
+struct ofp_port_mod_prop_optical {
+	uint16_t type;       /* OFPPMPT_OPTICAL. */
+	uint16_t length;     /* Length in bytes of this property. */
+	uint32_t configure;  /* Bitmap of OFPOPF_*. */
+	uint32_t freq_lmda;  /* The "center" frequency */
+	int32_t  fl_offset;  /* signed frequency offset */
+	uint32_t grid_span;  /* The size of the grid for this port */
+	uint32_t tx_pwr;     /* tx power setting */
+};
+OFP_ASSERT(sizeof(struct ofp_port_mod_prop_optical) == 24);
+
+struct ofp_port_mod_prop_experimenter {
+	uint16_t type;
+	uint16_t length;
+	uint32_t experimenter;  /* Experimenter ID which take the same
+				   form as in struct
+				   ofp_experimenter_header. */
+	uint32_t exp_type;	/* Experimenter Defined. */
+	/* Followed by:
+	 *  - Exactly (length - 12) bytes containing the experimenter data, then
+	 *  - Exactly (length + 7)/8*8 - (length) (between 0 and 7)
+	 *    byte of all-zero- bytes */
+	uint32_t experimenter_data[0];
+};
+OFP_ASSERT(sizeof(struct ofp_port_mod_prop_experimenter) == 12);
+
 
 /* Modify behavior of the physical port */
 struct ofp_port_mod {
@@ -876,11 +925,11 @@ struct ofp_port_mod {
 	uint8_t pad2[2];               /* Pad to 64 bits. */
 	uint32_t config;               /* Bitmap of OFPPC_* flags. */
 	uint32_t mask;                 /* Bitmap of OFPPC_* flags to be changed. */
-	uint32_t advertise;            /* Bitmap of OFPPF_*. Zero all bits to prevent
-                                      any action taking place. */
-	uint8_t pad3[4];               /* Pad to 64 bits. */
+
+	/* Port mod property list - 0 or more properties. */
+	struct ofp_port_mod_prop_header properties[0];
 };
-OFP_ASSERT(sizeof(struct ofp_port_mod) == 40);
+OFP_ASSERT(sizeof(struct ofp_port_mod) == 32);
 
 /* Common header for all meter bands */
 struct ofp_meter_band_header {

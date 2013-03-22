@@ -32,6 +32,7 @@
 #include <string.h>
 #include <netinet/in.h>
 #include <endian.h>
+#include <errno.h>
 #include "ofl-actions.h"
 #include "ofl-messages.h"
 #include "ofl-structs.h"
@@ -680,34 +681,79 @@ ofl_msg_unpack_meter_mod(struct ofp_header *src, size_t *len, struct ofl_msg_hea
 }
 
 static ofl_err
+ofl_msg_validate_pmp_size(struct ofp_port_mod_prop_header *pph, size_t *len) {
+    size_t sz;
+
+    switch (pph->type) {
+    case OFPPMPT_ETHERNET:
+        sz = *len - sizeof(struct ofp_port_mod_prop_ethernet);
+        break;
+    case OFPPMPT_OPTICAL:
+        sz = *len - sizeof(struct ofp_port_mod_prop_optical);
+        if (sz < 0)
+           return -EINVAL;
+        *len = sz;
+        break;
+    case OFPPMPT_EXPERIMENTER:
+        /* TODO */
+    default:
+        return -EINVAL;
+    }
+
+    if (sz < 0)
+        return -EINVAL;
+    *len = sz;
+    return 0;
+}
+
+static ofl_err
 ofl_msg_unpack_port_mod(struct ofp_header *src, size_t *len, struct ofl_msg_header **msg) {
     struct ofp_port_mod *sm;
+    struct ofp_port_mod_prop_header *pph;
     struct ofl_msg_port_mod *dm;
 
-    if (*len < sizeof(struct ofp_port_mod)) {
+    if (*len < (sizeof(*sm) + sizeof(*pph))) {
         OFL_LOG_WARN(LOG_MODULE, "Received PORT_MOD has invalid length (%zu).", *len);
         return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
     }
 
     sm = (struct ofp_port_mod *)src;
+    pph = (struct ofp_port_mod_prop_header *)sm->properties;
 
-    /*if (ntohl(sm->port_no) == 0 || ntohl(sm->port_no) > OFPP_MAX) {
-        if (OFL_LOG_IS_WARN_ENABLED(LOG_MODULE)) {
-            char *ps = ofl_port_to_string(ntohl(sm->port_no));
-            OFL_LOG_WARN(LOG_MODULE, "Received PORT_MOD message has invalid in_port (%s).", ps);
-            free(ps);
-        }
-        return ofl_error(OFPET_BAD_REQUEST, OFPBAC_BAD_ARGUMENT);
-    }*/
     *len -= sizeof(struct ofp_port_mod);
-
     dm = (struct ofl_msg_port_mod *)malloc(sizeof(struct ofl_msg_port_mod));
+    ofl_msg_validate_pmp_size(pph, len);
 
     dm->port_no =   ntohl(sm->port_no);
     memcpy(dm->hw_addr, sm->hw_addr, OFP_ETH_ALEN);
     dm->config =    ntohl(sm->config);
     dm->mask =      ntohl(sm->mask);
-    dm->advertise = ntohl(sm->advertise);
+
+    /* TODO: Refactor this when we have experimenters */
+    switch (pph->type) {
+        case OFPPMPT_ETHERNET: {
+            struct ofp_port_mod_prop_ethernet *props = 
+                (struct ofp_port_mod_prop_ethernet *) pph;
+
+            dm->advertise = ntohl(props->advertise);
+            break;
+        }
+        case OFPPMPT_OPTICAL: {
+            struct ofp_port_mod_prop_optical *props =
+                (struct ofp_port_mod_prop_optical *) pph;
+
+            dm->configure = ntohl(props->configure);
+            dm->freq_lmda = ntohl(props->freq_lmda);
+            dm->fl_offset = ntohl(props->fl_offset);
+            dm->grid_span = ntohl(props->grid_span);
+            dm->tx_pwr = ntohl(props->tx_pwr);
+            break;
+        }
+        case OFPPMPT_EXPERIMENTER:
+            break;
+        default:
+            return -EINVAL;
+    };
 
     *msg = (struct ofl_msg_header *)dm;
     return 0;

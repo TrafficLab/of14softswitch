@@ -237,8 +237,22 @@ struct ofl_msg_port_mod {
                                         ofp_port struct. */
     uint32_t   config;    /* Bitmap of OFPPC_* flags. */
     uint32_t   mask;      /* Bitmap of OFPPC_* flags to be changed. */
+    uint16_t   type;      /* OFPPMPT_*. */
+
+    /* OFFPMT_ETHERNET message. */
     uint32_t   advertise; /* Bitmap of OFPPF_*. Zero all bits to prevent
                             any action taking place. */
+
+    /* OFFPMT_OPTICAL message. */
+    uint32_t configure;   
+    uint32_t freq_lmda;
+    int32_t  fl_offset;
+    uint32_t grid_span;
+    uint32_t tx_pwr;
+
+    /* OFFPMT_EXPERIMENTER message. */
+    uint32_t experimenter;
+    uint32_t exp_type;
 };
 
 struct ofl_msg_table_mod {

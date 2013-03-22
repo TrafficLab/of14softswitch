@@ -31,6 +31,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 #include <netinet/in.h>
 #include "ofl-actions.h"
 #include "ofl-messages.h"
@@ -327,8 +328,44 @@ ofl_msg_pack_port_mod(struct ofl_msg_port_mod *msg, uint8_t **buf, size_t *buf_l
     memset(port_mod->pad2, 0x00, 2);
     port_mod->config    = htonl(msg->config);
     port_mod->mask      = htonl(msg->mask);
-    port_mod->advertise = htonl(msg->advertise);
-    memset(port_mod->pad3, 0x00, 4);
+
+    switch (msg->type) {
+        case OFPPMPT_ETHERNET: {
+            struct ofp_port_mod_prop_ethernet *props = 
+                (struct ofp_port_mod_prop_ethernet *) port_mod->properties;
+
+            *buf_len += sizeof *props;
+            *buf = (uint8_t *) realloc(*buf, *buf_len);
+
+            props->type = htons(OFPPMPT_ETHERNET);
+            props->length = htons(sizeof(*props));
+
+            props->advertise = htonl(msg->advertise);
+            break;
+        }
+        case OFPPMPT_OPTICAL: {
+            struct ofp_port_mod_prop_optical *props = 
+                (struct ofp_port_mod_prop_optical *) port_mod->properties;
+
+            *buf_len += sizeof *props;
+            *buf = (uint8_t *) realloc(*buf, *buf_len);
+
+            props->type = htons(OFPPMPT_OPTICAL);
+            props->length = htons(sizeof(*props));
+
+            props->configure = htonl(msg->configure);
+            props->freq_lmda = htonl(msg->freq_lmda);
+            props->fl_offset = htonl(msg->fl_offset);
+            props->grid_span = htonl(msg->grid_span);
+            props->tx_pwr = htonl(msg->tx_pwr);
+            break;
+        }
+        case OFPPMPT_EXPERIMENTER:
+            /* TODO: When real port_mod experimenters exist. */
+            break;
+        default: 
+            return -EINVAL;
+    };
 
     return 0;
 }

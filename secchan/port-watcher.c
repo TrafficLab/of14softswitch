@@ -581,6 +581,7 @@ port_watcher_set_flags(struct port_watcher *pw, uint32_t port_no,
     struct ofp_port old;
     struct ofp_port *p;
     struct ofp_port_mod *opm;
+    struct ofp_port_mod_prop_ethernet *eth;
     struct ofp_port_status *ops;
     struct ofpbuf *b;
 
@@ -601,12 +602,17 @@ port_watcher_set_flags(struct port_watcher *pw, uint32_t port_no,
     call_port_changed_callbacks(pw, port_no, &old, p);
 
     /* Change the flags in the datapath. */
-    opm = make_openflow(sizeof *opm, OFPT_PORT_MOD, &b);
+    opm = make_openflow(sizeof *opm + sizeof *eth, OFPT_PORT_MOD, &b);
+
+    eth = (struct ofp_port_mod_prop_ethernet *) opm->properties;
+    eth->type = htons(OFPPMPT_ETHERNET);
+    eth->length = htons(sizeof *eth);
+    eth->advertise = htonl(0);
+
     opm->port_no = p->port_no;
     memcpy(opm->hw_addr, p->hw_addr, OFP_ETH_ALEN);
     opm->config = p->config;
     opm->mask = htonl(c_mask);
-    opm->advertise = htonl(0);
     rconn_send(pw->local_rconn, b, NULL);
 
     /* Notify the controller that the flags changed. */
