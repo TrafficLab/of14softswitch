@@ -1091,6 +1091,7 @@ enum ofp_table_feature_prop_type {
     OFPTFPT_WRITE_SETFIELD_MISS = 13, /* Write Set-Field for table-miss. */
     OFPTFPT_APPLY_SETFIELD  = 14, /* Apply Set-Field property. */
     OFPTFPT_APPLY_SETFIELD_MISS = 15, /* Apply Set-Field for table-miss. */
+    OFPTFPT_TABLE_SYNC_FROM = 16, /* Table synchronisation property. */
     OFPTFPT_EXPERIMENTER = 0xFFFE, /* Experimenter property. */
     OFPTFPT_EXPERIMENTER_MISS = 0xFFFF, /* Experimenter for table-miss. */
 };
@@ -1112,9 +1113,10 @@ struct ofp_table_feature_prop_instructions {
 OFP_ASSERT(sizeof(struct ofp_table_feature_prop_instructions) == 4);
 
 
-struct ofp_table_feature_prop_next_tables {
+struct ofp_table_feature_prop_tables {
     uint16_t type;   /* One of OFPTFPT_NEXT_TABLES,
-                       OFPTFPT_NEXT_TABLES_MISS. */
+                        OFPTFPT_NEXT_TABLES_MISS,
+                        OFPTFPT_TABLE_SYNC_FROM. */
     uint16_t length; /* Length in bytes of this property. */
     /* Followed by:
     *
@@ -1123,9 +1125,9 @@ struct ofp_table_feature_prop_next_tables {
     - Exactly (length + 7)/8*8 - (length) (between 0 and 7)
     *
     bytes of all-zero bytes */
-    uint8_t next_table_ids[0];
+    uint8_t table_ids[0];
 };
-OFP_ASSERT(sizeof(struct ofp_table_feature_prop_next_tables) == 4);
+OFP_ASSERT(sizeof(struct ofp_table_feature_prop_tables) == 4);
 
 /* Actions property */
 struct ofp_table_feature_prop_actions {

@@ -783,6 +783,7 @@ ofl_properties_type_print(FILE *stream, uint16_t type){
         case (OFPTFPT_WRITE_SETFIELD_MISS):{ fprintf(stream, "write_setfield_miss"); return; }
         case (OFPTFPT_APPLY_SETFIELD):     { fprintf(stream, "apply_setfield"); return; }
         case (OFPTFPT_APPLY_SETFIELD_MISS):{ fprintf(stream, "apply_setfield_miss"); return; }
+        case (OFPTFPT_TABLE_SYNC_FROM):     { fprintf(stream, "table_sync_from"); return; }
         case (OFPTFPT_EXPERIMENTER):        { fprintf(stream, "experimenter"); return; }
         case (OFPTFPT_EXPERIMENTER_MISS):   { fprintf(stream, "experimenter_miss"); return; }
         default: {                            fprintf(stream, "?(%u)", type); return; }            

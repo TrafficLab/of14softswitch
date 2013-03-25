@@ -187,10 +187,10 @@ struct ofl_table_feature_prop_instructions {
     struct ofl_instruction_header *instruction_ids; /* List of instructions */
 };
 
-struct ofl_table_feature_prop_next_tables {
+struct ofl_table_feature_prop_tables {
     struct ofl_table_feature_prop_header header;
     size_t table_num;
-    uint8_t *next_table_ids;
+    uint8_t *table_ids;
 };
 
 /* Actions property */

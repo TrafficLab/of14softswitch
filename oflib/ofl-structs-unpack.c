@@ -259,19 +259,20 @@ ofl_structs_table_properties_unpack(struct ofp_table_feature_prop_header * src, 
 			break;
 		}
         case OFPTFPT_NEXT_TABLES:
-        case OFPTFPT_NEXT_TABLES_MISS:{
-			struct ofp_table_feature_prop_next_tables *sp = (struct ofp_table_feature_prop_next_tables*) src;
-			struct ofl_table_feature_prop_next_tables *dp;
+        case OFPTFPT_NEXT_TABLES_MISS:
+        case OFPTFPT_TABLE_SYNC_FROM:{
+			struct ofp_table_feature_prop_tables *sp = (struct ofp_table_feature_prop_tables*) src;
+			struct ofl_table_feature_prop_tables *dp;
 			
-			if (plen < sizeof(struct ofp_table_feature_prop_next_tables)) {
-                OFL_LOG_WARN(LOG_MODULE, "Received NEXT TABLE feature has invalid length (%zu).", *len);
+			if (plen < sizeof(struct ofp_table_feature_prop_tables)) {
+                OFL_LOG_WARN(LOG_MODULE, "Received TABLE feature has invalid length (%zu).", *len);
                 return ofl_error(OFPET_TABLE_FEATURES_FAILED, OFPTFFC_BAD_LEN);
             }			
-			dp = (struct ofl_table_feature_prop_next_tables*) malloc(sizeof(struct ofl_table_feature_prop_next_tables));		
+			dp = (struct ofl_table_feature_prop_tables*) malloc(sizeof(struct ofl_table_feature_prop_tables));		
 		    
-		    dp->table_num = ntohs(sp->length) - sizeof(struct ofp_table_feature_prop_next_tables);
-            dp->next_table_ids = (uint8_t*) malloc(sizeof(uint8_t) * dp->table_num);
-            memcpy(dp->next_table_ids, sp->next_table_ids, dp->table_num);
+		    dp->table_num = ntohs(sp->length) - sizeof(struct ofp_table_feature_prop_tables);
+            dp->table_ids = (uint8_t*) malloc(sizeof(uint8_t) * dp->table_num);
+            memcpy(dp->table_ids, sp->table_ids, dp->table_num);
             
             plen -= ntohs(sp->length);            		    
 		    prop = (struct ofl_table_feature_prop_header*) dp;	
