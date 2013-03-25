@@ -148,6 +148,16 @@ flow_entry_replace_instructions(struct flow_entry *entry,
     entry->stats->instructions     = instructions;
 
     init_group_refs(entry);
+
+    /* Update synchronised slave as well. */
+    if(entry->sync_slave != NULL) {
+        struct ofl_instruction_header **slave_instructions;
+	int error;
+	error = ofl_instructions_clone(instructions, instructions_num, &slave_instructions, entry->dp->exp);
+	if(!error) {
+	    flow_entry_replace_instructions(entry->sync_slave, instructions_num, slave_instructions);
+	}
+    }
 }
 
 bool
@@ -157,7 +167,7 @@ flow_entry_idle_timeout(struct flow_entry *entry) {
     timeout = (entry->stats->idle_timeout != 0) &&
               (time_msec() > entry->last_used + entry->stats->idle_timeout * 1000);
 
-    if (timeout) {
+    if ((timeout) && (entry->sync_master == NULL)) {
         flow_entry_remove(entry, OFPRR_IDLE_TIMEOUT);
     }
     return timeout;
@@ -169,7 +179,7 @@ flow_entry_hard_timeout(struct flow_entry *entry) {
 
     timeout = (entry->remove_at != 0) && (time_msec() > entry->remove_at);
 
-    if (timeout) {
+    if ((timeout) && (entry->sync_master == NULL)) {
         flow_entry_remove(entry, OFPRR_HARD_TIMEOUT);
     }
     return timeout;
@@ -364,6 +374,9 @@ flow_entry_create(struct datapath *dp, struct flow_table *table, struct ofl_msg_
     list_init(&entry->meter_refs);
     init_meter_refs(entry);
 
+    entry->sync_master = NULL;
+    entry->sync_slave = NULL;
+
     return entry;
 }
 
@@ -376,12 +389,19 @@ flow_entry_destroy(struct flow_entry *entry) {
     ofl_structs_free_flow_stats(entry->stats, entry->dp->exp);
     // assumes it is a standard match
     //free(entry->match);
+    /* Break synchronisation links. */
+    if((entry->sync_master != NULL) && (entry->sync_master->sync_slave == entry)) {
+      entry->sync_master->sync_slave = NULL;
+    }
+    if((entry->sync_slave != NULL) && (entry->sync_slave->sync_master == entry)) {
+      entry->sync_slave->sync_master = NULL;
+    }
     free(entry);
 }
 
 void
 flow_entry_remove(struct flow_entry *entry, uint8_t reason) {
-    if (entry->send_removed) {
+    if ((entry->send_removed) && (reason != 0xFF)) {
         flow_entry_update(entry);
         {
             struct ofl_msg_flow_removed msg =
@@ -393,7 +413,16 @@ flow_entry_remove(struct flow_entry *entry, uint8_t reason) {
         }
     }
 
-    list_remove(&entry->match_node);
+    /* Remove synchronised slave as well. */
+    if(entry->sync_slave != NULL) {
+      /* Break the link before recursion to avoid infinite loops. */
+      struct flow_entry *slave_entry = entry->sync_slave;
+      entry->sync_slave = NULL;
+      flow_entry_remove(slave_entry, reason);
+    }
+
+    if(entry->match_node.next != NULL)
+        list_remove(&entry->match_node);
     list_remove(&entry->hard_node);
     list_remove(&entry->idle_node);
     entry->table->stats->active_count--;

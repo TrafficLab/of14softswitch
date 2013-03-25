@@ -94,7 +94,7 @@ add_to_timeout_lists(struct flow_table *table, struct flow_entry *entry) {
 
 /* Handles flow mod messages with ADD command. */
 static ofl_err
-flow_table_add(struct flow_table *table, struct ofl_msg_flow_mod *mod, bool check_overlap, bool *match_kept, bool *insts_kept) {
+flow_table_add(struct flow_table *table, struct ofl_msg_flow_mod *mod, bool check_overlap, bool *match_kept, bool *insts_kept, struct flow_entry ** entry_p) {
     // Note: new entries will be placed behind those with equal priority
     struct flow_entry *entry, *new_entry;
 
@@ -108,12 +108,19 @@ flow_table_add(struct flow_table *table, struct ofl_msg_flow_mod *mod, bool chec
             new_entry = flow_entry_create(table->dp, table, mod);
             *match_kept = true;
             *insts_kept = true;
+	    *entry_p = new_entry;
+	    /* Transfer mastership, allow to change slave instructions without
+	     * breaking link to master... */
+	    new_entry->sync_master = entry->sync_master;
+	    entry->sync_master = NULL;
+	    new_entry->sync_master->sync_slave = new_entry;
 
-            /* NOTE: no flow removed message should be generated according to spec. */
             list_replace(&new_entry->match_node, &entry->match_node);
-            list_remove(&entry->hard_node);
-            list_remove(&entry->idle_node);
-            flow_entry_destroy(entry);
+	    entry->match_node.prev = NULL;
+	    entry->match_node.next = NULL;
+            /* NOTE: no flow removed message should be generated according to spec. */
+	    flow_entry_remove(entry, 0xFF);
+	    table->stats->active_count++;
             add_to_timeout_lists(table, new_entry);
             return 0;
         }
@@ -131,6 +138,7 @@ flow_table_add(struct flow_table *table, struct ofl_msg_flow_mod *mod, bool chec
     new_entry = flow_entry_create(table->dp, table, mod);
     *match_kept = true;
     *insts_kept = true;
+    *entry_p = new_entry;
 
     list_insert(&entry->match_node, &new_entry->match_node);
     add_to_timeout_lists(table, new_entry);
@@ -144,6 +152,11 @@ static ofl_err
 flow_table_modify(struct flow_table *table, struct ofl_msg_flow_mod *mod, bool strict, bool *insts_kept) {
     struct flow_entry *entry;
 
+    /* I don't understand memory management of instructions. The instructions
+     * are used by reference, and therefore multiple flow entry could end
+     * up pointing to the same instructions. On the other hand, there is
+     * no reference counting of instructions, and they are freed
+     * unconditionally. Puzzling... Jean II */
     LIST_FOR_EACH (entry, struct flow_entry, match_node, &table->match_entries) {
         if (flow_entry_matches(entry, mod, strict, true/*check_cookie*/)) {
             flow_entry_replace_instructions(entry, mod->instructions_num, mod->instructions);
@@ -170,11 +183,11 @@ flow_table_delete(struct flow_table *table, struct ofl_msg_flow_mod *mod, bool s
 
 
 ofl_err
-flow_table_flow_mod(struct flow_table *table, struct ofl_msg_flow_mod *mod, bool *match_kept, bool *insts_kept) {
+flow_table_flow_mod(struct flow_table *table, struct ofl_msg_flow_mod *mod, bool *match_kept, bool *insts_kept, struct flow_entry ** entry_p) {
     switch (mod->command) {
         case (OFPFC_ADD): {
             bool overlap = ((mod->flags & OFPFF_CHECK_OVERLAP) != 0);
-            return flow_table_add(table, mod, overlap, match_kept, insts_kept);
+            return flow_table_add(table, mod, overlap, match_kept, insts_kept, entry_p);
         }
         case (OFPFC_MODIFY): {
             return flow_table_modify(table, mod, false, insts_kept);

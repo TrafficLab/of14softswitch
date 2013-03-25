@@ -66,6 +66,8 @@ struct flow_entry {
     bool                     no_byt_count; /* true if doesn't keep track of flow matched bytes*/
     struct list              group_refs;  /* list of groups referencing the flow. */
     struct list              meter_refs;  /* list of meters referencing the flow. */
+    struct flow_entry *      sync_master; /* Synchronised tables, master flow. */
+    struct flow_entry *      sync_slave;  /* Synchronised tables, slave flow. */
 };
 
 struct packet;
