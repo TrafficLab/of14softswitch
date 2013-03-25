@@ -568,6 +568,10 @@ bool
 ofl_msg_merge_multipart_reply_queue(struct ofl_msg_multipart_reply_queue *orig,
                                struct ofl_msg_multipart_reply_queue *merge);
 
+/* Duplicate a message, the duplicate message does not share any
+ * memory with the original. */
+ofl_err
+ofl_msg_clone(struct ofl_msg_header *old_msg, struct ofl_msg_header **new_msg_p, struct ofl_exp *exp);
 
 
 /****************************************************************************

@@ -438,3 +438,23 @@ ofl_msg_merge_multipart_reply_queue(struct ofl_msg_multipart_reply_queue *orig, 
     return ((merge->header.flags & OFPMPF_REPLY_MORE) == 0);
 }
 
+ofl_err
+ofl_msg_clone(struct ofl_msg_header *old_msg, struct ofl_msg_header **new_msg_p, struct ofl_exp *exp) {
+    uint8_t *buftmp;
+    size_t buftmp_size;
+    int error;
+
+    error = ofl_msg_pack(old_msg, 0, &buftmp, &buftmp_size, exp);
+    if (error) {
+        return(error);
+    }
+    error = ofl_msg_unpack(buftmp, buftmp_size, new_msg_p, NULL /*xid_ptr*/, exp);
+    if (error) {
+        free(buftmp);
+        return(error);
+    }
+
+    /* NOTE: if unpack was successful, message takes over ownership of buffer's
+     *       data, so don't free the buffer and just forget it. */
+    return 0;
+}
