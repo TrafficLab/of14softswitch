@@ -79,9 +79,9 @@ static void remote_destroy(struct remote *);
 
 
 #define MFR_DESC     "Stanford University, Ericsson Research and CPqD Research"
-#define HW_DESC      "OpenFlow 1.3 Reference Userspace Switch"
+#define HW_DESC      "OpenFlow 1.4 Reference Userspace Switch"
 #define SW_DESC      __DATE__" "__TIME__
-#define DP_DESC      "OpenFlow 1.3 Reference Userspace Switch Datapath"
+#define DP_DESC      "OpenFlow 1.4 Reference Userspace Switch Datapath"
 #define SERIAL_NUM   "1"
 
 #define MAIN_CONNECTION 0
