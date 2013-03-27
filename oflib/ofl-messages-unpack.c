@@ -687,6 +687,9 @@ ofl_msg_validate_pmp_size(struct ofp_port_mod_prop_header *pph, size_t *len) {
     switch (pph->type) {
     case OFPPMPT_ETHERNET:
         sz = *len - sizeof(struct ofp_port_mod_prop_ethernet);
+        if (sz < 0)
+           return -EINVAL;
+        *len = sz;
         break;
     case OFPPMPT_OPTICAL:
         sz = *len - sizeof(struct ofp_port_mod_prop_optical);
