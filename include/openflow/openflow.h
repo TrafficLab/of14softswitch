@@ -1775,6 +1775,8 @@ enum ofp_error_type {
     OFPET_ROLE_REQUEST_FAILED = 11,  /* Controller Role request failed. */
     OFPET_METER_MOD_FAILED = 12,     /* Error in meter. */
     OFPET_TABLE_FEATURES_FAILED = 13, /* Setting table features failed. */
+    OFPET_BAD_PROPERTY = 14,         /* Some property is invalid. */
+
     OFPET_EXPERIMENTER = 0xffff      /* Experimenter error messages. */
 };
 
@@ -1987,10 +1989,19 @@ enum ofp_meter_mod_failed_code {
 enum ofp_table_features_failed_code {
     OFPTFFC_BAD_TABLE = 0,    /* Specified table does not exist. */
     OFPTFFC_BAD_METADATA = 1, /* Invalid metadata mask. */
-    OFPTFFC_BAD_TYPE = 2,     /* Unknown property type. */
-    OFPTFFC_BAD_LEN = 3,      /* Length problem in properties. */
-    OFPTFFC_BAD_ARGUMENT = 4, /* Unsupported property value. */
     OFPTFFC_EPERM = 5,        /* Permissions error. */
+};
+
+enum {
+    OFPBPC_BAD_TYPE = 0,         /* Unknown property type. */
+    OFPBPC_BAD_LEN = 1,          /* Length problem in property. */
+    OFPBPC_BAD_VALUE = 2,        /* Unsupported property value. */
+    OFPBPC_TOO_MANY = 3,         /* Can't handle this many properties. */
+    OFPBPC_DUP_TYPE = 4,         /* A property type was duplicated. */
+    OFPBPC_BAD_EXPERIMENTER = 5, /* Unknown experimenter id. */
+    OFPBPC_BAD_EXP_TYPE = 6,     /* Unknown exp_type for experimenter_id. */
+    OFPBPC_BAD_EXP_VALUE = 7,    /* Unknown value for experimenter_id */
+    OFPBPC_EPERM = 8,            /* Permissions error. */
 };
 
 /* OFPET_EXPERIMENTER: Error message (datapath -> controller). */
