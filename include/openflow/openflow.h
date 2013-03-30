@@ -446,6 +446,15 @@ enum ofp_instruction_type {
     OFPIT_EXPERIMENTER = 0xFFFF /* Experimenter instruction */
 };
 
+/* Instruction header that is common to all instructions. The length includes
+ * the header and any padding used to make the instruction 64-bit aligned.
+ * NB: The length of an instruction *must* always be a multiple of eight. */
+struct ofp_instruction_header {
+    uint16_t type;  /* One of OFPIT_*. */
+    uint16_t len;   /* Length of the struct in bytes. */
+};
+OFP_ASSERT(sizeof(struct ofp_instruction_header) == 4);
+
 /* Generic ofp_instruction structure */
 struct ofp_instruction {
     uint16_t type;                /* Instruction type */
@@ -453,6 +462,14 @@ struct ofp_instruction {
     uint8_t pad[4];               /* Align to 64-bits */
 };
 OFP_ASSERT(sizeof(struct ofp_instruction) == 8);
+
+/* Instruction ID. */
+struct ofp_instruction_id {
+    uint16_t type;          /* One of OFPIT_*. */
+    uint16_t len;           /* Length is 4 or experimenter defined. */
+    uint8_t exp_data[0];    /* Optional experimenter id + data. */
+};
+OFP_ASSERT(sizeof(struct ofp_instruction_id) == 4);
 
 /* Instruction structure for OFPIT_GOTO_TABLE */
 struct ofp_instruction_goto_table {
@@ -485,6 +502,13 @@ struct ofp_action_header {
 	uint8_t pad[4];
 };
 OFP_ASSERT(sizeof(struct ofp_action_header) == 8);
+
+struct ofp_action_id {
+    uint16_t type;                       /* One of OFPAT_*. */
+    uint16_t len;                        /* Length is 4 or experiementer defined. */
+    uint8_t exp_data[0];                 /* Optional experimenter id + data. */
+};
+OFP_ASSERT(sizeof(struct ofp_action_id) == 4);
 
 /* Instruction structure for OFPIT_WRITE/APPLY/CLEAR_ACTIONS */
 struct ofp_instruction_actions {
