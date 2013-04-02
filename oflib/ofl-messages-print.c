@@ -242,6 +242,22 @@ ofl_msg_print_table_mod(struct ofl_msg_table_mod *msg, FILE *stream) {
 }
 
 static void
+ofl_msg_print_requestforward(struct ofl_msg_requestforward *msg, FILE *stream, struct ofl_exp *exp) {
+    fprintf(stream, "{reas=\"");
+    ofl_requestforward_reason_print(stream, msg->reason);
+    fprintf(stream, "\", request=");
+    switch(msg->reason) {
+    case OFPRFR_GROUP_MOD:
+      ofl_msg_print_group_mod(msg->group_desc, stream, exp);
+      break;
+    case OFPRFR_METER_MOD:
+      ofl_msg_print_meter_mod(msg->meter_desc, stream);
+      break;
+    }
+    fprintf(stream, "}");
+}
+
+static void
 ofl_msg_print_stats_request_flow(struct ofl_msg_multipart_request_flow *msg, FILE *stream, struct ofl_exp *exp) {
     fprintf(stream, ", table=\"");
     ofl_table_print(stream, msg->table_id);
@@ -730,6 +746,7 @@ ofl_msg_print(FILE *stream, struct ofl_msg_header *msg, struct ofl_exp *exp) {
         case OFPT_PACKET_IN: { ofl_msg_print_packet_in((struct ofl_msg_packet_in *)msg, stream); return; }
         case OFPT_FLOW_REMOVED: { ofl_msg_print_flow_removed((struct ofl_msg_flow_removed *)msg, stream, exp); return; }
         case OFPT_PORT_STATUS: { ofl_msg_print_port_status((struct ofl_msg_port_status *)msg, stream); return; }
+        case OFPT_REQUESTFORWARD: { ofl_msg_print_requestforward((struct ofl_msg_requestforward *)msg, stream, exp); return; }
 
         /* Controller command messages. */
         case OFPT_PACKET_OUT: { ofl_msg_print_packet_out((struct ofl_msg_packet_out *)msg, stream, exp); return; }

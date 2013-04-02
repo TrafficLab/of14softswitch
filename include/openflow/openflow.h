@@ -91,6 +91,8 @@ enum ofp_type {
     OFPT_SET_ASYNC = 28, /* Controller/switch message */
     /* Meters and rate limiters configuration messages. */
     OFPT_METER_MOD = 29, /* Controller/switch message */
+    /* Request forwarding by the switch. */
+    OFPT_REQUESTFORWARD = 30, /* Async message */
 };
 
 /* OFPT_HELLO.  This message has an empty body, but implementations must
@@ -1407,7 +1409,6 @@ struct ofp_async_config {
 OFP_ASSERT(sizeof(struct ofp_async_config) == 32);
 
 
-
 #define OFP_NO_BUFFER 0xffffffff
 
 /* Packet received on port (datapath -> controller). */
@@ -1479,6 +1480,19 @@ enum ofp_port_reason {
     OFPPR_DELETE = 1, /* The port was removed. */
     OFPPR_MODIFY = 2, /* Some attribute of the port has changed. */
 };
+
+/* Request forward reason */
+enum ofp_requestforward_reason {
+    OFPRFR_GROUP_MOD = 0,       /* Forward group mod requests. */
+    OFPRFR_METER_MOD = 1,       /* Forward meter mod requests. */
+};
+
+/* Group/Meter request forwarding. */
+struct ofp_requestforward_header {
+    struct ofp_header header;   /* Type OFPT_REQUESTFORWARD. */
+    struct ofp_header request;  /* Request being forwarded. */
+};
+OFP_ASSERT(sizeof(struct ofp_requestforward_header) == 16);
 
 /* OFPT_ERROR: Error message (datapath -> controller). */
 struct ofp_error_msg {

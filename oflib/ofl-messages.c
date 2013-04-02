@@ -250,6 +250,10 @@ ofl_msg_free(struct ofl_msg_header *msg, struct ofl_exp *exp) {
             free(((struct ofl_msg_port_status *)msg)->desc);
             break;
         }
+        case OFPT_REQUESTFORWARD: {
+            return ofl_msg_free_requestforward((struct ofl_msg_requestforward *)msg, exp);
+            break;
+        }
         case OFPT_PACKET_OUT: {
             return ofl_msg_free_packet_out((struct ofl_msg_packet_out *)msg, true, exp);
         }
@@ -354,6 +358,26 @@ ofl_msg_free_flow_removed(struct ofl_msg_flow_removed *msg, bool with_stats, str
     }
     free(msg);
     return 0;
+}
+
+
+int
+ofl_msg_free_requestforward(struct ofl_msg_requestforward *msg, struct ofl_exp *exp) {
+    int ret = 0;
+    switch(msg->reason) {
+    case OFPRFR_GROUP_MOD:
+      if(msg->group_desc)
+	ret = ofl_msg_free_group_mod(msg->group_desc, true, exp);
+      break;
+    case OFPRFR_METER_MOD:
+      if(msg->meter_desc)
+	ret = ofl_msg_free_meter_mod(msg->meter_desc, true);
+      break;
+    default:
+      ;
+    }
+    free(msg);
+    return ret;
 }
 
 

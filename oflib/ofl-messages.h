@@ -158,6 +158,14 @@ struct ofl_msg_port_status {
     struct ofl_port       *desc;
 };
 
+struct ofl_msg_requestforward {
+    struct ofl_msg_header   header; /* OFPT_REQUESTFORWARD */
+
+    enum ofp_requestforward_reason   reason; /* One of OFPRFR_*. */
+    struct ofl_msg_group_mod *group_desc;
+    struct ofl_msg_meter_mod *meter_desc;
+};
+
 /******************************
  * Controller command messages
  ******************************/
@@ -534,6 +542,10 @@ ofl_msg_free_flow_mod(struct ofl_msg_flow_mod *msg, bool with_match, bool with_i
  * experimenter features, it uses the passed in experimenter callback. */
 int
 ofl_msg_free_flow_removed(struct ofl_msg_flow_removed *msg, bool with_stats, struct ofl_exp *exp);
+
+/* Calling this function frees the passed in requestforward message. */
+int
+ofl_msg_free_requestforward(struct ofl_msg_requestforward *msg, struct ofl_exp *exp);
 
 /****************************************************************************
  * Functions for merging messages

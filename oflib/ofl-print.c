@@ -526,6 +526,7 @@ ofl_message_type_print(FILE *stream, uint16_t type) {
 		case OFPT_GET_ASYNC_REPLY:          { fprintf(stream, "get_async_rep"); return;}
 		case OFPT_SET_ASYNC:                { fprintf(stream, "set_async"); return;}
 		case OFPT_METER_MOD:				{ fprintf(stream, "meter_mod"); return;}        
+		case OFPT_REQUESTFORWARD:	{ fprintf(stream, "request_forward"); return;}        
 		default: {                            fprintf(stream, "?(%u)", type); return; }
     }
 }
@@ -618,6 +619,17 @@ ofl_port_status_reason_print(FILE *stream, uint8_t reason) {
         case (OFPPR_DELETE): { fprintf(stream, "del"); return; }
         case (OFPPR_MODIFY): { fprintf(stream, "mod"); return; }
         default: {             fprintf(stream, "?(%u)", reason); return; }
+    }
+}
+
+
+
+void
+ofl_requestforward_reason_print(FILE *stream, uint8_t reason) {
+    switch(reason) {
+        case (OFPRFR_GROUP_MOD): { fprintf(stream, "group-mod"); return; }
+        case (OFPRFR_METER_MOD): { fprintf(stream, "meter-mod"); return; }
+        default:                 { fprintf(stream, "?(%u)", reason); return; }
     }
 }
 
