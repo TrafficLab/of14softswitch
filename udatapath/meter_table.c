@@ -134,7 +134,6 @@ meter_table_add(struct meter_table *table, struct ofl_msg_meter_mod *mod) {
 
     table->entries_num++;
     table->bands_num += entry->stats->meter_bands_num;
-    ofl_msg_free_meter_mod(mod, false);
     return 0;
 }
 
@@ -164,7 +163,6 @@ meter_table_modify(struct meter_table *table, struct ofl_msg_meter_mod *mod) {
     list_init(&entry->flow_refs);
 
     meter_entry_destroy(entry);
-    ofl_msg_free_meter_mod(mod, false);
     return 0;
 }
 
@@ -182,7 +180,6 @@ meter_table_delete(struct meter_table *table, struct ofl_msg_meter_mod *mod) {
 
         table->entries_num = 0;
         table->bands_num = 0;
-        ofl_msg_free_meter_mod(mod, false);
         return 0;
 
     } else {
@@ -198,7 +195,6 @@ meter_table_delete(struct meter_table *table, struct ofl_msg_meter_mod *mod) {
             hmap_remove(&table->meter_entries, &entry->node);
             meter_entry_destroy(entry);
         }
-        ofl_msg_free_meter_mod(mod, false);
         return 0;
     }
 }
@@ -206,23 +202,41 @@ meter_table_delete(struct meter_table *table, struct ofl_msg_meter_mod *mod) {
 ofl_err
 meter_table_handle_meter_mod(struct meter_table *table, struct ofl_msg_meter_mod *mod,
                                                           const struct sender *sender) {
+    ofl_err error;
+
     if(sender->remote->role == OFPCR_ROLE_SLAVE)
         return ofl_error(OFPET_BAD_REQUEST, OFPBRC_IS_SLAVE);
 
     switch (mod->command) {
         case (OFPMC_ADD): {
-            return meter_table_add(table, mod);
+            error = meter_table_add(table, mod);
+	    break;
         }
         case (OFPMC_MODIFY): {
-            return meter_table_modify(table, mod);
+            error = meter_table_modify(table, mod);
+	    break;
         }
         case (OFPMC_DELETE): {
-            return meter_table_delete(table, mod);
+            error = meter_table_delete(table, mod);
+	    break;
         }
         default: {
-            return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
+            error = ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
         }
     }
+
+    if(!error) {
+        struct ofl_msg_requestforward msg =
+                {{.type = OFPT_REQUESTFORWARD},
+                 .reason = OFPRFR_METER_MOD,
+                 .meter_desc  = mod};
+
+        dp_send_message(table->dp, (struct ofl_msg_header *)&msg, NULL);
+
+        ofl_msg_free_meter_mod(mod, (mod->command == OFPMC_DELETE));
+     }
+
+    return error;
 }
 
 ofl_err
