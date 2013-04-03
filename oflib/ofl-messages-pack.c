@@ -342,6 +342,9 @@ ofl_msg_pack_port_mod(struct ofl_msg_port_mod *msg, uint8_t **buf, size_t *buf_l
     *buf_len = ofl_structs_port_mod_pack_size(msg);
     *buf     = (uint8_t *)malloc(*buf_len);
 
+    if (buf == NULL)
+        return -ENOMEM;
+
     port_mod = (struct ofp_port_mod *)(*buf);
     port_mod->port_no   = htonl(msg->port_no);
     memset(port_mod->pad, 0x00, 4);
