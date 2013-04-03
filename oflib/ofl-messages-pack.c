@@ -208,6 +208,27 @@ ofl_msg_pack_port_status_size(struct ofl_msg_port_status *msg) {
     return status_size;
 }
 
+/* returns the required size of this port mod */
+static size_t ofl_structs_port_mod_pack_size(struct ofl_msg_port_mod *msg)
+{
+    size_t status_size = sizeof(struct ofp_port_mod);
+
+
+    switch (msg->type) {
+        case OFPPMPT_ETHERNET:
+            status_size += sizeof(struct ofp_port_mod_prop_ethernet);
+            break;
+        case OFPPMPT_OPTICAL:
+            status_size += sizeof(struct ofp_port_mod_prop_optical);
+            break;
+        case OFPPMPT_EXPERIMENTER:
+            /* TODO: When real port_mod experimenters exist. */
+            break;
+    };
+
+    return status_size;
+};
+
 static int
 ofl_msg_pack_port_status(struct ofl_msg_port_status *msg, uint8_t **buf, size_t *buf_len) {
     struct ofp_port_status *status;
@@ -318,7 +339,7 @@ static int
 ofl_msg_pack_port_mod(struct ofl_msg_port_mod *msg, uint8_t **buf, size_t *buf_len) {
     struct ofp_port_mod *port_mod;
 
-    *buf_len = sizeof(struct ofp_port_mod);
+    *buf_len = ofl_structs_port_mod_pack_size(msg);
     *buf     = (uint8_t *)malloc(*buf_len);
 
     port_mod = (struct ofp_port_mod *)(*buf);
@@ -334,9 +355,6 @@ ofl_msg_pack_port_mod(struct ofl_msg_port_mod *msg, uint8_t **buf, size_t *buf_l
             struct ofp_port_mod_prop_ethernet *props = 
                 (struct ofp_port_mod_prop_ethernet *) port_mod->properties;
 
-            *buf_len += sizeof *props;
-            *buf = (uint8_t *) realloc(*buf, *buf_len);
-
             props->type = htons(OFPPMPT_ETHERNET);
             props->length = htons(sizeof(*props));
 
@@ -346,9 +364,6 @@ ofl_msg_pack_port_mod(struct ofl_msg_port_mod *msg, uint8_t **buf, size_t *buf_l
         case OFPPMPT_OPTICAL: {
             struct ofp_port_mod_prop_optical *props = 
                 (struct ofp_port_mod_prop_optical *) port_mod->properties;
-
-            *buf_len += sizeof *props;
-            *buf = (uint8_t *) realloc(*buf, *buf_len);
 
             props->type = htons(OFPPMPT_OPTICAL);
             props->length = htons(sizeof(*props));
