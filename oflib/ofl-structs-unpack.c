@@ -963,7 +963,7 @@ ofl_structs_port_unpack(const struct ofp_port *src, size_t *len, struct ofl_port
 
     *dst = p;
 
-    prop = src->properties;
+    prop = (struct ofp_port_desc_prop_header *) &src->properties;
     while (bytes_read < ofp_len) {
         size_t prop_bytes_read;
 
