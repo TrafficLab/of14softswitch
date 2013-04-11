@@ -504,6 +504,26 @@ ofl_msg_pack_multipart_request_flow(struct ofl_msg_multipart_request_flow *msg, 
     return 0;
 }
 
+/* returns the required size of this port stats */
+static size_t ofl_structs_port_stats_pack_size(struct ofl_port_stats *msg)
+{
+    size_t status_size = sizeof(struct ofp_port_stats);
+
+    switch (msg->type) {
+        case OFPPSPT_ETHERNET:
+            status_size += sizeof(struct ofp_port_stats_prop_ethernet);
+            break;
+        case OFPPSPT_OPTICAL:
+            status_size += sizeof(struct ofp_port_stats_prop_optical);
+            break;
+        case OFPPMPT_EXPERIMENTER:
+            /* TODO: When real port_mod experimenters exist. */
+            break;
+    };
+
+    return status_size;
+}
+
 static int
 ofl_msg_pack_multipart_request_port(struct ofl_msg_multipart_request_port *msg, uint8_t **buf, size_t *buf_len) {
     struct ofp_multipart_request *req;
@@ -767,9 +787,11 @@ ofl_msg_pack_multipart_reply_port(struct ofl_msg_multipart_reply_port *msg, uint
     size_t i;
     uint8_t *data;
 
-    *buf_len = sizeof(struct ofp_multipart_reply) + msg->stats_num * sizeof(struct ofp_port_stats);
-    *buf     = (uint8_t *)malloc(*buf_len);
-
+    *buf_len = sizeof(struct ofp_multipart_reply);
+    for (i = 0; i < msg->stats_num; i++) {
+        *buf_len += ofl_structs_port_stats_pack_size(msg->stats[i]);
+    }
+    *buf = (uint8_t *)malloc(*buf_len);
     resp = (struct ofp_multipart_reply *)(*buf);
     data = (uint8_t *)resp->body;
 

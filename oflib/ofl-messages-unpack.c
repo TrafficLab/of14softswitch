@@ -1193,13 +1193,14 @@ ofl_msg_unpack_multipart_reply_port(struct ofp_multipart_reply *os, size_t *len,
     dm->stats = (struct ofl_port_stats **)malloc(dm->stats_num * sizeof(struct ofl_port_stats *));
 
     for (i = 0; i < dm->stats_num; i++) {
+        size_t start = *len;
         error = ofl_structs_port_stats_unpack(stat, len, &(dm->stats[i]));
         if (error) {
             OFL_UTILS_FREE_ARR(dm->stats, i);
             free(dm);
             return error;
         }
-        stat = (struct ofp_port_stats *)((uint8_t *)stat + sizeof(struct ofp_port_stats));
+        stat = (struct ofp_port_stats *)((uint8_t *)stat + (start - *len));
     }
 
     *msg = (struct ofl_msg_header *)dm;

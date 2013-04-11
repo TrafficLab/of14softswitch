@@ -1028,7 +1028,8 @@ ofl_structs_table_stats_unpack(struct ofp_table_stats *src, size_t *len, struct 
 
 ofl_err
 ofl_structs_port_stats_unpack(struct ofp_port_stats *src, size_t *len, struct ofl_port_stats **dst) {
-    struct ofl_port_stats *p;
+    struct ofl_port_stats *p = NULL;
+    struct ofp_port_stats_prop_header *prop = NULL;
 
     if (*len < sizeof(struct ofp_port_stats)) {
         OFL_LOG_WARN(LOG_MODULE, "Received port stats has invalid length (%zu).", *len);
@@ -1045,6 +1046,13 @@ ofl_structs_port_stats_unpack(struct ofp_port_stats *src, size_t *len, struct of
     }
     *len -= sizeof(struct ofp_port_stats);
 
+    if (*len < sizeof(struct ofp_port_stats_prop_header)) {
+        OFL_LOG_WARN(LOG_MODULE, "Invalid port stats message size.");
+        return ofl_error(OFPET_BAD_ACTION, OFPBRC_BAD_LEN);
+    }
+
+    /* TODO: Multiple TLV */
+    prop = (struct ofp_port_stats_prop_header *) &src->properties;    
     p = (struct ofl_port_stats *)malloc(sizeof(struct ofl_port_stats));
 
     p->port_no      = ntohl(src->port_no);
@@ -1056,12 +1064,45 @@ ofl_structs_port_stats_unpack(struct ofp_port_stats *src, size_t *len, struct of
     p->tx_dropped   = ntoh64(src->tx_dropped);
     p->rx_errors    = ntoh64(src->rx_errors);
     p->tx_errors    = ntoh64(src->tx_errors);
-    p->rx_frame_err = ntoh64(src->rx_frame_err);
-    p->rx_over_err  = ntoh64(src->rx_over_err);
-    p->rx_crc_err   = ntoh64(src->rx_crc_err);
-    p->collisions   = ntoh64(src->collisions);
     p->duration_sec = ntohl(src->duration_sec);
-    p->duration_nsec = ntohl(src->duration_nsec);
+    p->duration_nsec = ntohl(src->duration_nsec); 
+
+    switch (ntohs(prop->type)) {
+        case (OFPPSPT_ETHERNET): {
+            struct ofp_port_stats_prop_ethernet *ofp_e =
+                (struct ofp_port_stats_prop_ethernet *) prop;
+            *len -= sizeof(*ofp_e);
+
+            p->rx_frame_err = ntoh64(ofp_e->rx_frame_err);
+            p->rx_over_err  = ntoh64(ofp_e->rx_over_err);
+            p->rx_crc_err   = ntoh64(ofp_e->rx_crc_err);
+            p->collisions   = ntoh64(ofp_e->collisions);
+            break;
+        }
+        case (OFPPSPT_OPTICAL): {
+            struct ofp_port_stats_prop_optical *ofp_o =
+                (struct ofp_port_stats_prop_optical *) prop;
+            *len -= sizeof(*ofp_o);
+
+            p->tx_freq_lmda = ntohl(ofp_o->tx_freq_lmda);
+            p->tx_offset = ntohl(ofp_o->tx_offset);
+            p->tx_grid_span = ntohl(ofp_o->tx_grid_span);
+
+            p->rx_freq_lmda = ntohl(ofp_o->rx_freq_lmda);
+            p->rx_offset = ntohl(ofp_o->rx_offset);
+            p->rx_grid_span = ntohl(ofp_o->rx_grid_span);
+
+            p->tx_pwr = ntohs(ofp_o->tx_pwr);
+            p->rx_pwr = ntohs(ofp_o->rx_pwr);
+
+            p->bias_current = ntohs(ofp_o->bias_current);
+            p->temperature = ntohs(ofp_o->temperature);
+            break;
+        }
+        default:
+            break;
+    }
+
     *dst = p;
     return 0;
 }

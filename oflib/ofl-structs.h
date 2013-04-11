@@ -277,6 +277,7 @@ struct ofl_meter_band_experimenter {
 
 struct ofl_port_stats {
     uint32_t   port_no;
+    uint16_t   type;         /* One of OFPPDPT_*. */
     uint64_t   rx_packets;   /* Number of received packets. */
     uint64_t   tx_packets;   /* Number of transmitted packets. */
     uint64_t   rx_bytes;     /* Number of received bytes. */
@@ -298,6 +299,18 @@ struct ofl_port_stats {
     uint32_t   duration_sec; /* Time port has been alive in seconds */
     uint32_t   duration_nsec; /* Time port has been alive in nanoseconds 
                                  beyond duration_sec */
+
+    /* OF1.4 optical features */
+    uint32_t tx_freq_lmda;  /* Current TX Frequency/Wavelength */
+    uint32_t tx_offset;     /* TX Offset */
+    uint32_t tx_grid_span;  /* TX Grid Spacing */
+    uint32_t rx_freq_lmda;  /* Current RX Frequency/Wavelength */
+    uint32_t rx_offset;     /* RX Offset */
+    uint32_t rx_grid_span;  /* RX Grid Spacing */
+    uint16_t tx_pwr;        /* Current TX power */
+    uint16_t rx_pwr;        /* Current RX power */
+    uint16_t bias_current;  /* TX Bias Current */
+    uint16_t temperature;   /* TX Laser Temperature */
 };
 
 struct ofl_bucket_counter {

@@ -940,8 +940,11 @@ ofl_structs_table_stats_pack(struct ofl_table_stats *src, struct ofp_table_stats
 
 size_t
 ofl_structs_port_stats_pack(struct ofl_port_stats *src, struct ofp_port_stats *dst) {
-    dst->port_no      = htonl( src->port_no);
-    memset(dst->pad, 0x00, 4);
+    size_t length = sizeof(struct ofp_port_stats);
+
+    dst->port_no      = htonl(src->port_no);
+
+    memset(dst->pad, 0x00, 2);
     dst->rx_packets   = hton64(src->rx_packets);
     dst->tx_packets   = hton64(src->tx_packets);
     dst->rx_bytes     = hton64(src->rx_bytes);
@@ -950,14 +953,48 @@ ofl_structs_port_stats_pack(struct ofl_port_stats *src, struct ofp_port_stats *d
     dst->tx_dropped   = hton64(src->tx_dropped);
     dst->rx_errors    = hton64(src->rx_errors);
     dst->tx_errors    = hton64(src->tx_errors);
-    dst->rx_frame_err = hton64(src->rx_frame_err);
-    dst->rx_over_err  = hton64(src->rx_over_err);
-    dst->rx_crc_err   = hton64(src->rx_crc_err);
-    dst->collisions   = hton64(src->collisions);
     dst->duration_sec =  htonl(src->duration_sec);
     dst->duration_nsec =  htonl(src->duration_nsec);
 
-    return sizeof(struct ofp_port_stats);
+    /* TODO: Multiple TLVs, required when first experimenter is added. */
+    switch (src->type) {
+        case (OFPPSPT_ETHERNET): {
+            struct ofp_port_stats_prop_ethernet *ops_e =
+                (struct ofp_port_stats_prop_ethernet *) &dst->properties;
+            length += sizeof(struct ofp_port_stats_prop_ethernet);
+            ops_e->type         = htons(src->type);
+            ops_e->length       = htons(sizeof(*ops_e));
+            ops_e->collisions   = hton64(src->collisions);
+            ops_e->rx_frame_err = hton64(src->rx_frame_err);
+            ops_e->rx_over_err  = hton64(src->rx_over_err);
+            ops_e->rx_crc_err   = hton64(src->rx_crc_err);
+            break;
+        }
+        case (OFPPSPT_OPTICAL): {
+            struct ofp_port_stats_prop_optical *ops_o =
+                (struct ofp_port_stats_prop_optical *) &dst->properties;
+            length += sizeof(struct ofp_port_stats_prop_optical);
+            ops_o->type         = htons(src->type);
+            ops_o->length       = htons(sizeof(*ops_o));
+            ops_o->tx_freq_lmda = htonl(src->tx_freq_lmda);
+            ops_o->tx_offset    = htonl(src->tx_offset);
+            ops_o->tx_grid_span = htonl(src->tx_grid_span);
+            ops_o->rx_freq_lmda = htonl(src->rx_freq_lmda);
+            ops_o->rx_offset    = htonl(src->rx_offset);
+            ops_o->rx_grid_span = htonl(src->rx_grid_span);
+            ops_o->tx_pwr       = htons(src->tx_pwr);
+            ops_o->rx_pwr       = htons(src->rx_pwr);
+            ops_o->bias_current = htons(src->bias_current);
+            ops_o->temperature  = htons(src->temperature);
+            break;
+        }
+        default: 
+            break;
+    };
+
+    dst->length = htons(length);
+
+    return length;
 }
 
 size_t

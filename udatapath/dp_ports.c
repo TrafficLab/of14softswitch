@@ -396,6 +396,7 @@ new_port(struct datapath *dp, struct sw_port *port, uint32_t port_no,
 
     port->stats = xmalloc(sizeof(struct ofl_port_stats));
     port->stats->port_no = port_no;
+    port->stats->type         = 0;
     port->stats->rx_packets   = 0;
     port->stats->tx_packets   = 0;
     port->stats->rx_bytes     = 0;
@@ -713,7 +714,6 @@ dp_ports_handle_stats_request_port(struct datapath *dp,
             reply.stats[i] = port->stats;
             i++;
         }
-
     } else {
         port = dp_ports_lookup(dp, msg->port_no);
 

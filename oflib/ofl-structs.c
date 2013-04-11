@@ -278,7 +278,25 @@ ofl_utils_count_ofp_bucket_counters(void *data UNUSED, size_t data_len, size_t *
 
 ofl_err
 ofl_utils_count_ofp_port_stats(void *data UNUSED, size_t data_len, size_t *count) {
-    *count = data_len / sizeof(struct ofp_port_stats);
+    //*count = data_len / sizeof(struct ofp_port_stats);
+    struct ofp_port_stats *stat;
+    uint8_t *d;
+
+    d = (uint8_t *)data;
+    *count = 0;    
+
+    while (data_len >= sizeof(struct ofp_port_stats)) {
+        stat = (struct ofp_port_stats *)d;
+
+        if (data_len < ntohs(stat->length)) {
+            OFL_LOG_WARN(LOG_MODULE, "Received port stat has invalid length.");
+            return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
+        }
+        data_len -= ntohs(stat->length);
+        d += ntohs(stat->length);
+        (*count)++;
+    }
+
     return 0;
 }
 
