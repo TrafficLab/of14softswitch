@@ -278,7 +278,6 @@ ofl_utils_count_ofp_bucket_counters(void *data UNUSED, size_t data_len, size_t *
 
 ofl_err
 ofl_utils_count_ofp_port_stats(void *data UNUSED, size_t data_len, size_t *count) {
-    //*count = data_len / sizeof(struct ofp_port_stats);
     struct ofp_port_stats *stat;
     uint8_t *d;
 
