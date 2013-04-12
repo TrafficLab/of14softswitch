@@ -466,7 +466,7 @@ ofl_structs_match_convert_pktf2oflm(struct hmap * hmap_packet_fields, struct ofl
  ****************************************************************************/
 
 size_t
-ofl_structs_instructions_pack(struct ofl_instruction_header *src, struct ofp_instruction *dst, struct ofl_exp *exp);
+ofl_structs_instructions_pack(struct ofl_instruction_header *src, struct ofp_instruction_id *dst, struct ofl_exp *exp);
 
 size_t
 ofl_structs_meter_band_pack(struct ofl_meter_band_header *src, struct ofp_meter_band_header *dst);
@@ -525,7 +525,7 @@ size_t
 ofl_structs_match_pack(struct ofl_match_header *src, struct ofp_match *dst, uint8_t* oxm_fields, enum byte_order order, struct ofl_exp *exp);
 
 ofl_err
-ofl_structs_instructions_unpack(struct ofp_instruction *src, size_t *len, struct ofl_instruction_header **dst, struct ofl_exp *exp);
+ofl_structs_instructions_unpack(struct ofp_instruction_id *src, size_t *len, struct ofl_instruction_header **dst, struct ofl_exp *exp);
 
 ofl_err
 ofl_structs_table_features_unpack(struct ofp_table_features *src, size_t *len, struct ofl_table_features **dst, struct ofl_exp *exp);

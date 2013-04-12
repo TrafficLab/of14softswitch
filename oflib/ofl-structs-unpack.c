@@ -46,11 +46,11 @@
 OFL_LOG_INIT(LOG_MODULE)
 
 ofl_err
-ofl_structs_instructions_unpack(struct ofp_instruction *src, size_t *len, struct ofl_instruction_header **dst, struct ofl_exp *exp) {
+ofl_structs_instructions_unpack(struct ofp_instruction_id *src, size_t *len, struct ofl_instruction_header **dst, struct ofl_exp *exp) {
     size_t ilen;
     struct ofl_instruction_header *inst = NULL;
 
-    if (*len < sizeof(struct ofp_instruction)) {
+    if (*len < sizeof(struct ofp_instruction_id)) {
         OFL_LOG_WARN(LOG_MODULE, "Received instruction is too short (%zu).", *len);
         return ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_LEN);
     }
@@ -251,8 +251,8 @@ ofl_structs_table_properties_unpack(struct ofp_table_feature_prop_header * src, 
 
             ptr = (uint8_t*) sp->instruction_ids;	
 			for(i = 0; i < dp->ids_num; i++){
-			    dp->instruction_ids[i].type = ntohs(((struct ofp_instruction*) ptr)->type);
-                ptr +=  ntohs(((struct ofp_instruction*) ptr)->len); 
+			    dp->instruction_ids[i].type = ntohs(((struct ofp_instruction_id*) ptr)->type);
+                ptr +=  ntohs(((struct ofp_instruction_id*) ptr)->len); 
 			}
 			plen -= ntohs(sp->length);
 			prop = (struct ofl_table_feature_prop_header*) dp;
@@ -482,7 +482,7 @@ ofl_structs_bucket_unpack(struct ofp_bucket *src, size_t *len, uint8_t gtype, st
 ofl_err
 ofl_structs_flow_stats_unpack(struct ofp_flow_stats *src, uint8_t *buf, size_t *len, struct ofl_flow_stats **dst, struct ofl_exp *exp) {
     struct ofl_flow_stats *s;
-    struct ofp_instruction *inst;
+    struct ofp_instruction_id *inst;
     ofl_err error;
     size_t slen;
     size_t i;
@@ -526,7 +526,7 @@ ofl_structs_flow_stats_unpack(struct ofp_flow_stats *src, uint8_t *buf, size_t *
         free(s);
         return error;
     }
-    error = ofl_utils_count_ofp_instructions((struct ofp_instruction *) (buf + ROUND_UP(match_pos + s->match->length,8)), 
+    error = ofl_utils_count_ofp_instructions((struct ofp_instruction_id *) (buf + ROUND_UP(match_pos + s->match->length,8)), 
                                             slen, &s->instructions_num);
     
     if (error) {
@@ -536,7 +536,7 @@ ofl_structs_flow_stats_unpack(struct ofp_flow_stats *src, uint8_t *buf, size_t *
     }
    s->instructions = (struct ofl_instruction_header **)malloc(s->instructions_num * sizeof(struct ofl_instruction_header *));
 
-   inst = (struct ofp_instruction *) (buf + ROUND_UP(match_pos + s->match->length,8));
+   inst = (struct ofp_instruction_id *) (buf + ROUND_UP(match_pos + s->match->length,8));
    for (i = 0; i < s->instructions_num; i++) {
         error = ofl_structs_instructions_unpack(inst, &slen, &(s->instructions[i]), exp);
         if (error) {
@@ -545,7 +545,7 @@ ofl_structs_flow_stats_unpack(struct ofp_flow_stats *src, uint8_t *buf, size_t *
             free(s);
             return error;
         }
-        inst = (struct ofp_instruction *)((uint8_t *)inst + ntohs(inst->len));
+        inst = (struct ofp_instruction_id *)((uint8_t *)inst + ntohs(inst->len));
     }
 
     if (slen != 0) {

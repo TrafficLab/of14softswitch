@@ -91,10 +91,9 @@ ofl_structs_instructions_ofp_total_len(struct ofl_instruction_header **instructi
 }
 
 size_t
-ofl_structs_instructions_pack(struct ofl_instruction_header *src, struct ofp_instruction *dst, struct ofl_exp *exp) {
+ofl_structs_instructions_pack(struct ofl_instruction_header *src, struct ofp_instruction_id *dst, struct ofl_exp *exp) {
     
     dst->type = htons(src->type);
-    memset(dst->pad, 0x00, 4);
     
     switch (src->type) {
         case OFPIT_GOTO_TABLE: {
@@ -245,10 +244,7 @@ ofl_structs_table_features_properties_ofp_len(struct ofl_table_feature_prop_head
                         OFL_LOG_WARN(LOG_MODULE, "Received EXPERIMENTER instruction, but no callback was given.");
                         return ofl_error(OFPET_BAD_INSTRUCTION, OFPBIC_UNSUP_INST);
                     }
-                     len += sizeof(struct ofp_instruction) + exp->inst->ofp_len(&inst_prop->instruction_ids[i]);  
-                 }
-                 else {
-                     len += sizeof(struct ofp_instruction) - 4;
+                     len += sizeof(struct ofp_instruction_id) + exp->inst->ofp_len(&inst_prop->instruction_ids[i]);  
                  }
              }
             /* The size is rounded in order to comply with padding bytes */  
@@ -337,23 +333,23 @@ ofl_structs_table_properties_pack(struct ofl_table_feature_prop_header * src, st
             ptr = (uint8_t*) data + (sizeof(struct ofp_table_feature_prop_header) -4);
             for(i = 0; i < sp->ids_num; i++){
                 if(sp->instruction_ids[i].type == OFPIT_EXPERIMENTER){
-                    struct ofp_instruction inst;
+                    struct ofp_instruction_id inst;
                     
                     inst.type = sp->instruction_ids[i].type;
                     if (exp == NULL || exp->inst == NULL || exp->inst->unpack == NULL) {
                         OFL_LOG_WARN(LOG_MODULE, "Received EXPERIMENTER instruction, but no callback was given.");
                         return ofl_error(OFPET_BAD_INSTRUCTION, OFPBIC_UNSUP_INST);
                     }
-                    inst.len = ROUND_UP(sizeof(struct ofp_instruction) + exp->inst->ofp_len(&sp->instruction_ids[i]),8);
-                    memcpy(ptr, &inst, sizeof(struct ofp_instruction) - 4);
-                    ptr += sizeof(struct ofp_instruction) - 4;
+                    inst.len = ROUND_UP(sizeof(struct ofp_instruction_id) + exp->inst->ofp_len(&sp->instruction_ids[i]),8);
+                    memcpy(ptr, &inst, sizeof(struct ofp_instruction_id));
+                    ptr += sizeof(struct ofp_instruction_id);
                 }
                 else {
-                    struct ofp_instruction inst;
+                    struct ofp_instruction_id inst;
                     inst.type = htons(sp->instruction_ids[i].type);
-                    inst.len = htons(sizeof(struct ofp_instruction) - 4);
-                    memcpy(ptr, &inst, sizeof(struct ofp_instruction) - 4);
-                    ptr += sizeof(struct ofp_instruction) - 4;
+                    inst.len = htons(sizeof(struct ofp_instruction_id));
+                    memcpy(ptr, &inst, sizeof(struct ofp_instruction_id));
+                    ptr += sizeof(struct ofp_instruction_id);
                 }    
             }
            memset(ptr, 0x0, ROUND_UP(sp->header.length,8) - sp->header.length);
@@ -553,7 +549,7 @@ ofl_structs_flow_stats_pack(struct ofl_flow_stats *src, uint8_t *dst, struct ofl
     data = (dst) + ROUND_UP(sizeof(struct ofp_flow_stats) -4 + src->match->length, 8);  
     
     for (i=0; i < src->instructions_num; i++) {
-        data += ofl_structs_instructions_pack(src->instructions[i], (struct ofp_instruction *) data, exp);
+        data += ofl_structs_instructions_pack(src->instructions[i], (struct ofp_instruction_id *) data, exp);
     }
     return total_len;
 }

@@ -91,8 +91,8 @@ struct ofl_exp_act {
 
 /* Callback functions for handling experimenter instructions. */
 struct ofl_exp_inst {
-    int     (*pack)            (struct ofl_instruction_header *src, struct ofp_instruction *dst);
-    ofl_err (*unpack)          (struct ofp_instruction *src, size_t *len, struct ofl_instruction_header **dst);
+    int     (*pack)            (struct ofl_instruction_header *src, struct ofp_instruction_id *dst);
+    ofl_err (*unpack)          (struct ofp_instruction_id *src, size_t *len, struct ofl_instruction_header **dst);
     int     (*free)            (struct ofl_instruction_header *i);
     size_t  (*ofp_len)         (struct ofl_instruction_header *i);
     char   *(*to_string)       (struct ofl_instruction_header *i);

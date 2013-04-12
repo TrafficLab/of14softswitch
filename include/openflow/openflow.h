@@ -456,18 +456,10 @@ struct ofp_instruction_header {
 OFP_ASSERT(sizeof(struct ofp_instruction_header) == 4);
 
 /* Generic ofp_instruction structure */
-struct ofp_instruction {
+struct ofp_instruction_id {
     uint16_t type;                /* Instruction type */
     uint16_t len;                 /* Length of this struct in bytes. */
-    uint8_t pad[4];               /* Align to 64-bits */
-};
-OFP_ASSERT(sizeof(struct ofp_instruction) == 8);
-
-/* Instruction ID. */
-struct ofp_instruction_id {
-    uint16_t type;          /* One of OFPIT_*. */
-    uint16_t len;           /* Length is 4 or experimenter defined. */
-    uint8_t exp_data[0];    /* Optional experimenter id + data. */
+    uint8_t exp_data[0];          /* Optional experimenter id + data. */
 };
 OFP_ASSERT(sizeof(struct ofp_instruction_id) == 4);
 
@@ -802,7 +794,7 @@ struct ofp_flow_mod {
 	uint16_t flags;         /* One of OFPFF_*. */
 	uint8_t pad[2];
 	struct ofp_match match; /* Fields to match. Variable size. */
-    //struct ofp_instruction instructions[0]; /* Instruction set */
+    //struct ofp_instruction_id instructions[0]; /* Instruction set */
 };
 OFP_ASSERT(sizeof(struct ofp_flow_mod) == 56);
 
@@ -1197,7 +1189,7 @@ struct ofp_flow_stats {
 	uint64_t packet_count;  /* Number of packets in flow. */
 	uint64_t byte_count;    /* Number of bytes in flow. */
 	struct ofp_match match; /* Description of fields. Variable size. */
-    //struct ofp_instruction instructions[0]; /* Instruction set. */
+    //struct ofp_instruction_id instructions[0]; /* Instruction set. */
 };
 OFP_ASSERT(sizeof(struct ofp_flow_stats) == 56);
 
@@ -1303,7 +1295,7 @@ struct ofp_table_feature_prop_instructions {
     - Exactly (length + 7)/8*8 - (length) (between 0 and 7)
     *
     bytes of all-zero bytes */
-    struct ofp_instruction instruction_ids[0]; /* List of instructions */
+    struct ofp_instruction_id instruction_ids[0]; /* List of instructions */
 };
 OFP_ASSERT(sizeof(struct ofp_table_feature_prop_instructions) == 4);
 
