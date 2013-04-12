@@ -138,6 +138,29 @@ ofl_utils_count_ofp_buckets(void *data, size_t data_len, size_t *count) {
 
 
 ofl_err
+ofl_utils_count_ofp_table_mod_props(void *data, size_t data_len, size_t *count) {
+    struct ofp_table_mod_prop_header *tp;
+    uint8_t *d;
+
+    d = (uint8_t *)data;
+    *count = 0;
+
+    while (data_len >= sizeof(struct ofp_table_mod_prop_header)) {
+        tp = (struct ofp_table_mod_prop_header *)d;
+
+        if (data_len < ntohs(tp->length) || ntohs(tp->length) < sizeof(struct ofp_table_mod_prop_header)) {
+            OFL_LOG_WARN(LOG_MODULE, "Received table mod property has invalid length.");
+            return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
+        }
+        data_len -= ntohs(tp->length);
+        d += ntohs(tp->length);
+        (*count)++;
+    }
+
+    return 0;
+}
+
+ofl_err
 ofl_utils_count_ofp_meter_bands(void *data, size_t data_len, size_t *count) {
     struct ofp_meter_band_header *mb;
     uint8_t *d;
@@ -403,6 +426,10 @@ ofl_structs_free_instruction(struct ofl_instruction_header *inst, struct ofl_exp
         }
     }
     free(inst);
+}
+
+void ofl_structs_free_table_mod_prop(struct ofl_table_mod_prop_header *table_mod_prop){
+    free(table_mod_prop);            
 }
 
 void ofl_structs_free_meter_bands(struct ofl_meter_band_header *meter_band){

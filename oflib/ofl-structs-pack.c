@@ -174,6 +174,46 @@ ofl_structs_instructions_pack(struct ofl_instruction_header *src, struct ofp_ins
 }
 
 size_t
+ofl_structs_table_mod_prop_ofp_len(struct ofl_table_mod_prop_header *table_mod_prop) {
+    switch (table_mod_prop->type) {
+        case OFPTMPT_VACANCY:   
+            return sizeof(struct ofp_table_mod_prop_vacancy);
+        default:
+             OFL_LOG_WARN(LOG_MODULE, "Trying to len unknown table mod prop type.");
+            return 0;
+    }
+}
+
+size_t
+ofl_structs_table_mod_props_ofp_total_len(struct ofl_table_mod_prop_header **table_mod_props, size_t table_mod_props_num) {
+    size_t sum;
+    OFL_UTILS_SUM_ARR_FUN(sum, table_mod_props, table_mod_props_num,
+            ofl_structs_table_mod_prop_ofp_len);
+    return sum;
+}
+
+size_t
+ofl_structs_table_mod_prop_pack(struct ofl_table_mod_prop_header *src, struct ofp_table_mod_prop_header *dst){
+    
+    dst->type = htons(src->type);
+    switch (src->type) {
+        case OFPTMPT_VACANCY:{
+            struct ofl_table_mod_prop_vacancy *sd = (struct ofl_table_mod_prop_vacancy *)src;
+            struct ofp_table_mod_prop_vacancy *dp = (struct ofp_table_mod_prop_vacancy *)dst;
+            dp->length = htons(sizeof(struct ofp_table_mod_prop_vacancy));
+            dp->vacancy_down = sd->vacancy_down;
+            dp->vacancy_up = sd->vacancy_up;
+            dp->vacancy = sd->vacancy;
+            memset(dp->pad, 0x0, 1);
+            return sizeof(struct ofp_table_mod_prop_vacancy);
+        }
+        default:
+            OFL_LOG_WARN(LOG_MODULE, "Trying to pack unknown table mod property.");
+            return 0;
+    }
+}
+
+size_t
 ofl_structs_meter_band_ofp_len(struct ofl_meter_band_header *meter_band) {
     switch (meter_band->type) {
         case OFPMBT_DROP:

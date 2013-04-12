@@ -324,8 +324,10 @@ ofl_msg_pack_port_mod(struct ofl_msg_port_mod *msg, uint8_t **buf, size_t *buf_l
 static int
 ofl_msg_pack_table_mod(struct ofl_msg_table_mod *msg, uint8_t **buf, size_t *buf_len) {
     struct ofp_table_mod *table_mod;
+    uint8_t *ptr;
+    int i;
 
-    *buf_len = sizeof(struct ofp_table_mod);
+    *buf_len = sizeof(struct ofp_table_mod) + ofl_structs_table_mod_props_ofp_total_len(msg->props, msg->table_mod_prop_num);
     *buf     = (uint8_t *)malloc(*buf_len);
 
     table_mod = (struct ofp_table_mod *)(*buf);
@@ -333,6 +335,10 @@ ofl_msg_pack_table_mod(struct ofl_msg_table_mod *msg, uint8_t **buf, size_t *buf
     memset(table_mod->pad, 0x00, 3);
     table_mod->config   = htonl(msg->config);
 
+    ptr = (*buf) + sizeof(struct ofp_table_mod);
+    for (i=0; i < msg->table_mod_prop_num; i++) {
+        ptr += ofl_structs_table_mod_prop_pack(msg->props[i], (struct ofp_table_mod_prop_header *) ptr);
+    }
     return 0;
 }
 

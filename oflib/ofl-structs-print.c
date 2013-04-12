@@ -601,6 +601,20 @@ ofl_structs_group_stats_print(FILE *stream, struct ofl_group_stats *s) {
     fprintf(stream, "]}");
 }
 
+void
+ofl_structs_table_mod_prop_print(FILE *stream, struct ofl_table_mod_prop_header* s){
+    fprintf(stream, ", {type = ");
+    ofl_table_mod_prop_type_print(stream, s->type);
+    switch(s->type){
+        case(OFPTMPT_VACANCY):{
+            struct ofl_table_mod_prop_vacancy *d = (struct ofl_table_mod_prop_vacancy*)s;
+            fprintf(stream, ", vacancy_down=\"%u\", vacancy_up=\"%u\", vacancy=\"%u\"}",
+                  d->vacancy_down, d->vacancy_up, d->vacancy);         
+            break;
+        }
+    }
+}
+
 char*
 ofl_structs_meter_band_to_string(struct ofl_meter_band_header* s){
     char *str;

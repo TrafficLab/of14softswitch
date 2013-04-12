@@ -669,6 +669,9 @@ static ofl_err
 ofl_msg_unpack_table_mod(struct ofp_header *src, size_t *len, struct ofl_msg_header **msg) {
     struct ofp_table_mod *sm;
     struct ofl_msg_table_mod *dm;
+    struct ofp_table_mod_prop_header *prop;
+    ofl_err error;
+    size_t i;
 
     if (*len < sizeof(struct ofp_table_mod)) {
         OFL_LOG_WARN(LOG_MODULE, "Received TABLE_MOD message has invalid length (%zu).", *len);
@@ -685,6 +688,26 @@ ofl_msg_unpack_table_mod(struct ofp_header *src, size_t *len, struct ofl_msg_hea
 
     dm->table_id = sm->table_id;
     dm->config = ntohl(sm->config);
+
+    error = ofl_utils_count_ofp_table_mod_props(&(sm->properties), *len, &dm->table_mod_prop_num);
+    if (error) {
+        free(dm);
+        return error;
+    }
+
+    dm->props = (struct ofl_table_mod_prop_header **)malloc(dm->table_mod_prop_num * sizeof(struct ofl_table_mod_prop_header *));
+
+    prop = sm->properties;
+    for (i = 0; i < dm->table_mod_prop_num; i++) {
+        error = ofl_structs_table_mod_prop_unpack(prop, len, &(dm->props[i]));
+        if (error) {
+            OFL_UTILS_FREE_ARR_FUN(dm->props, i,
+            		ofl_structs_free_table_mod_prop);
+            free(dm);
+            return error;
+        }
+        prop = (struct ofp_table_mod_prop_header *)((uint8_t *)prop + ntohs(prop->length));
+    }
 
     *msg = (struct ofl_msg_header *)dm;
     return 0;

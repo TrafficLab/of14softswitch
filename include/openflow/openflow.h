@@ -616,15 +616,6 @@ enum ofp_table {
                         flow stats and flow deletes. */
 };
 
-/* Configure/Modify behavior of a flow table */
-struct ofp_table_mod {
-	struct ofp_header header;
-	uint8_t table_id; /* ID of the table, OFPTT_ALL indicates all tables */
-	uint8_t pad[3];   /* Pad to 32 bits */
-	uint32_t config;  /* Bitmap of OFPTC_* flags */
-};
-OFP_ASSERT(sizeof(struct ofp_table_mod) == 16);
-
 enum ofp_table_config {
     OFPTC_TABLE_MISS_CONTROLLER = 0,    /* Send to controller. */
     OFPTC_TABLE_MISS_CONTINUE = 1 << 0, /* Continue to the next table in the
@@ -633,7 +624,44 @@ enum ofp_table_config {
     OFPTC_TABLE_MISS_MASK = 3,
 
     OFPTC_EVICTION = 1 << 2,	/*Authorize table to evict flows. modified by dingwanfu. */
+    OFPTC_VACANCY_EVENTS        = 1 << 3,  /* Enable vacancy events. */
 };
+
+/* Table Mod property types.
+ */
+enum ofp_table_mod_prop_type {
+    OFPTMPT_VACANCY                = 0x3,    /* Vacancy property. */
+};
+
+/* Common header for all Table Mod Properties */
+struct ofp_table_mod_prop_header {
+    uint16_t         type;    /* One of OFPTMPT_*. */
+    uint16_t         length;  /* Length in bytes of this property. */
+};
+OFP_ASSERT(sizeof(struct ofp_table_mod_prop_header) == 4);
+
+/* Vacancy table mod property */
+struct ofp_table_mod_prop_vacancy {
+    uint16_t         type;   /* One of OFPTMPT_VACANCY. */
+    uint16_t         length; /* Length in bytes of this property. */
+    uint8_t vacancy_down;    /* Vacancy threshold when space decreases (%). */
+    uint8_t vacancy_up;      /* Vacancy threshold when space increases (%). */
+    uint8_t vacancy;         /* Current vacancy (%) - only in ofp_table_desc. */
+    uint8_t pad[1];          /* Align to 64 bits. */
+};
+OFP_ASSERT(sizeof(struct ofp_table_mod_prop_vacancy) == 8);
+
+/* Configure/Modify behavior of a flow table */
+struct ofp_table_mod {
+	struct ofp_header header;
+	uint8_t table_id; /* ID of the table, OFPTT_ALL indicates all tables */
+	uint8_t pad[3];   /* Pad to 32 bits */
+	uint32_t config;  /* Bitmap of OFPTC_* flags */
+
+    /* Table Mod Property list */
+    struct ofp_table_mod_prop_header properties[0];
+};
+OFP_ASSERT(sizeof(struct ofp_table_mod) == 16);
 
 #define OFP_DEFAULT_PRIORITY 0x8000
 #define OFP_FLOW_PERMANENT 0

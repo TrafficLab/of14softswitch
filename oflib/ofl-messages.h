@@ -249,6 +249,11 @@ struct ofl_msg_table_mod {
 
     uint8_t    table_id; /* ID of the table, 0xFF indicates all tables */
     uint32_t   config;   /* Bitmap of OFPTC_* flags */
+
+    size_t  table_mod_prop_num; 
+    struct ofl_table_mod_prop_header **props; /* The props length is
+                                              inferred from the length field
+                                              in the header. */
 };
 
 /* Meter configuration. OFPT_METER_MOD. */
@@ -507,6 +512,10 @@ ofl_msg_unpack(uint8_t *buf, size_t buf_len,
  * features, it uses the passed in experimenter callback. */
 int
 ofl_msg_free(struct ofl_msg_header *msg, struct ofl_exp *exp);
+
+/* Calling this function frees the passed table_mod message.*/
+int 
+ofl_msg_free_table_mod(struct ofl_msg_table_mod * msg, bool with_props);
 
 /* Calling this function frees the passed meter_mod message.*/
 int 

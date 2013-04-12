@@ -1089,6 +1089,31 @@ ofl_structs_bucket_counter_unpack(struct ofp_bucket_counter *src, size_t *len, s
 }
 
 ofl_err
+ofl_structs_table_mod_prop_unpack(struct ofp_table_mod_prop_header *src, size_t *len, struct ofl_table_mod_prop_header **dst){
+	struct ofl_table_mod_prop_header *tp;
+
+	if(*len < sizeof(struct ofp_table_mod_prop_header)){
+		OFL_LOG_WARN(LOG_MODULE, "Received table mod property is too short (%zu).", *len);
+		return ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_LEN);
+	}
+	switch (ntohs(src->type)){
+		case OFPTMPT_VACANCY:{
+			struct ofl_table_mod_prop_vacancy *p = (struct ofl_table_mod_prop_vacancy *)malloc(sizeof(struct ofl_table_mod_prop_vacancy));
+			struct ofp_table_mod_prop_vacancy *s = (struct ofp_table_mod_prop_vacancy *)src;
+			p->type = ntohs(s->type);
+			p->vacancy_down = s->vacancy_down;
+			p->vacancy_up = s->vacancy_up;
+			p->vacancy = s->vacancy;
+			tp = (struct ofl_table_mod_prop_header *)p;
+			*dst = tp;
+			break;
+		}
+	}
+	*len -= ntohs(src->length);
+	return 0;
+}
+
+ofl_err
 ofl_structs_meter_band_unpack(struct ofp_meter_band_header *src, size_t *len, struct ofl_meter_band_header **dst){
 	struct ofl_meter_band_header *mb;
 

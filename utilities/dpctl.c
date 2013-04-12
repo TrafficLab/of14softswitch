@@ -784,7 +784,8 @@ table_mod(struct vconn *vconn, int argc UNUSED, char *argv[]) {
     struct ofl_msg_table_mod msg =
             {{.type = OFPT_TABLE_MOD},
              .table_id = 0xff,
-             .config = 0x00};
+             .config = 0x00,
+             .table_mod_prop_num = 0};
 
     parse_table_mod(argv[0], &msg);
 

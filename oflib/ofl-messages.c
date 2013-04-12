@@ -259,9 +259,11 @@ ofl_msg_free(struct ofl_msg_header *msg, struct ofl_exp *exp) {
         case OFPT_GROUP_MOD: {
             return ofl_msg_free_group_mod((struct ofl_msg_group_mod *)msg, true, exp);
         }
-        case OFPT_PORT_MOD:
-        case OFPT_TABLE_MOD: {
+        case OFPT_PORT_MOD: {
             break;
+        }
+        case OFPT_TABLE_MOD: {
+            return ofl_msg_free_table_mod((struct ofl_msg_table_mod*)msg, true);
         }
         case OFPT_MULTIPART_REQUEST: {
             return ofl_msg_free_multipart_request((struct ofl_msg_multipart_request_header *)msg, exp);
@@ -295,6 +297,16 @@ ofl_msg_free(struct ofl_msg_header *msg, struct ofl_exp *exp) {
         }
     }
     
+    free(msg);
+    return 0;
+}
+
+int 
+ofl_msg_free_table_mod(struct ofl_msg_table_mod * msg, bool with_props){
+    if (with_props) {
+       OFL_UTILS_FREE_ARR_FUN(msg->props, msg->table_mod_prop_num,
+                                  ofl_structs_free_table_mod_prop);
+    }
     free(msg);
     return 0;
 }

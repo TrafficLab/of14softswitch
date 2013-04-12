@@ -236,9 +236,20 @@ ofl_msg_print_port_mod(struct ofl_msg_port_mod *msg, FILE *stream) {
 
 static void
 ofl_msg_print_table_mod(struct ofl_msg_table_mod *msg, FILE *stream) {
+    size_t i;
+
     fprintf(stream, "{id=\"");
     ofl_table_print(stream, msg->table_id);
     fprintf(stream, "\", config=\"0x%08"PRIx32"\"}", msg->config);
+
+    fprintf(stream,"\", properties=[");
+    for (i=0; i<msg->table_mod_prop_num; i++) {
+        ofl_structs_table_mod_prop_print(stream, msg->props[i]);
+
+        if (i < msg->table_mod_prop_num - 1) { fprintf(stream, ", "); }
+    }
+
+    fprintf(stream, "]}");
 }
 
 static void

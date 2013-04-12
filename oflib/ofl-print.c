@@ -698,6 +698,14 @@ ofl_group_mod_command_print(FILE *stream, uint16_t command) {
     }
 }
 
+void
+ofl_table_mod_prop_type_print(FILE *stream, uint16_t type) {
+    switch (type) {
+        case OFPTMPT_VACANCY:        {    fprintf(stream, "vacancy"); return; }
+        default: {                   fprintf(stream, "?(%u)", type); return; }
+    }              
+}        
+
 char *
 ofl_meter_mod_command_to_string(uint16_t command) {
     char *str;
