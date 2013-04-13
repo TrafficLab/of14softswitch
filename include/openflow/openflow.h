@@ -2080,6 +2080,17 @@ enum ofp_table_features_failed_code {
     OFPTFFC_EPERM = 5,        /* Permissions error. */
 };
 
+struct ofp_experimenter_msg {
+    struct ofp_header header;   /* Type OFPT_EXPERIMENTER. */
+    uint32_t experimenter;      /* Experimenter ID:
+                                 * - MSB 0: low-order bytes are IEEE_OUI
+                                 * - MSB != 0: defined by ONF. */
+    uint32_t exp_type;          /* Experimenter defined. */
+    /* Experimenter-defined arbitrary additional data. */
+    uint8_t experimenter_data[0];
+};
+OFP_ASSERT(sizeof(struct ofp_experimenter_msg) == 16);
+
 enum {
     OFPBPC_BAD_TYPE = 0,         /* Unknown property type. */
     OFPBPC_BAD_LEN = 1,          /* Length problem in property. */
