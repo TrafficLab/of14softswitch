@@ -192,6 +192,16 @@ ofl_structs_table_mod_props_ofp_total_len(struct ofl_table_mod_prop_header **tab
     return sum;
 }
 
+size_t ofl_structs_table_descs_ofp_total_len(struct ofl_table_desc **table_desc, size_t tables_num, struct ofl_exp * exp UNUSED){
+    
+    int i, total_len;
+    total_len = 0;
+    for(i = 0; i < tables_num; i++){
+        total_len +=  sizeof(struct ofp_table_desc) + ofl_structs_table_mod_props_ofp_total_len(table_desc[i]->properties, table_desc[i]->properties_num);   
+    }
+    return total_len;
+}
+
 size_t
 ofl_structs_table_mod_prop_pack(struct ofl_table_mod_prop_header *src, struct ofp_table_mod_prop_header *dst){
     
@@ -211,6 +221,25 @@ ofl_structs_table_mod_prop_pack(struct ofl_table_mod_prop_header *src, struct of
             OFL_LOG_WARN(LOG_MODULE, "Trying to pack unknown table mod property.");
             return 0;
     }
+}
+
+size_t
+ofl_structs_table_desc_pack(struct ofl_table_desc *src, struct ofp_table_desc *dst, uint8_t *data,  struct ofl_exp *exp UNUSED){
+    size_t total_len;
+    uint8_t *ptr;
+    int i;
+   
+    total_len = sizeof(struct ofp_table_desc) + ofl_structs_table_mod_props_ofp_total_len(src->properties, src->properties_num);
+    dst->table_id = src->table_id;
+    memset(dst->pad, 0x0, 1);
+    dst->config = htonl(src->config);
+    
+    ptr = (uint8_t*) (data + sizeof(struct ofp_table_desc));
+    for(i = 0; i < src->properties_num; i++){
+        ptr += ofl_structs_table_mod_prop_pack(src->properties[i], (struct ofp_table_mod_prop_header*) ptr);
+    }
+    dst->length = htons(total_len);
+    return total_len; 
 }
 
 size_t
@@ -485,7 +514,7 @@ ofl_structs_table_features_pack(struct ofl_table_features *src, struct ofp_table
     strncpy(dst->name,src->name, OFP_MAX_TABLE_NAME_LEN);
     dst->metadata_match = hton64(src->metadata_match);
     dst->metadata_write = hton64(src->metadata_write);
-    dst->config = htonl(src->config);
+    dst->capabilities = htonl(src->capabilities);
     dst->max_entries = htonl(src->max_entries);
 
     ptr = (uint8_t*) (data + sizeof(struct ofp_table_features));

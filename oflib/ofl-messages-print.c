@@ -134,6 +134,15 @@ ofl_msg_print_port_status(struct ofl_msg_port_status *msg, FILE *stream) {
 }
 
 static void
+ofl_msg_print_table_status(struct ofl_msg_table_status *msg, FILE *stream, struct ofl_exp *exp UNUSED) {
+    fprintf(stream, "{reas=\"");
+    ofl_table_status_reason_print(stream, msg->reason);
+    fprintf(stream, "\", table_desc=\"");
+    ofl_structs_table_desc_print(stream, msg->table_desc);
+    fprintf(stream, "\"}");
+}
+
+static void
 ofl_msg_print_packet_out(struct ofl_msg_packet_out *msg, FILE *stream, struct ofl_exp *exp) {
     size_t i;
     fprintf(stream, "{buffer=\"");
@@ -369,7 +378,8 @@ ofl_msg_print_multipart_request(struct ofl_msg_multipart_request_header *msg, FI
         case OFPMP_METER_FEATURES:{
             break;
         }    
-        case OFPMP_PORT_DESC:{
+        case OFPMP_PORT_DESC:
+        case OFPMP_TABLE_DESC:{
             break;
         }
         case OFPMP_EXPERIMENTER: {
@@ -578,6 +588,21 @@ ofl_msg_print_port_desc_reply(struct ofl_msg_multipart_reply_port_desc *msg, FIL
 }
 
 static void
+ofl_msg_print_table_desc_reply(struct ofl_msg_multipart_reply_table_desc* msg, FILE *stream){
+
+    size_t i;
+    if (msg->table_desc == NULL){
+        return;
+    }
+    else {
+        fprintf(stream, ", table_desc=\"");
+        for(i = 0; i < msg->tables_num; i++)
+            ofl_structs_table_desc_print(stream, msg->table_desc[i]);
+        fprintf(stream, "\"");
+    }
+}
+
+static void
 ofl_msg_print_multipart_reply(struct ofl_msg_multipart_reply_header *msg, FILE *stream, struct ofl_exp *exp) {
     if (msg->type == OFPMP_EXPERIMENTER) {
         if (exp != NULL && exp->stats != NULL && exp->stats->reply_to_string != NULL) {
@@ -649,6 +674,10 @@ ofl_msg_print_multipart_reply(struct ofl_msg_multipart_reply_header *msg, FILE *
         }
         case OFPMP_PORT_DESC:{
             ofl_msg_print_port_desc_reply((struct ofl_msg_multipart_reply_port_desc*)msg, stream);
+            break;
+        }
+        case (OFPMP_TABLE_DESC):{
+            ofl_msg_print_table_desc_reply((struct ofl_msg_multipart_reply_table_desc*)msg, stream);
             break;
         }
         case OFPMP_EXPERIMENTER: {
@@ -741,6 +770,7 @@ ofl_msg_print(FILE *stream, struct ofl_msg_header *msg, struct ofl_exp *exp) {
         case OFPT_PACKET_IN: { ofl_msg_print_packet_in((struct ofl_msg_packet_in *)msg, stream); return; }
         case OFPT_FLOW_REMOVED: { ofl_msg_print_flow_removed((struct ofl_msg_flow_removed *)msg, stream, exp); return; }
         case OFPT_PORT_STATUS: { ofl_msg_print_port_status((struct ofl_msg_port_status *)msg, stream); return; }
+        case OFPT_TABLE_STATUS: { ofl_msg_print_table_status((struct ofl_msg_table_status *)msg, stream, exp); return; }
 
         /* Controller command messages. */
         case OFPT_PACKET_OUT: { ofl_msg_print_packet_out((struct ofl_msg_packet_out *)msg, stream, exp); return; }

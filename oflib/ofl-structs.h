@@ -175,6 +175,16 @@ struct ofl_table_stats {
     uint64_t   matched_count; /* Number of packets that hit table. */
 };
 
+struct ofl_table_desc {
+    uint8_t    table_id;      /* Identifier of table. Lower numbered tables
+                                are consulted first. */
+    uint32_t config;         /* Bitmap of OFPTC_* values */
+
+    size_t properties_num;  /* Number of properties*/
+    /* Table Mod Property list */
+    struct ofl_table_mod_prop_header **properties;
+};
+
 struct ofl_table_feature_prop_header {
     uint16_t type;                /* Table feature type */
     uint16_t length;              /* Property length */
@@ -219,7 +229,7 @@ struct ofl_table_features {
     char *name;
     uint64_t metadata_match; /* Bits of metadata table can match. */
     uint64_t metadata_write; /* Bits of metadata table can write. */
-    uint32_t config;         /* Bitmap of OFPTC_* values */
+    uint32_t capabilities;   /* Bitmap of OFPTC_* values */
     uint32_t max_entries;    /* Max number of entries supported. */
     size_t properties_num;  /* Number of properties*/
     /* Table Feature Property list */
@@ -480,6 +490,9 @@ size_t
 ofl_structs_table_mod_prop_pack(struct ofl_table_mod_prop_header *src, struct ofp_table_mod_prop_header *dst);
 
 size_t
+ofl_structs_table_desc_pack(struct ofl_table_desc *src, struct ofp_table_desc *dst, uint8_t *data,  struct ofl_exp *exp);
+
+size_t
 ofl_structs_meter_band_pack(struct ofl_meter_band_header *src, struct ofp_meter_band_header *dst);
 
 size_t
@@ -569,6 +582,9 @@ ofl_err
 ofl_structs_table_mod_prop_unpack(struct ofp_table_mod_prop_header *src, size_t *len, struct ofl_table_mod_prop_header **dst);
 
 ofl_err
+ofl_structs_table_desc_unpack(struct ofp_table_desc *src,size_t *len, struct ofl_table_desc **dst, struct ofl_exp *exp);
+
+ofl_err
 ofl_structs_meter_band_unpack(struct ofp_meter_band_header *src, size_t *len, struct ofl_meter_band_header **dst);
 
 ofl_err
@@ -595,6 +611,9 @@ ofl_structs_meter_config_unpack(struct ofp_meter_config *src, size_t *len, struc
 
 void
 ofl_structs_free_table_mod_prop(struct ofl_table_mod_prop_header *table_mod_prop);
+
+void
+ofl_structs_free_table_desc(struct ofl_table_desc* table_desc, struct ofl_exp *exp);
 
 void
 ofl_structs_free_meter_bands(struct ofl_meter_band_header *meter_band);
@@ -658,6 +677,9 @@ ofl_err
 ofl_utils_count_ofp_table_mod_props(void *data, size_t data_len, size_t *count);
 
 ofl_err
+ofl_utils_count_ofp_table_descs(void *data, size_t data_len, size_t *count);
+
+ofl_err
 ofl_utils_count_ofp_meter_bands(void *data, size_t data_len, size_t *count);
 
 ofl_err
@@ -716,6 +738,9 @@ ofl_structs_table_mod_props_ofp_total_len(struct ofl_table_mod_prop_header **tab
 
 size_t
 ofl_structs_table_mod_prop_ofp_len(struct ofl_table_mod_prop_header *table_mod_prop); 
+
+size_t
+ofl_structs_table_descs_ofp_total_len(struct ofl_table_desc **table_desc, size_t tables_num, struct ofl_exp * exp);
 
 size_t
 ofl_structs_meter_bands_ofp_total_len(struct ofl_meter_band_header **meter_bands, size_t meter_bands_num);
@@ -901,6 +926,9 @@ ofl_structs_group_desc_stats_print(FILE *stream, struct ofl_group_desc_stats *s,
 
 void
 ofl_structs_table_mod_prop_print(FILE *stream, struct ofl_table_mod_prop_header* s);
+
+void
+ofl_structs_table_desc_print(FILE *stream, struct ofl_table_desc *s);
 
 char*
 ofl_structs_meter_band_to_string(struct ofl_meter_band_header* s);

@@ -288,6 +288,7 @@ pipeline_handle_table_mod(struct pipeline *pl,
     if(sender->remote->role == OFPCR_ROLE_SLAVE)
         return ofl_error(OFPET_BAD_REQUEST, OFPBRC_IS_SLAVE);
 
+#if 0
     if (msg->table_id == 0xff) {
         size_t i;
 
@@ -297,6 +298,7 @@ pipeline_handle_table_mod(struct pipeline *pl,
     } else {
         pl->tables[msg->table_id]->features->config = msg->config;
     }
+#endif
 
     ofl_msg_free((struct ofl_msg_header *)msg, pl->dp->exp);
     return 0;

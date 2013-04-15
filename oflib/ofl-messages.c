@@ -82,6 +82,7 @@ ofl_msg_free_multipart_request(struct ofl_msg_multipart_request_header *msg, str
             break; 
         }
         case OFPMP_PORT_DESC:
+        case OFPMP_TABLE_DESC:
             break;
         case OFPMP_EXPERIMENTER: {
             if (exp == NULL || exp->stats == NULL || exp->stats->req_free == NULL) {
@@ -177,6 +178,12 @@ ofl_msg_free_multipart_reply(struct ofl_msg_multipart_reply_header *msg, struct 
                                     ofl_structs_free_table_features, exp);
             break;        
         }
+        case OFPMP_TABLE_DESC:{
+            struct ofl_msg_multipart_reply_table_desc *m = (struct ofl_msg_multipart_reply_table_desc *)msg;
+            OFL_UTILS_FREE_ARR_FUN2(m->table_desc, m->tables_num,
+                                    ofl_structs_free_table_desc, exp);
+            break;
+        }
         case OFPMP_EXPERIMENTER: {
             if (exp == NULL || exp->stats || exp->stats->reply_free == NULL) {
                 OFL_LOG_WARN(LOG_MODULE, "Trying to free EXPERIMENTER stats reply, but no callback was given.");
@@ -249,6 +256,9 @@ ofl_msg_free(struct ofl_msg_header *msg, struct ofl_exp *exp) {
         case OFPT_PORT_STATUS: {
             free(((struct ofl_msg_port_status *)msg)->desc);
             break;
+        }
+        case OFPT_TABLE_STATUS: {
+	    return ofl_msg_free_table_status((struct ofl_msg_table_status*)msg, true, exp);
         }
         case OFPT_PACKET_OUT: {
             return ofl_msg_free_packet_out((struct ofl_msg_packet_out *)msg, true, exp);
@@ -363,6 +373,15 @@ int
 ofl_msg_free_flow_removed(struct ofl_msg_flow_removed *msg, bool with_stats, struct ofl_exp *exp) {
     if (with_stats) {
         ofl_structs_free_flow_stats(msg->stats, exp);
+    }
+    free(msg);
+    return 0;
+}
+
+int 
+ofl_msg_free_table_status(struct ofl_msg_table_status * msg, bool with_descs, struct ofl_exp *exp){
+    if (with_descs) {
+       ofl_structs_free_table_desc(msg->table_desc, exp);
     }
     free(msg);
     return 0;

@@ -380,7 +380,7 @@ ofl_structs_table_features_unpack(struct ofp_table_features *src,size_t *len, st
     strncpy(feat->name, src->name, OFP_MAX_TABLE_NAME_LEN);
     feat->metadata_match = ntoh64(src->metadata_match); 
     feat->metadata_write =  ntoh64(src->metadata_write);
-    feat->config = ntohl(src->config);
+    feat->capabilities = ntohl(src->capabilities);
     feat->max_entries = ntohl(src->max_entries);
     
     plen = ntohs(src->length) - sizeof(struct ofp_table_features);
@@ -1094,7 +1094,7 @@ ofl_structs_table_mod_prop_unpack(struct ofp_table_mod_prop_header *src, size_t 
 
 	if(*len < sizeof(struct ofp_table_mod_prop_header)){
 		OFL_LOG_WARN(LOG_MODULE, "Received table mod property is too short (%zu).", *len);
-		return ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_LEN);
+		return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
 	}
 	switch (ntohs(src->type)){
 		case OFPTMPT_VACANCY:{
@@ -1111,6 +1111,55 @@ ofl_structs_table_mod_prop_unpack(struct ofp_table_mod_prop_header *src, size_t 
 	}
 	*len -= ntohs(src->length);
 	return 0;
+}
+
+ofl_err
+ofl_structs_table_desc_unpack(struct ofp_table_desc *src,size_t *len, struct ofl_table_desc **dst, struct ofl_exp *exp UNUSED){
+    struct ofl_table_desc *table_desc;
+    uint8_t *prop;
+    ofl_err error;
+    size_t plen, i;
+    
+    if(*len < sizeof(struct ofp_table_desc)){
+        OFL_LOG_WARN(LOG_MODULE, "Received table desc is too short (%zu).", *len);  
+        return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
+    }
+    
+    if(*len < ntohs(src->length)){
+        OFL_LOG_WARN(LOG_MODULE, "Received table_desc has invalid length (set to %u, but only %zu received).", ntohs(src->length), *len);
+        return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
+    }
+    
+    table_desc = (struct ofl_table_desc*) malloc(sizeof(struct ofl_table_desc));
+
+    table_desc->table_id = src->table_id;
+    table_desc->config = ntohl(src->config);
+    
+    plen = ntohs(src->length) - sizeof(struct ofp_table_desc);
+    error = ofl_utils_count_ofp_table_mod_props((uint8_t*) src->properties, plen, &table_desc->properties_num);
+    if (error) {
+        free(table_desc);
+        return error;
+    }
+    table_desc->properties = (struct ofl_table_mod_prop_header**) malloc(sizeof(struct ofl_table_mod_prop_header *) * table_desc->properties_num);
+    
+    prop = (uint8_t*) src->properties;
+    for(i = 0; i < table_desc->properties_num; i++){
+        error = ofl_structs_table_mod_prop_unpack((struct ofp_table_mod_prop_header*) prop, &plen, &table_desc->properties[i]);
+        if (error) {
+            *len = *len - ntohs(src->length) + plen;
+            /*OFL_UTILS_FREE_ARR_FUN2(b->actions, i,
+                                    ofl_actions_free, exp);*/
+            free(table_desc);
+            return error;
+        }
+        prop += ROUND_UP(ntohs(((struct ofp_table_mod_prop_header*) prop)->length),8);
+    }        
+    
+    *len -= ntohs(src->length);
+
+    *dst = table_desc;
+    return 0;
 }
 
 ofl_err

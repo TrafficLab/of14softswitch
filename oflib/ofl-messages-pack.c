@@ -211,6 +211,25 @@ ofl_msg_pack_port_status(struct ofl_msg_port_status *msg, uint8_t **buf, size_t 
 }
 
 static int
+ofl_msg_pack_table_status(struct ofl_msg_table_status *msg, uint8_t **buf, size_t *buf_len, struct ofl_exp *exp) {
+    struct ofp_table_status *ots;
+    size_t table_desc_len;
+    uint8_t *ptr;
+
+    table_desc_len = ofl_structs_table_descs_ofp_total_len(&msg->table_desc, 1, exp);
+    *buf_len = sizeof(struct ofp_table_status) - sizeof(struct ofp_table_desc) + table_desc_len;
+    *buf     = (uint8_t *)malloc(*buf_len);
+
+    ots = (struct ofp_table_status *)(*buf);
+    ots->reason        =        msg->reason;
+
+    ptr = (*buf) + sizeof(struct ofp_table_status) - sizeof(struct ofp_table_desc);
+    ptr += ofl_structs_table_desc_pack(msg->table_desc, (struct ofp_table_desc*) ptr, ptr, exp);
+
+    return 0;
+}
+
+static int
 ofl_msg_pack_packet_out(struct ofl_msg_packet_out *msg, uint8_t **buf, size_t *buf_len, struct ofl_exp *exp) {
     struct ofp_packet_out *packet_out;
     size_t act_len;
@@ -553,11 +572,12 @@ ofl_msg_pack_multipart_request(struct ofl_msg_multipart_request_header *msg, uin
         ofl_msg_pack_multipart_request_table_features((struct ofl_msg_multipart_request_table_features*)msg, buf, buf_len,exp);
         break;
    }
-   case OFPMP_PORT_DESC:{
+   case OFPMP_PORT_DESC:
+   case OFPMP_TABLE_DESC:{
         error = ofl_msg_pack_multipart_request_empty(msg, buf, buf_len);
         break;
    }
-    case OFPMP_EXPERIMENTER: {
+   case OFPMP_EXPERIMENTER: {
         if (exp == NULL || exp->stats == NULL || exp->stats->req_pack == NULL) {
             OFL_LOG_WARN(LOG_MODULE, "Trying to pack experimenter stat req, but no callback was given.");
             error = -1;
@@ -833,6 +853,26 @@ ofl_msg_pack_multipart_reply_port_status_desc(struct ofl_msg_multipart_reply_por
 }
 
 static int
+ofl_msg_pack_multipart_reply_table_desc(struct ofl_msg_multipart_reply_table_desc *msg, uint8_t **buf, size_t *buf_len, struct ofl_exp *exp) {
+    struct ofp_multipart_reply *resp;
+    size_t i, table_descs_len;
+    uint8_t *data;
+
+    table_descs_len = ofl_structs_table_descs_ofp_total_len(msg->table_desc, msg->tables_num, exp);
+    *buf_len = sizeof(struct ofp_multipart_reply) + table_descs_len;
+    *buf = (uint8_t*) malloc(*buf_len);
+
+    resp = (struct ofp_multipart_reply*) (*buf);
+    if (table_descs_len){
+        data = (uint8_t*) resp->body;
+        for(i = 0; i < msg->tables_num; i++ ){
+           data += ofl_structs_table_desc_pack(msg->table_desc[i], (struct ofp_table_desc*) data, data, exp);
+        }
+    }
+    return 0;
+}
+
+static int
 ofl_msg_pack_multipart_reply_meter_features(struct ofl_msg_multipart_reply_meter_features *msg, uint8_t **buf, size_t *buf_len) {
     struct ofp_multipart_reply *resp;
     struct ofp_meter_features *feat;
@@ -913,6 +953,10 @@ ofl_msg_pack_multipart_reply(struct ofl_msg_multipart_reply_header *msg, uint8_t
 			error = ofl_msg_pack_multipart_reply_port_status_desc((struct ofl_msg_multipart_reply_port_desc*)msg, buf, buf_len);
 			break;
 		}
+        case OFPMP_TABLE_DESC: {
+            error = ofl_msg_pack_multipart_reply_table_desc((struct ofl_msg_multipart_reply_table_desc*)msg, buf, buf_len, exp);
+            break;
+        }
         case OFPMP_EXPERIMENTER: {
             if (exp == NULL || exp->stats == NULL || exp->stats->reply_pack == NULL) {
                 OFL_LOG_WARN(LOG_MODULE, "Trying to pack experimenter stat resp, but no callback was given.");
@@ -1045,6 +1089,10 @@ ofl_msg_pack(struct ofl_msg_header *msg, uint32_t xid, uint8_t **buf, size_t *bu
         }
         case OFPT_PORT_STATUS: {
             error = ofl_msg_pack_port_status((struct ofl_msg_port_status *)msg, buf, buf_len);
+            break;
+        }
+        case OFPT_TABLE_STATUS: {
+            error = ofl_msg_pack_table_status((struct ofl_msg_table_status *)msg, buf, buf_len, exp);
             break;
         }
         /* Controller command messages. */

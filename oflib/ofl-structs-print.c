@@ -615,6 +615,18 @@ ofl_structs_table_mod_prop_print(FILE *stream, struct ofl_table_mod_prop_header*
     }
 }
 
+void
+ofl_structs_table_desc_print(FILE *stream, struct ofl_table_desc *s){
+    int i;
+    fprintf(stream, "{table=\"");
+    ofl_table_print(stream, s->table_id);  
+    fprintf(stream, "\", config=\"%"PRIu32"\"",
+                  s->config);      
+    for(i =0; i < s->properties_num; i++){
+        ofl_structs_table_mod_prop_print(stream, s->properties[i]);    
+    }    
+}
+
 char*
 ofl_structs_meter_band_to_string(struct ofl_meter_band_header* s){
     char *str;
@@ -864,9 +876,9 @@ ofl_structs_table_features_print(FILE *stream, struct ofl_table_features *s){
     fprintf(stream, "{table=\"");
     ofl_table_print(stream, s->table_id);  
     fprintf(stream, "\", name=\"%s\", "
-                          "metadata_match=\"%"PRIx64"\", metadata_write=\"%"PRIx64"\", config=\"%"PRIu32"\"," 
+                          "metadata_match=\"%"PRIx64"\", metadata_write=\"%"PRIx64"\", capabilities=\"%"PRIu32"\"," 
                           "max_entries=\"%"PRIu32"\"",
-                  s->name, s->metadata_match, s->metadata_write, s->config, s->max_entries);      
+                  s->name, s->metadata_match, s->metadata_write, s->capabilities, s->max_entries);      
     for(i =0; i < s->properties_num; i++){
         ofl_structs_table_properties_print(stream, s->properties[i]);    
     }    

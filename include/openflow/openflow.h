@@ -93,6 +93,8 @@ enum ofp_type {
     OFPT_SET_ASYNC = 28, /* Controller/switch message */
     /* Meters and rate limiters configuration messages. */
     OFPT_METER_MOD = 29, /* Controller/switch message */
+    /* Asynchronous messages. */
+    OFPT_TABLE_STATUS       = 30, /* Async message */
 };
 
 /* OFPT_HELLO.  This message has an empty body, but implementations must
@@ -980,6 +982,10 @@ enum ofp_multipart_types {
     * The request body is empty.
     * The reply body is an array of struct ofp_port. */
     OFPMP_PORT_DESC = 13,
+    /* Table description.
+     * The request body is empty.
+     * The reply body is an array of struct ofp_table_desc. */
+    OFPMP_TABLE_DESC = 14,
     /* Experimenter extension.
     * The request and reply bodies begin with
     * struct ofp_experimenter_stats_header.
@@ -1085,6 +1091,19 @@ struct ofp_table_stats {
 };
 OFP_ASSERT(sizeof(struct ofp_table_stats) == 24);
 
+/* Body of reply to OFPMP_TABLE_DESC request. */
+struct ofp_table_desc {
+    uint16_t length;         /* Length is padded to 64 bits. */
+    uint8_t table_id;        /* Identifier of table.  Lower numbered tables
+                                are consulted first. */
+    uint8_t pad[1];          /* Align to 32-bits. */
+    uint32_t config;         /* Bitmap of OFPTC_* values. */
+
+    /* Table Mod Property list - 0 or more. */
+    struct ofp_table_mod_prop_header properties[0];
+};
+OFP_ASSERT(sizeof(struct ofp_table_desc) == 8);
+
 struct ofp_table_feature_prop_header{
     uint16_t type;  /* One of OFPTFPT_NEXT_TABLES,
                        OFPTFPT_NEXT_TABLES_MISS. */
@@ -1102,7 +1121,7 @@ struct ofp_table_features {
     char name[OFP_MAX_TABLE_NAME_LEN];
     uint64_t metadata_match; /* Bits of metadata table can match. */
     uint64_t metadata_write; /* Bits of metadata table can write. */
-    uint32_t config;         /* Bitmap of OFPTC_* values */
+    uint32_t capabilities;   /* Bitmap of OFPTC_* values. */
     uint32_t max_entries;    /* Max number of entries supported. */
     /* Table Feature Property list */
     struct ofp_table_feature_prop_header properties[0];
@@ -1517,6 +1536,21 @@ enum ofp_port_reason {
     OFPPR_DELETE = 1, /* The port was removed. */
     OFPPR_MODIFY = 2, /* Some attribute of the port has changed. */
 };
+
+/* What changed about the table */
+enum ofp_table_reason {
+    OFPTR_VACANCY_DOWN  = 3,        /* Vacancy down threshold event. */
+    OFPTR_VACANCY_UP    = 4,        /* Vacancy up threshold event. */
+};
+
+/* A table config has changed in the datapath */
+struct ofp_table_status {
+    struct ofp_header header;
+    uint8_t reason;         /* One of OFPTR_*. */
+    uint8_t pad[7];         /* Pad to 64 bits */
+    struct ofp_table_desc table;   /* New table config. */
+};
+OFP_ASSERT(sizeof(struct ofp_table_status) == 24);
 
 /* OFPT_ERROR: Error message (datapath -> controller). */
 struct ofp_error_msg {

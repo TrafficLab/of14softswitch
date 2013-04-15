@@ -555,6 +555,7 @@ ofl_message_type_print(FILE *stream, uint16_t type) {
 		case OFPT_METER_MOD:				{ fprintf(stream, "meter_mod"); return;}  
 		case OFPT_ROLE_REQUEST:             { fprintf(stream, "role_request"); return;}
 		case OFPT_ROLE_REPLY:               { fprintf(stream, "role_reply"); return;}
+		case OFPT_TABLE_STATUS:		{ fprintf(stream, "table_status"); return;}
 		default: {                            fprintf(stream, "?(%u)", type); return; }
     }
 }
@@ -646,6 +647,15 @@ ofl_port_status_reason_print(FILE *stream, uint8_t reason) {
         case (OFPPR_ADD):  {   fprintf(stream, "add"); return; }
         case (OFPPR_DELETE): { fprintf(stream, "del"); return; }
         case (OFPPR_MODIFY): { fprintf(stream, "mod"); return; }
+        default: {             fprintf(stream, "?(%u)", reason); return; }
+    }
+}
+
+void
+ofl_table_status_reason_print(FILE *stream, uint8_t reason) {
+    switch (reason) {
+        case (OFPTR_VACANCY_DOWN): { fprintf(stream, "vacancy-down"); return; }
+        case (OFPTR_VACANCY_UP):   { fprintf(stream, "vacancy-up"); return; }
         default: {             fprintf(stream, "?(%u)", reason); return; }
     }
 }
@@ -798,6 +808,7 @@ ofl_stats_type_print(FILE *stream, uint16_t type) {
         case (OFPMP_METER_CONFIG):  { fprintf(stream, "mconf"); return; }
         case (OFPMP_METER_FEATURES):{ fprintf(stream, "mfeat"); return; }
         case (OFPMP_PORT_DESC):     { fprintf(stream, "port-desc"); return; }   
+        case (OFPMP_TABLE_DESC):{ fprintf(stream, "table-desc"); return; }
         case (OFPMP_EXPERIMENTER):  { fprintf(stream, "exp"); return; }
         default: {                    fprintf(stream, "?(%u)", type); return; }
     }

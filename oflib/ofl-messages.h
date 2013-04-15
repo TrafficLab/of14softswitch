@@ -158,6 +158,14 @@ struct ofl_msg_port_status {
     struct ofl_port       *desc;
 };
 
+struct ofl_msg_table_status {
+    struct ofl_msg_header   header; /* OFPT_TABLE_STATUS */
+
+    enum ofp_table_reason   reason; /* One of OFPTR_*. */
+
+    struct ofl_table_desc * table_desc;
+};
+
 /******************************
  * Controller command messages
  ******************************/
@@ -448,6 +456,13 @@ struct ofl_msg_multipart_reply_port_desc {
     struct ofl_port **stats;
 };
 
+struct ofl_msg_multipart_reply_table_desc {
+    struct ofl_msg_multipart_reply_header   header; /* OFPMP_TABLE_DESC */
+
+    size_t tables_num;
+    struct ofl_table_desc ** table_desc;
+};
+
 struct ofl_msg_multipart_reply_experimenter {
     struct ofl_msg_multipart_reply_header   header; /* OFPMP_EXPERIMENTER */
 
@@ -546,6 +561,10 @@ ofl_msg_free_flow_mod(struct ofl_msg_flow_mod *msg, bool with_match, bool with_i
  * experimenter features, it uses the passed in experimenter callback. */
 int
 ofl_msg_free_flow_removed(struct ofl_msg_flow_removed *msg, bool with_stats, struct ofl_exp *exp);
+
+/* Calling this function frees the passed table_mod message.*/
+int 
+ofl_msg_free_table_status(struct ofl_msg_table_status * msg, bool with_props, struct ofl_exp *exp);
 
 /****************************************************************************
  * Functions for merging messages

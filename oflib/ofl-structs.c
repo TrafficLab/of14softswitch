@@ -149,7 +149,7 @@ ofl_utils_count_ofp_table_mod_props(void *data, size_t data_len, size_t *count) 
         tp = (struct ofp_table_mod_prop_header *)d;
 
         if (data_len < ntohs(tp->length) || ntohs(tp->length) < sizeof(struct ofp_table_mod_prop_header)) {
-            OFL_LOG_WARN(LOG_MODULE, "Received table mod property has invalid length.");
+            OFL_LOG_WARN(LOG_MODULE, "Received table mod property has invalid length.", ntohs(tp->length), (int) data_len);
             return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
         }
         data_len -= ntohs(tp->length);
@@ -157,6 +157,26 @@ ofl_utils_count_ofp_table_mod_props(void *data, size_t data_len, size_t *count) 
         (*count)++;
     }
 
+    return 0;
+}
+
+ofl_err
+ofl_utils_count_ofp_table_descs(void *data, size_t data_len, size_t *count){
+    struct ofp_table_desc *td;
+    uint8_t *d;
+    
+    d = (uint8_t*) data;
+    *count = 0;
+    while (data_len >= sizeof(struct ofp_table_desc)){
+        td = (struct ofp_table_desc *) d;
+        if (data_len < ntohs(td->length) || ntohs(td->length) < sizeof(struct ofp_table_desc) ){
+             OFL_LOG_WARN(LOG_MODULE, "Received table description has invalid length (feat->length=%d, data_len=%d).", ntohs(td->length), (int) data_len);
+             return ofl_error(OFPET_BAD_REQUEST, OFPTFFC_BAD_LEN); 
+        }
+        data_len -= ntohs(td->length);
+        d += ntohs(td->length);  
+        (*count)++;
+    } 
     return 0;
 }
 
@@ -430,6 +450,13 @@ ofl_structs_free_instruction(struct ofl_instruction_header *inst, struct ofl_exp
 
 void ofl_structs_free_table_mod_prop(struct ofl_table_mod_prop_header *table_mod_prop){
     free(table_mod_prop);            
+}
+
+void
+ofl_structs_free_table_desc(struct ofl_table_desc* table_desc, struct ofl_exp *exp){
+    OFL_UTILS_FREE_ARR_FUN(table_desc->properties, table_desc->properties_num,
+                            ofl_structs_free_table_mod_prop);
+    free(table_desc);
 }
 
 void ofl_structs_free_meter_bands(struct ofl_meter_band_header *meter_band){
