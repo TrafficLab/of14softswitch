@@ -91,6 +91,12 @@ pipeline_handle_stats_request_table_features_request(struct pipeline *pl,
                                     struct ofl_msg_multipart_request_header *msg,
                                     const struct sender *sender);
 
+/* Handles a table desc request. */
+ofl_err
+pipeline_handle_stats_request_table_desc_request(struct pipeline *pl,
+                                    struct ofl_msg_multipart_request_header *msg,
+                                    const struct sender *sender);
+
 /* Handles an aggregate stats request. */
 ofl_err
 pipeline_handle_stats_request_aggregate(struct pipeline *pl,

@@ -288,17 +288,15 @@ pipeline_handle_table_mod(struct pipeline *pl,
     if(sender->remote->role == OFPCR_ROLE_SLAVE)
         return ofl_error(OFPET_BAD_REQUEST, OFPBRC_IS_SLAVE);
 
-#if 0
     if (msg->table_id == 0xff) {
         size_t i;
 
         for (i=0; i<PIPELINE_TABLES; i++) {
-            pl->tables[i]->features->config = msg->config;
+            pl->tables[i]->desc->config = msg->config;
         }
     } else {
-        pl->tables[msg->table_id]->features->config = msg->config;
+        pl->tables[msg->table_id]->desc->config = msg->config;
     }
-#endif
 
     ofl_msg_free((struct ofl_msg_header *)msg, pl->dp->exp);
     return 0;
@@ -398,6 +396,44 @@ pipeline_handle_stats_request_table_features_request(struct pipeline *pl,
           .type = OFPMP_TABLE_FEATURES, .flags = j == PIPELINE_TABLES? 0x00000000:OFPMPF_REPLY_MORE},
           .table_features     = features,
           .tables_num = 8};
+          dp_send_message(pl->dp, (struct ofl_msg_header *)&reply, sender);
+    }
+    if (j < PIPELINE_TABLES){
+           goto loop;
+    }
+
+    return 0;
+}
+
+ofl_err
+pipeline_handle_stats_request_table_desc_request(struct pipeline *pl,
+                                    struct ofl_msg_multipart_request_header *msg UNUSED,
+                                    const struct sender *sender) {
+    size_t i, j, pi;
+    struct ofl_table_desc **desc;
+    struct ofl_table_mod_prop_vacancy *prop_vac;
+
+    j = 0;
+    /* Query for table capabilities */
+    loop: ;
+    desc = (struct ofl_table_desc**) xmalloc(sizeof(struct ofl_table_desc *) * 16);
+    for (i = 0; i < 16; i++){
+        desc[i] = pl->tables[j]->desc;
+	/* Update vacancy. */
+	for(pi = 0; pi < desc[i]->properties_num; pi++) {
+	    prop_vac = (struct ofl_table_mod_prop_vacancy *) desc[i]->properties[pi];
+	    if(prop_vac->type == OFPTMPT_VACANCY) {
+	        prop_vac->vacancy = (FLOW_TABLE_MAX_ENTRIES - pl->tables[j]->stats->active_count) * 100 / FLOW_TABLE_MAX_ENTRIES;
+	    }
+	  }
+        j++;
+    }
+    {
+    struct ofl_msg_multipart_reply_table_desc reply =
+        {{{.type = OFPT_MULTIPART_REPLY},
+          .type = OFPMP_TABLE_DESC, .flags = j == PIPELINE_TABLES? 0x00000000:OFPMPF_REPLY_MORE},
+          .table_desc     = desc,
+          .tables_num = 16};
           dp_send_message(pl->dp, (struct ofl_msg_header *)&reply, sender);
     }
     if (j < PIPELINE_TABLES){

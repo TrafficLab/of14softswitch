@@ -45,6 +45,7 @@
 #define N_INSTRUCTIONS 6
 #define N_ACTIONS 16
 #define N_WILDCARDED 16
+#define TABLE_DESC_NUM 1
 /****************************************************************************
  * Implementation of a flow table. The current implementation stores flow
  * entries in priority and then insertion order.
@@ -54,6 +55,7 @@
 struct flow_table {
     struct datapath           *dp;
     struct ofl_table_features *features;      /*store table features*/
+    struct ofl_table_desc     *desc;          /*store table desc*/
     struct ofl_table_stats    *stats;         /* structure storing table statistics. */
     
     struct list               match_entries;  /* list of entries in order. */

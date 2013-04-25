@@ -452,6 +452,15 @@ port_desc(struct vconn *vconn, int argc UNUSED, char *argv[] UNUSED) {
 }
 
 static void
+table_desc(struct vconn *vconn, int argc UNUSED, char *argv[] UNUSED) {
+    struct ofl_msg_multipart_request_header req =
+            {{.type = OFPT_MULTIPART_REQUEST},
+             .type = OFPMP_TABLE_DESC, .flags = 0x0000};
+
+    dpctl_transact_and_print(vconn, (struct ofl_msg_header *)&req, NULL);
+}
+
+static void
 stats_flow(struct vconn *vconn, int argc, char *argv[]) {
     struct ofl_msg_multipart_request_flow req =
             {{{.type = OFPT_MULTIPART_REQUEST},
@@ -918,6 +927,7 @@ static struct command all_commands[] = {
     {"stats-meter", 0, 1, stats_meter},
     {"meter-config", 0, 1, meter_config},
     {"port-desc", 0, 0, port_desc},
+    {"table-desc", 0, 0, table_desc},
     {"set-config", 1, 1, set_config},
     {"flow-mod", 1, 8/*+1 for each inst type*/, flow_mod },
     {"group-mod", 1, UINT8_MAX, group_mod },

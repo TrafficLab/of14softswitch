@@ -396,6 +396,41 @@ flow_table_features(struct ofl_table_features *features){
     return j;
 }
 
+static void 
+flow_table_create_mod_prop(struct ofl_table_mod_prop_header **prop, enum ofp_table_mod_prop_type type){
+
+    switch(type){
+        case OFPTMPT_VACANCY:{
+            struct ofl_table_mod_prop_vacancy *vacancy_desc;
+            vacancy_desc = xmalloc(sizeof(struct ofl_table_mod_prop_vacancy));
+            vacancy_desc->type = type;
+            vacancy_desc->vacancy_down = 0;
+            vacancy_desc->vacancy_up = 0;
+            vacancy_desc->vacancy = 0;
+            (*prop) =  (struct ofl_table_mod_prop_header *) vacancy_desc;
+            break;        
+        }
+    }
+}
+
+static int
+flow_table_desc(struct ofl_table_desc *desc){
+
+    int type, j;
+    desc->properties = (struct ofl_table_mod_prop_header **) xmalloc(sizeof(struct ofl_table_mod_prop_header *) * TABLE_DESC_NUM);
+    j = 0;
+    for(type = OFPTMPT_VACANCY; type <= OFPTMPT_VACANCY; type++){ 
+        flow_table_create_mod_prop(&desc->properties[j], type);
+        j++;
+    }
+    /* Sanity check. Jean II */
+    if(j != TABLE_DESC_NUM) {
+        VLOG_WARN(LOG_MODULE, "Invalid number of table desc, %d instead of %d.", j, TABLE_DESC_NUM);
+        abort();
+    }
+    return j;
+}
+
 struct flow_table *
 flow_table_create(struct datapath *dp, uint8_t table_id) {
     struct flow_table *table;
@@ -420,11 +455,14 @@ flow_table_create(struct datapath *dp, uint8_t table_id) {
     table->features->metadata_match = 0xffffffffffffffff; 
     table->features->metadata_write = 0xffffffffffffffff;
     table->features->capabilities   = OFPTC_TABLE_MISS_MASK | OFPTC_EVICTION | OFPTC_VACANCY_EVENTS;
-#if 0
-    table->features->config        = OFPTC_TABLE_MISS_CONTROLLER;
-#endif
     table->features->max_entries   = FLOW_TABLE_MAX_ENTRIES;
     table->features->properties_num = flow_table_features(table->features);
+
+    /* Init Table desc */
+    table->desc = xmalloc(sizeof(struct ofl_table_desc));
+    table->desc->table_id = table_id;
+    table->desc->config   = OFPTC_TABLE_MISS_CONTROLLER;
+    table->desc->properties_num = flow_table_desc(table->desc);
 
     list_init(&table->match_entries);
     list_init(&table->hard_entries);
@@ -440,6 +478,7 @@ flow_table_destroy(struct flow_table *table) {
     LIST_FOR_EACH_SAFE (entry, next, struct flow_entry, match_node, &table->match_entries) {
         flow_entry_destroy(entry);
     }
+    free(table->desc);
     free(table->features);
     free(table->stats);
     free(table);
