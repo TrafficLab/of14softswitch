@@ -285,17 +285,42 @@ pipeline_handle_table_mod(struct pipeline *pl,
                           struct ofl_msg_table_mod *msg,
                           const struct sender *sender) {
 
+    size_t ti_start;
+    size_t ti_stop;
+    size_t ti;
+    size_t mpi;
+    size_t tpi;
+
     if(sender->remote->role == OFPCR_ROLE_SLAVE)
         return ofl_error(OFPET_BAD_REQUEST, OFPBRC_IS_SLAVE);
 
     if (msg->table_id == 0xff) {
-        size_t i;
-
-        for (i=0; i<PIPELINE_TABLES; i++) {
-            pl->tables[i]->desc->config = msg->config;
-        }
+        ti_start = 0;
+        ti_stop  = PIPELINE_TABLES;
     } else {
-        pl->tables[msg->table_id]->desc->config = msg->config;
+        ti_start = msg->table_id;
+        ti_stop  = msg->table_id;
+    }
+
+    for (ti = ti_start; ti < ti_stop; ti++) {
+	struct ofl_table_desc *table_desc = pl->tables[ti]->desc;
+
+        /* Update config flag. */
+        table_desc->config = msg->config;
+
+	/* Update properties. */
+	for(mpi = 0; mpi < msg->table_mod_prop_num; mpi++) {
+            if(msg->props[mpi]->type == OFPTMPT_VACANCY) {
+	      for(tpi = 0; tpi < table_desc->properties_num; tpi++) {
+		    if(table_desc->properties[tpi]->type == OFPTMPT_VACANCY) {
+                        struct ofl_table_mod_prop_vacancy *prop_vaco = (struct ofl_table_mod_prop_vacancy *) msg->props[mpi];
+                        struct ofl_table_mod_prop_vacancy *prop_vacd = (struct ofl_table_mod_prop_vacancy *) table_desc->properties[tpi];
+			prop_vacd->vacancy_down = prop_vaco->vacancy_down;
+			prop_vacd->vacancy_up = prop_vaco->vacancy_up;
+		    }
+		}
+	    }
+	}
     }
 
     ofl_msg_free((struct ofl_msg_header *)msg, pl->dp->exp);

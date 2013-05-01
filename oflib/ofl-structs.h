@@ -266,6 +266,7 @@ struct ofl_table_mod_prop_vacancy {
     uint8_t vacancy_down;    /* Vacancy threshold when space decreases (%). */
     uint8_t vacancy_up;      /* Vacancy threshold when space increases (%). */
     uint8_t vacancy;         /* Current vacancy (%) - only in ofp_table_desc. */
+    bool down_set;           /* Internal state. */
 };
 
 /* Common header for all meter bands */

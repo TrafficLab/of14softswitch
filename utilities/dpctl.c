@@ -134,7 +134,7 @@ static void
 parse_port_mod(char *str, struct ofl_msg_port_mod *msg);
 
 static void
-parse_table_mod(char *str, struct ofl_msg_table_mod *msg);
+parse_table_mod(char *str, struct ofl_msg_table_mod *msg, struct ofl_table_mod_prop_vacancy *prop_vac);
 
 static void
 parse_band(char *str, struct ofl_msg_meter_mod *m, struct ofl_meter_band_header **b);
@@ -790,13 +790,27 @@ port_mod(struct vconn *vconn, int argc UNUSED, char *argv[]) {
 
 static void
 table_mod(struct vconn *vconn, int argc UNUSED, char *argv[]) {
+    struct ofl_table_mod_prop_vacancy prop_vac =
+            {.type = OFPTMPT_VACANCY,
+             .vacancy_down = 0,
+             .vacancy_up = 0,
+             .vacancy = 0,
+             .down_set = false, };
+    struct ofl_table_mod_prop_header *props[1];
     struct ofl_msg_table_mod msg =
             {{.type = OFPT_TABLE_MOD},
              .table_id = 0xff,
              .config = 0x00,
-             .table_mod_prop_num = 0};
+             .table_mod_prop_num = 0,
+             .props = props};
 
-    parse_table_mod(argv[0], &msg);
+    parse_table_mod(argv[0], &msg, &prop_vac);
+
+    /* Did we parse some vacancy values ? */
+    if(prop_vac.down_set) {
+        props[msg.table_mod_prop_num] = (struct ofl_table_mod_prop_header *) &prop_vac;
+        msg.table_mod_prop_num++;
+    }
 
     dpctl_send_and_print(vconn, (struct ofl_msg_header *)&msg);
 }
@@ -2465,7 +2479,7 @@ parse_port_mod(char *str, struct ofl_msg_port_mod *msg) {
 
 
 static void
-parse_table_mod(char *str, struct ofl_msg_table_mod *msg) {
+parse_table_mod(char *str, struct ofl_msg_table_mod *msg, struct ofl_table_mod_prop_vacancy *prop_vac) {
     char *token, *saveptr = NULL;
 
     for (token = strtok_r(str, KEY_SEP, &saveptr); token != NULL; token = strtok_r(NULL, KEY_SEP, &saveptr)) {
@@ -2479,6 +2493,14 @@ parse_table_mod(char *str, struct ofl_msg_table_mod *msg) {
             if (sscanf(token + strlen(TABLE_MOD_CONFIG KEY_VAL), "0x%"SCNx32"", &msg->config) != 1) {
                 ofp_fatal(0, "Error parsing table_mod conf: %s.", token);
             }
+            continue;
+        }
+        if (strncmp(token, TABLE_MOD_VACANCY KEY_VAL, strlen(TABLE_MOD_VACANCY KEY_VAL)) == 0) {
+            if (sscanf(token + strlen(TABLE_MOD_VACANCY KEY_VAL), "%"SCNu8":%"SCNu8"", &prop_vac->vacancy_down, &prop_vac->vacancy_up) != 2) {
+                ofp_fatal(0, "Error parsing table_mod vacancy: %s.", token);
+            }
+	    /* We have a valid vacancy structure. */
+	    prop_vac->down_set = true;
             continue;
         }
         ofp_fatal(0, "Error parsing table_mod arg: %s.", token);
