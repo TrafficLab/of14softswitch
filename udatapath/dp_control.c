@@ -372,6 +372,9 @@ handle_control_msg(struct datapath *dp, struct ofl_msg_header *msg,
         case OFPT_SET_ASYNC:{
             return dp_handle_async_request(dp, (struct ofl_msg_async_config*)msg, sender);
         }
+        case OFPT_TABLE_STATUS: {
+            return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
+        }
         default: {
             return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
         }

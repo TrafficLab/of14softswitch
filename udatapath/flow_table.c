@@ -92,6 +92,40 @@ add_to_timeout_lists(struct flow_table *table, struct flow_entry *entry) {
     }
 }
 
+/* Check vacancy and generate proper vacancy event after any operation
+ * that either change the size of the flow table or change the flow entry
+ * cound. */
+static void
+check_vacancy(struct flow_table *table) {
+    size_t pi;
+    int vacancy = (FLOW_TABLE_MAX_ENTRIES - table->stats->active_count) * 100 / FLOW_TABLE_MAX_ENTRIES;
+
+    for(pi = 0; pi < table->desc->properties_num; pi++) {
+        struct ofl_table_mod_prop_vacancy *prop_vac;
+        prop_vac = (struct ofl_table_mod_prop_vacancy *) table->desc->properties[pi];
+        if(prop_vac->type == OFPTMPT_VACANCY) {
+	    int reason = 0;
+	    if (prop_vac->down_set && (vacancy < prop_vac->vacancy_down)) {
+	        prop_vac->down_set = false;
+		reason = OFPTR_VACANCY_DOWN;
+	    } else if (!prop_vac->down_set && (vacancy > prop_vac->vacancy_up)) {
+	        prop_vac->down_set = true;
+		reason = OFPTR_VACANCY_UP;
+	    }
+	    if (reason) {
+	        struct ofl_msg_table_status msg =
+		  {{.type = OFPT_TABLE_STATUS},
+		   .reason = reason,
+		   .table_desc = table->desc };
+		prop_vac->vacancy = vacancy;
+
+		dp_send_message(table->dp, (struct ofl_msg_header *)&msg, NULL);
+	    }
+	    return;
+	}
+    }
+}
+
 /* Handles flow mod messages with ADD command. */
 static ofl_err
 flow_table_add(struct flow_table *table, struct ofl_msg_flow_mod *mod, bool check_overlap, bool *match_kept, bool *insts_kept) {
@@ -145,6 +179,11 @@ flow_table_add(struct flow_table *table, struct ofl_msg_flow_mod *mod, bool chec
 
     list_insert(&entry->match_node, &new_entry->match_node);
     add_to_timeout_lists(table, new_entry);
+
+    /* Check if we need to generate vacancy events. */
+    if (table->desc->config & OFPTC_VACANCY_EVENTS) {
+        check_vacancy(table);
+    }
 
     return 0;
 }
@@ -209,6 +248,11 @@ flow_table_delete(struct flow_table *table, struct ofl_msg_flow_mod *mod, bool s
             flow_entry_matches(entry, mod, strict, true/*check_cookie*/)) {
              flow_entry_remove(entry, OFPRR_DELETE);
         }
+    }
+
+    /* Check if we need to generate vacancy events. */
+    if (table->desc->config & OFPTC_VACANCY_EVENTS) {
+        check_vacancy(table);
     }
 
     return 0;

@@ -317,6 +317,7 @@ pipeline_handle_table_mod(struct pipeline *pl,
                         struct ofl_table_mod_prop_vacancy *prop_vacd = (struct ofl_table_mod_prop_vacancy *) table_desc->properties[tpi];
 			prop_vacd->vacancy_down = prop_vaco->vacancy_down;
 			prop_vacd->vacancy_up = prop_vaco->vacancy_up;
+			prop_vacd->down_set = ((FLOW_TABLE_MAX_ENTRIES - pl->tables[ti]->stats->active_count) * 100 / FLOW_TABLE_MAX_ENTRIES) >= prop_vacd->vacancy_up;
 		    }
 		}
 	    }
