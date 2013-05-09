@@ -2091,7 +2091,7 @@ struct ofp_experimenter_msg {
 };
 OFP_ASSERT(sizeof(struct ofp_experimenter_msg) == 16);
 
-enum {
+enum ofp_bad_property_code {
     OFPBPC_BAD_TYPE = 0,         /* Unknown property type. */
     OFPBPC_BAD_LEN = 1,          /* Length problem in property. */
     OFPBPC_BAD_VALUE = 2,        /* Unsupported property value. */
