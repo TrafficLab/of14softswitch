@@ -306,7 +306,7 @@ ofl_msg_pack_flow_mod(struct ofl_msg_flow_mod *msg, uint8_t **buf, size_t *buf_l
     /* We advance counting the padded bytes */
     ptr = (*buf) + ROUND_UP(sizeof(struct ofp_flow_mod)- 4 + msg->match->length,8);
     for (i=0; i<msg->instructions_num; i++) {
-        ptr += ofl_structs_instructions_pack(msg->instructions[i], (struct ofp_instruction *)ptr, exp);
+        ptr += ofl_structs_instructions_pack(msg->instructions[i], (struct ofp_instruction_header *)ptr, exp);
     }
     return 0;
 }
@@ -584,9 +584,9 @@ ofl_msg_pack_multipart_request_table_features(struct ofl_msg_multipart_request_t
 
     req = (struct ofp_multipart_request*) (*buf);
 
-    if (features_len){
+    if (features_len) {
         data = (uint8_t*) req->body;
-        for(i = 0; i < msg->tables_num; i++ ){
+        for (i = 0; i < msg->tables_num; i++) {
             data += ofl_structs_table_features_pack(msg->table_features[i], (struct ofp_table_features*) data, data, exp);
         }
     }

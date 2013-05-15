@@ -46,7 +46,7 @@
 OFL_LOG_INIT(LOG_MODULE)
 
 ofl_err
-ofl_structs_instructions_unpack(struct ofp_instruction_id *src, size_t *len, struct ofl_instruction_header **dst, struct ofl_exp *exp) {
+ofl_structs_instructions_unpack(struct ofp_instruction_header *src, size_t *len, struct ofl_instruction_header **dst, struct ofl_exp *exp) {
     size_t ilen;
     struct ofl_instruction_header *inst = NULL;
 
@@ -243,19 +243,26 @@ ofl_structs_table_properties_unpack(struct ofp_table_feature_prop_header * src, 
 			dp =  (struct ofl_table_feature_prop_instructions*) malloc(sizeof(struct ofl_table_feature_prop_instructions));		
             ilen = plen - sizeof(struct ofp_table_feature_prop_instructions);
             error = ofl_utils_count_ofp_instructions((uint8_t*) sp->instruction_ids, ilen, &dp->ids_num);			
-			if(error){
+			if (error) {
 			    free(dp);
 			    return error;
 			}
-			dp->instruction_ids = (struct ofl_instruction_header*) malloc(sizeof(struct ofl_instruction_header) * dp->ids_num);
+			dp->instruction_ids = (struct ofl_instruction_header *) malloc(sizeof(struct ofl_instruction_header) * dp->ids_num);
 
-            ptr = (uint8_t*) sp->instruction_ids;	
-			for(i = 0; i < dp->ids_num; i++){
+            ptr = (uint8_t *) sp->instruction_ids;	
+			for (i = 0; i < dp->ids_num; i++) {
 			    dp->instruction_ids[i].type = ntohs(((struct ofp_instruction_id*) ptr)->type);
-                ptr +=  ntohs(((struct ofp_instruction_id*) ptr)->len); 
+                if (dp->instruction_ids[i].type == OFPIT_EXPERIMENTER) {
+                    if (exp == NULL || exp->inst == NULL || exp->inst->id_unpack == NULL) {
+                        OFL_LOG_WARN(LOG_MODULE, "Received EXPERIMENTER instruction, but no callback was given.");
+                        return ofl_error(OFPET_BAD_INSTRUCTION, OFPBIC_UNSUP_INST);
+                    }
+                    exp->inst->id_unpack(ptr, len, &dp->instruction_ids[i]);
+                }
+                ptr += ntohs(((struct ofp_instruction_id *) ptr)->len); 
 			}
 			plen -= ntohs(sp->length);
-			prop = (struct ofl_table_feature_prop_header*) dp;
+			prop = (struct ofl_table_feature_prop_header *) dp;
 			break;
 		}
         case OFPTFPT_NEXT_TABLES:
@@ -293,7 +300,7 @@ ofl_structs_table_properties_unpack(struct ofp_table_feature_prop_header * src, 
             alen = plen - sizeof(struct ofp_table_feature_prop_actions);
 			dp = (struct ofl_table_feature_prop_actions*) malloc(sizeof(struct ofl_table_feature_prop_actions));		
 		    error = ofl_utils_count_ofp_actions((uint8_t*)sp->action_ids, alen, &dp->actions_num);
-            if(error){
+            if (error) {
 			    free(dp);
 			    return error;
 			}
@@ -302,9 +309,23 @@ ofl_structs_table_properties_unpack(struct ofp_table_feature_prop_header * src, 
 			
 			ptr = (uint8_t*) sp->action_ids;	
 			for(i = 0; i < dp->actions_num; i++){
-			    dp->action_ids[i].type = ntohs(((struct ofp_action_header*) ptr)->type);
-                dp->action_ids[i].len = ntohs(((struct ofp_action_header*) ptr)->len);
-                ptr +=  ntohs(((struct ofp_action_header*) ptr)->len); 
+                struct ofp_action_id *act;
+
+                act = (struct ofp_action_id *)ptr;
+
+                if (ntohs(act->type) == OFPAT_EXPERIMENTER) {
+                    if (exp == NULL || exp->act == NULL || exp->act->id_unpack == NULL) {
+                        OFL_LOG_WARN(LOG_MODULE, "Received EXPERIMENTER action, but no callback was given.");
+                        return ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_EXPERIMENTER);
+                    }
+                    exp->act->id_unpack(ptr, alen, &dp->action_ids[i]);
+                } else {
+                    dp->action_ids[i].type = ntohs(act->type);
+                    dp->action_ids[i].len = ntohs(act->len);
+                    alen -= ntohs(act->len);
+                }
+
+                ptr += ntohs(act->len); 
 			}
 		    plen -= ntohs(sp->length);
 		    prop = (struct ofl_table_feature_prop_header*) dp;	
@@ -482,7 +503,7 @@ ofl_structs_bucket_unpack(struct ofp_bucket *src, size_t *len, uint8_t gtype, st
 ofl_err
 ofl_structs_flow_stats_unpack(struct ofp_flow_stats *src, uint8_t *buf, size_t *len, struct ofl_flow_stats **dst, struct ofl_exp *exp) {
     struct ofl_flow_stats *s;
-    struct ofp_instruction_id *inst;
+    struct ofp_instruction_header *inst;
     ofl_err error;
     size_t slen;
     size_t i;
@@ -526,7 +547,7 @@ ofl_structs_flow_stats_unpack(struct ofp_flow_stats *src, uint8_t *buf, size_t *
         free(s);
         return error;
     }
-    error = ofl_utils_count_ofp_instructions((struct ofp_instruction_id *) (buf + ROUND_UP(match_pos + s->match->length,8)), 
+    error = ofl_utils_count_ofp_instructions((struct ofp_instruction_header *) (buf + ROUND_UP(match_pos + s->match->length,8)), 
                                             slen, &s->instructions_num);
     
     if (error) {
@@ -536,7 +557,7 @@ ofl_structs_flow_stats_unpack(struct ofp_flow_stats *src, uint8_t *buf, size_t *
     }
    s->instructions = (struct ofl_instruction_header **)malloc(s->instructions_num * sizeof(struct ofl_instruction_header *));
 
-   inst = (struct ofp_instruction_id *) (buf + ROUND_UP(match_pos + s->match->length,8));
+   inst = (struct ofp_instruction_header *) (buf + ROUND_UP(match_pos + s->match->length,8));
    for (i = 0; i < s->instructions_num; i++) {
         error = ofl_structs_instructions_unpack(inst, &slen, &(s->instructions[i]), exp);
         if (error) {
@@ -545,7 +566,7 @@ ofl_structs_flow_stats_unpack(struct ofp_flow_stats *src, uint8_t *buf, size_t *
             free(s);
             return error;
         }
-        inst = (struct ofp_instruction_id *)((uint8_t *)inst + ntohs(inst->len));
+        inst = (struct ofp_instruction_header *)((uint8_t *)inst + ntohs(inst->len));
     }
 
     if (slen != 0) {
@@ -1267,18 +1288,18 @@ ofl_structs_meter_band_unpack(struct ofp_meter_band_header *src, size_t *len, st
 static ofl_err
 ofl_structs_oxm_match_unpack(struct ofp_match* src, uint8_t* buf, size_t *len, struct ofl_match **dst){
 
-     int error = 0;
-     struct ofpbuf *b = ofpbuf_new(0);
-     struct ofl_match *m = (struct ofl_match *) malloc(sizeof(struct ofl_match));
+    int error = 0;
+    struct ofpbuf *b = ofpbuf_new(0);
+    struct ofl_match *m = (struct ofl_match *) malloc(sizeof(struct ofl_match));
     *len -= ROUND_UP(ntohs(src->length),8);
-     if(ntohs(src->length) > sizeof(struct ofp_match)){
-         ofpbuf_put(b, buf, ntohs(src->length) - (sizeof(struct ofp_match) -4)); 
-         error = oxm_pull_match(b, m, ntohs(src->length) - (sizeof(struct ofp_match) -4));
-         m->header.length = ntohs(src->length) - 4;
-     }
+     if (ntohs(src->length) > sizeof(struct ofp_match)){
+        ofpbuf_put(b, buf, ntohs(src->length) - (sizeof(struct ofp_match) -4)); 
+        error = oxm_pull_match(b, m, ntohs(src->length) - (sizeof(struct ofp_match) -4));
+        m->header.length = ntohs(src->length) - 4;
+    }
     else {
-		 m->header.length = 0;
-		 m->header.type = ntohs(src->type);	
+		m->header.length = 0;
+		m->header.type = ntohs(src->type);	
 	}
     ofpbuf_delete(b);    
     *dst = m;

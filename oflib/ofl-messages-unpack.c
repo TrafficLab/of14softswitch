@@ -484,7 +484,7 @@ static ofl_err
 ofl_msg_unpack_flow_mod(struct ofp_header *src,uint8_t* buf, size_t *len, struct ofl_msg_header **msg, struct ofl_exp *exp) {
     struct ofp_flow_mod *sm;
     struct ofl_msg_flow_mod *dm;
-    struct ofp_instruction_id *inst;
+    struct ofp_instruction_header *inst;
     ofl_err error;
     size_t i;
     int match_pos;
@@ -525,7 +525,7 @@ ofl_msg_unpack_flow_mod(struct ofp_header *src,uint8_t* buf, size_t *len, struct
     }
         
     dm->instructions = (struct ofl_instruction_header **)malloc(dm->instructions_num * sizeof(struct ofl_instruction_header *));
-    inst = (struct ofp_instruction_id *) (buf + ROUND_UP(match_pos + dm->match->length,8));
+    inst = (struct ofp_instruction_header *) (buf + ROUND_UP(match_pos + dm->match->length,8));
     for (i = 0; i < dm->instructions_num; i++) {
         error = ofl_structs_instructions_unpack(inst, len, &(dm->instructions[i]), exp);
         if (error) {
@@ -535,7 +535,7 @@ ofl_msg_unpack_flow_mod(struct ofp_header *src,uint8_t* buf, size_t *len, struct
             free(dm);
             return error;
         }
-        inst = (struct ofp_instruction_id *)((uint8_t *)inst + ntohs(inst->len));
+        inst = (struct ofp_instruction_header *)((uint8_t *)inst + ntohs(inst->len));
     }
     *msg = (struct ofl_msg_header *)dm;
     return 0;

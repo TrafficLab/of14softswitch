@@ -456,8 +456,8 @@ OFP_ASSERT(sizeof(struct ofp_instruction_header) == 4);
 
 /* Generic ofp_instruction structure */
 struct ofp_instruction_id {
-    uint16_t type;                /* Instruction type */
-    uint16_t len;                 /* Length of this struct in bytes. */
+    uint16_t type;                /* One of OFPIT_*. */
+    uint16_t len;                 /* Length is 4 or experimenter defined. */
     uint8_t exp_data[0];          /* Optional experimenter id + data. */
 };
 OFP_ASSERT(sizeof(struct ofp_instruction_id) == 4);
@@ -465,7 +465,7 @@ OFP_ASSERT(sizeof(struct ofp_instruction_id) == 4);
 /* Instruction structure for OFPIT_GOTO_TABLE */
 struct ofp_instruction_goto_table {
 	uint16_t type;    /* OFPIT_GOTO_TABLE */
-	uint16_t len;     /* Length of this struct in bytes. */
+	uint16_t len;     /* Length is 8. */
 	uint8_t table_id; /* Set next table in the lookup pipeline */
 	uint8_t pad[3];   /* Pad to 64 bits. */
 };
@@ -474,7 +474,7 @@ OFP_ASSERT(sizeof(struct ofp_instruction_goto_table) == 8);
 /* Instruction structure for OFPIT_WRITE_METADATA */
 struct ofp_instruction_write_metadata {
 	uint16_t type;          /* OFPIT_WRITE_METADATA */
-	uint16_t len;           /* Length of this struct in bytes. */
+	uint16_t len;           /* Length is 24. */
 	uint8_t pad[4];         /* Align to 64-bits */
 	uint64_t metadata;      /* Metadata value to write */
 	uint64_t metadata_mask; /* Metadata write bitmask */
@@ -490,13 +490,12 @@ struct ofp_action_header {
                     header. This is the length of action,
                     including any padding to make it
                     64-bit aligned. */
-	uint8_t pad[4];
 };
-OFP_ASSERT(sizeof(struct ofp_action_header) == 8);
+OFP_ASSERT(sizeof(struct ofp_action_header) == 4);
 
 struct ofp_action_id {
     uint16_t type;                       /* One of OFPAT_*. */
-    uint16_t len;                        /* Length is 4 or experiementer defined. */
+    uint16_t len;                        /* Length is 4 or experimenter defined. */
     uint8_t exp_data[0];                 /* Optional experimenter id + data. */
 };
 OFP_ASSERT(sizeof(struct ofp_action_id) == 4);
@@ -504,7 +503,7 @@ OFP_ASSERT(sizeof(struct ofp_action_id) == 4);
 /* Instruction structure for OFPIT_WRITE/APPLY/CLEAR_ACTIONS */
 struct ofp_instruction_actions {
 	uint16_t type;                       /* One of OFPIT_*_ACTIONS */
-	uint16_t len;                        /* Length of this struct in bytes. */
+	uint16_t len;                        /* Length is padded to 64 bits. */
 	uint8_t pad[4];                      /* Align to 64-bits */
 	struct ofp_action_header actions[0]; /* Actions associated with
                                             OFPIT_WRITE_ACTIONS and
@@ -523,8 +522,9 @@ OFP_ASSERT(sizeof(struct ofp_instruction_meter) == 8);
 /* Instruction structure for experimental instructions */
 struct ofp_instruction_experimenter_header {
     uint16_t type;		        /* OFPIT_EXPERIMENTER */
-    uint16_t len;               /* Length of this struct in bytes. */
-    uint32_t experimenter;      /* Experimenter ID */
+    uint16_t len;               /* Length is padded to 64 bits. */
+    uint32_t experimenter;      /* Experimenter ID which takes the same form
+                                   as in struct ofp_experimenter_header. */
     /* Experimenter-defined arbitrary additional data. */
 };
 OFP_ASSERT(sizeof(struct ofp_instruction_experimenter_header) == 8);
@@ -790,7 +790,7 @@ struct ofp_flow_mod {
 	uint16_t flags;         /* One of OFPFF_*. */
 	uint8_t pad[2];
 	struct ofp_match match; /* Fields to match. Variable size. */
-    //struct ofp_instruction_id instructions[0]; /* Instruction set */
+    //struct ofp_instruction_header instructions[0]; /* Instruction set */
 };
 OFP_ASSERT(sizeof(struct ofp_flow_mod) == 56);
 
@@ -1003,7 +1003,7 @@ enum ofp_meter_band_type {
 /* OFPMBT_DROP band - drop packets */
 struct ofp_meter_band_drop {
     uint16_t type; /* OFPMBT_DROP. */
-    uint16_t len;  /* Length in bytes of this band. */
+    uint16_t len;  /* Length is 16. */
     uint32_t rate; /* Rate for dropping packets. */
     uint32_t burst_size; /* Size of bursts. */
     uint8_t pad[4];
@@ -1013,7 +1013,7 @@ OFP_ASSERT(sizeof(struct ofp_meter_band_drop) == 16);
 /* OFPMBT_DSCP_REMARK band - Remark DSCP in the IP header */
 struct ofp_meter_band_dscp_remark {
     uint16_t type; /* OFPMBT_DSCP_REMARK. */
-    uint16_t len;  /* Length in bytes of this band. */
+    uint16_t len;  /* Length is 16. */
     uint32_t rate; /* Rate for remarking packets. */
     uint32_t burst_size; /* Size of bursts. */
     uint8_t prec_level; /* Number of precendence level to substract. */
@@ -1183,7 +1183,7 @@ struct ofp_flow_stats {
 	uint64_t packet_count;  /* Number of packets in flow. */
 	uint64_t byte_count;    /* Number of bytes in flow. */
 	struct ofp_match match; /* Description of fields. Variable size. */
-    //struct ofp_instruction_id instructions[0]; /* Instruction set. */
+    //struct ofp_instruction_header instructions[0]; /* Instruction set. */
 };
 OFP_ASSERT(sizeof(struct ofp_flow_stats) == 56);
 
@@ -1324,7 +1324,7 @@ struct ofp_table_feature_prop_actions {
     - Exactly (length + 7)/8*8 - (length) (between 0 and 7)
     *
     bytes of all-zero bytes */
-    struct ofp_action_header action_ids[0];/* List of actions */
+    struct ofp_action_id action_ids[0];     /* List of actions */
 };
 OFP_ASSERT(sizeof(struct ofp_table_feature_prop_actions) == 4);
 

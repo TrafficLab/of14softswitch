@@ -43,7 +43,6 @@ struct ofl_action_header;
 struct ofl_instruction_header;
 struct ofl_match_header;
 struct ofp_action_header;
-struct ofp_instruction;
 struct ofp_multipart_reply;
 struct ofp_match;
 
@@ -84,17 +83,23 @@ typedef uint32_t ofl_err;
 struct ofl_exp_act {
     int     (*pack)             (struct ofl_action_header *src, struct ofp_action_header *dst);
     ofl_err (*unpack)           (struct ofp_action_header *src, size_t *len, struct ofl_action_header **dst);
+    int     (*id_pack)          (struct ofl_action_header *src, struct ofp_action_id *dst);
+    ofl_err (*id_unpack)        (struct ofp_action_id *src, size_t *len, struct ofl_action_header **dst);
     int     (*free)             (struct ofl_action_header *act);
     size_t  (*ofp_len)          (struct ofl_action_header *act);
+    size_t  (*ofp_id_len)       (struct ofl_action_header *act);
     char   *(*to_string)        (struct ofl_action_header *act);
 };
 
 /* Callback functions for handling experimenter instructions. */
 struct ofl_exp_inst {
-    int     (*pack)            (struct ofl_instruction_header *src, struct ofp_instruction_id *dst);
-    ofl_err (*unpack)          (struct ofp_instruction_id *src, size_t *len, struct ofl_instruction_header **dst);
+    int     (*pack)            (struct ofl_instruction_header *src, struct ofp_instruction_header *dst);
+    ofl_err (*unpack)          (struct ofp_instruction_header *src, size_t *len, struct ofl_instruction_header **dst);
+    int     (*id_pack)         (struct ofl_instruction_header *src, struct ofp_instruction_id *dst);
+    ofl_err (*id_unpack)       (struct ofp_instruction_id *src, size_t *len, struct ofl_instruction_header *dst);
     int     (*free)            (struct ofl_instruction_header *i);
     size_t  (*ofp_len)         (struct ofl_instruction_header *i);
+    size_t  (*ofp_id_len)      (struct ofl_instruction_header *i);
     char   *(*to_string)       (struct ofl_instruction_header *i);
 };
 

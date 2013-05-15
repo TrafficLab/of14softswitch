@@ -96,17 +96,15 @@ ofl_utils_count_ofp_instructions(void *data, size_t data_len, size_t *count) {
     d = (uint8_t *)data;
     *count = 0;
     /* this is needed so that buckets are handled correctly */
-    while (data_len >= sizeof(struct ofp_instruction_id)) {
-        inst = (struct ofp_instruction_id *)d;
+    while (data_len >= sizeof(struct ofp_instruction_header)) {
+        inst = (struct ofp_instruction_header *)d;
         if (data_len < ntohs(inst->len) || ntohs(inst->len) < sizeof(struct ofp_instruction_id)) {
             OFL_LOG_WARN(LOG_MODULE, "Received instruction has invalid length.");
             return ofl_error(OFPET_BAD_INSTRUCTION, OFPBIC_BAD_LEN);
-                    
         }
         data_len -= ntohs(inst->len);
         d += ntohs(inst->len);
         (*count)++;
-
     }
 
     return 0;

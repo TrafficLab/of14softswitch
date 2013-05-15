@@ -105,7 +105,6 @@ size_t
 ofl_actions_pack(struct ofl_action_header *src, struct ofp_action_header *dst, uint8_t* data,  struct ofl_exp *exp) {
 
     dst->type = htons(src->type);
-    memset(dst->pad, 0x00, 4);
 
     switch (src->type) {
         case OFPAT_OUTPUT: {

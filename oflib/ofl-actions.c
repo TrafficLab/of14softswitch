@@ -89,8 +89,7 @@ ofl_utils_count_ofp_actions(void *data, size_t data_len, size_t *count) {
     d = (uint8_t *)data;
     *count = 0;
 
-    /* this is needed so that buckets are handled correctly */
-    while (data_len >= sizeof(struct ofp_action_header) -4 ) {
+    while (data_len >= sizeof(struct ofp_action_header)) {
         act = (struct ofp_action_header *)d;
         if (data_len < ntohs(act->len) || ntohs(act->len) < sizeof(struct ofp_action_header) - 4) {
             OFL_LOG_WARN(LOG_MODULE, "Received action has invalid length.");
