@@ -837,7 +837,7 @@ ofl_structs_port_prop_pack(const struct ofl_port *pp,
             struct ofp_port_desc_prop_ethernet *opp_e;
             opp_e = (struct ofp_port_desc_prop_ethernet *)opp;
 
-            opp_e->type = htonl(pp->type);
+            opp_e->type = htons(pp->type);
             opp_e->length = htons(sizeof(*opp_e));
             opp_e->curr = htonl(pp->curr);
             opp_e->advertised = htonl(pp->advertised);
@@ -853,19 +853,18 @@ ofl_structs_port_prop_pack(const struct ofl_port *pp,
             struct ofp_port_desc_prop_optical *opp_o;
             opp_o = (struct ofp_port_desc_prop_optical *)opp;
 
-            opp_o->type = htonl(pp->type);
+            opp_o->type = htons(pp->type);
             opp_o->length = htons(sizeof(*opp_o));
 
-#if 0 /* EXT-262-TODO */
-            opp_o->tx_min_freq_lmda = htonl(pp->tx_min_freq_lmda);
-            opp_o->tx_max_freq_lmda = htonl(pp->tx_max_freq_lmda);
-            opp_o->tx_grid_freq_lmda = htonl(pp->tx_grid_freq_lmda);
-            opp_o->rx_min_freq_lmda = htonl(pp->rx_min_freq_lmda);
-            opp_o->rx_max_freq_lmda = htonl(pp->rx_max_freq_lmda);
-            opp_o->rx_grid_freq_lmda = htonl(pp->rx_grid_freq_lmda);
-            opp_o->tx_pwr_min = htons(pp->tx_pwr_min);
-            opp_o->tx_pwr_max = htons(pp->tx_pwr_max);
-#endif
+            opp_o->tx_min_freq_lmda = htonl(pp->opt_props.tx_min_freq_lmda);
+            opp_o->tx_max_freq_lmda = htonl(pp->opt_props.tx_max_freq_lmda);
+            opp_o->tx_grid_freq_lmda = htonl(pp->opt_props.tx_grid_freq_lmda);
+            opp_o->rx_min_freq_lmda = htonl(pp->opt_props.rx_min_freq_lmda);
+            opp_o->rx_max_freq_lmda = htonl(pp->opt_props.rx_max_freq_lmda);
+            opp_o->rx_grid_freq_lmda = htonl(pp->opt_props.rx_grid_freq_lmda);
+            opp_o->tx_pwr_min = htons(pp->opt_props.tx_pwr_min);
+            opp_o->tx_pwr_max = htons(pp->opt_props.tx_pwr_max);
+
             return sizeof(*opp_o);
         }
         case OFPPDPT_EXPERIMENTER:
@@ -895,11 +894,11 @@ size_t ofl_structs_port_pack_size(struct ofl_port *src)
             break;
         }
         default: {
+            /* Add any experimenter sizes here */
             break;
         }
     }
 
-    /* EXT-262-TODO: Add any experimenter sizes here */
     return port_size;
 }
 

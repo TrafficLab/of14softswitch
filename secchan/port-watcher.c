@@ -197,15 +197,18 @@ update_phy_port(struct port_watcher *pw, struct ofp_port *opp,
         }
         if (!old || opp_differs(opp, old)) {
         */
-            struct ofp_port new = *opp;
-            sanitize_opp(&new);
-            call_port_changed_callbacks(pw, port_no, old, &new);
+            struct ofp_port *new = calloc(1, ntohs(opp->length));
+            memcpy(new, opp, ntohs(opp->length));
+            sanitize_opp(new);
+            call_port_changed_callbacks(pw, port_no, old, new);
+/*
             if (old) {
                 *old = new;
             } else {
-                port_array_set(&pw->ports, port_no, xmemdup(&new, sizeof new));
-            }
+*/
+                port_array_set(&pw->ports, port_no, new);
         /*
+            }
         }
         */
     }
@@ -251,14 +254,24 @@ port_watcher_local_packet_cb(struct relay *r, void *pw_)
             bool seen[PORT_ARRAY_SIZE];
             struct ofp_port *p;
             unsigned int port_no;
-            size_t n_ports, i;
+            size_t i;
+            struct ofp_port *opp;
             p = (struct ofp_port*) repl->body;
             /* Update each port included in the message.*/
             memset(seen, false, sizeof seen);
-            n_ports = ((msg->size - offsetof(struct ofp_multipart_reply, body))
-                       / sizeof *p);
-            for (i = 0; i < n_ports; i++) {
-                struct ofp_port *opp = &p[i];
+            opp = p;
+            for (i = 0; ; i++) {
+
+                if (ntohs(opp->length == 0)) {
+                    break; /* error in length */
+                }
+
+                opp = (struct ofp_port *)(ntohs(opp->length) + (uint8_t *)opp);
+
+                if (ntohs(repl->header.length) >= ((uint8_t *)opp - (uint8_t *)repl)) {
+                    break; /* done reading */
+                }
+
                 if (ntohl(opp->port_no) > PORT_ARRAY_SIZE - 1) {
                     if (ntohl(opp->port_no) <= OFPP_MAX) {
                         VLOG_WARN(LOG_MODULE, "Port ID %u over limit", ntohl(opp->port_no));

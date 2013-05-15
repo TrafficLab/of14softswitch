@@ -869,7 +869,7 @@ ofl_structs_port_prop_unpack(struct ofl_port *pp,
 {
     *prop_bytes_read = 0;
 
-    switch (ntohl(opp->type)) {
+    switch (ntohs(opp->type)) {
         case OFPPDPT_ETHERNET:
         {
             struct ofp_port_desc_prop_ethernet *opp_e;
@@ -879,7 +879,7 @@ ofl_structs_port_prop_unpack(struct ofl_port *pp,
                 break;
             }
 
-            pp->type = ntohl(opp_e->type);
+            pp->type = ntohs(opp_e->type);
             pp->curr = ntohl(opp_e->curr);
             pp->advertised = ntohl(opp_e->advertised);
             pp->supported = ntohl(opp_e->supported);
@@ -899,33 +899,30 @@ ofl_structs_port_prop_unpack(struct ofl_port *pp,
                 break;
             }
 
-#if 0 /* EXT-262-TODO */
-            pp->type = ofputil_port_type_from_ofp(opp_o->type);
-            pp->supported = netdev_port_features_from_ofp11(opp_o->supported);
-            pp->tx_min_freq_lmda = ntohl(opp_o->tx_min_freq_lmda);
-            pp->tx_max_freq_lmda = ntohl(opp_o->tx_max_freq_lmda);
-            pp->tx_grid_freq_lmda = ntohl(opp_o->tx_grid_freq_lmda);
-            pp->rx_min_freq_lmda = ntohl(opp_o->rx_min_freq_lmda);
-            pp->rx_max_freq_lmda = ntohl(opp_o->rx_max_freq_lmda);
-            pp->rx_grid_freq_lmda = ntohl(opp_o->rx_grid_freq_lmda);
-            pp->tx_pwr_min = ntohs(opp_o->tx_pwr_min);
-            pp->tx_pwr_max = ntohs(opp_o->tx_pwr_max);
-#endif
+            pp->type = ntohs(opp_o->type);
+            pp->supported = ntohl(opp_o->supported);
+            pp->opt_props.tx_min_freq_lmda = ntohl(opp_o->tx_min_freq_lmda);
+            pp->opt_props.tx_max_freq_lmda = ntohl(opp_o->tx_max_freq_lmda);
+            pp->opt_props.tx_grid_freq_lmda = ntohl(opp_o->tx_grid_freq_lmda);
+            pp->opt_props.rx_min_freq_lmda = ntohl(opp_o->rx_min_freq_lmda);
+            pp->opt_props.rx_max_freq_lmda = ntohl(opp_o->rx_max_freq_lmda);
+            pp->opt_props.rx_grid_freq_lmda = ntohl(opp_o->rx_grid_freq_lmda);
+            pp->opt_props.tx_pwr_min = ntohs(opp_o->tx_pwr_min);
+            pp->opt_props.tx_pwr_max = ntohs(opp_o->tx_pwr_max);
+
             *prop_bytes_read += sizeof(*opp_o);
             return 0;
         }
         case OFPPDPT_EXPERIMENTER:
         {
             /* no known experimenters */
-            /* EXT-262-TODO: Switch to correct error type */
-            return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_EXPERIMENTER);
+            return ofl_error(OFPET_BAD_PROPERTY, OFPBPC_BAD_EXPERIMENTER);
         }
         default:
             break;
     }
 
-    /* EXT-262-TODO: Switch to correct error type */
-    return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
+    return ofl_error(OFPET_BAD_PROPERTY, OFPBPC_BAD_TYPE);
 }
 
 ofl_err
@@ -970,20 +967,17 @@ ofl_structs_port_unpack(const struct ofp_port *src, size_t *len, struct ofl_port
         /* not enough bytes to read */
         if ((*len < sizeof(struct ofp_port_desc_prop_header)) ||
             ((ofp_len - bytes_read) < sizeof(struct ofp_port_desc_prop_header))) {
-            /* EXT-262-TODO: Switch to correct error type */
-            return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
+            return ofl_error(OFPET_BAD_PROPERTY, OFPBPC_BAD_LEN);
         }
 
         /* reading prop failed */
         if ((err = ofl_structs_port_prop_unpack(p, prop, &prop_bytes_read)) != 0) {
-            /* EXT-262-TODO: Error handling */
             return err;
         }
 
         /* don't get stuck without advancing */
         if (prop_bytes_read == 0) {
-            /* EXT-262-TODO: Switch to correct error type */
-            return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
+            return ofl_error(OFPET_BAD_PROPERTY, OFPBPC_BAD_LEN);
         }
 
         bytes_read += prop_bytes_read;

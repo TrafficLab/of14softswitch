@@ -172,8 +172,7 @@ ofl_utils_count_ofp_ports(void *data UNUSED, size_t data_len, size_t *count) {
     while (bytes_read < data_len) {
         /* not enough bytes left to fit a port */
         if ((data_len - bytes_read) < sizeof(struct ofp_port)) {
-            /* EXT-262-TODO: Fix return code */
-            return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
+            return ofl_error(OFPET_BAD_PROPERTY, OFPBPC_BAD_LEN);
         }
 
         op_length = ntohs(op->length);
@@ -183,8 +182,7 @@ ofl_utils_count_ofp_ports(void *data UNUSED, size_t data_len, size_t *count) {
         /* length fields are wrong */
         if (op_length == 0 ||
             (op_length < sizeof(struct ofp_port))) {
-            /* EXT-262-TODO: Fix return code */
-            return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
+            return ofl_error(OFPET_BAD_PROPERTY, OFPBPC_BAD_LEN);
         }
 
         (*count)++;

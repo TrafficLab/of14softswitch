@@ -330,6 +330,16 @@ struct ofl_group_stats {
     struct ofl_bucket_counter **counters;
 };
 
+struct ofl_port_optical_props {
+            uint32_t tx_min_freq_lmda;
+            uint32_t tx_max_freq_lmda;
+            uint32_t tx_grid_freq_lmda;
+            uint32_t rx_min_freq_lmda;
+            uint32_t rx_max_freq_lmda;
+            uint32_t rx_grid_freq_lmda;
+            uint16_t tx_pwr_min;
+            uint16_t tx_pwr_max;
+};
 
 struct ofl_port {
     uint32_t   port_no;
@@ -347,6 +357,8 @@ struct ofl_port {
 
     uint32_t   curr_speed;    /* Current port bitrate in kbps. */
     uint32_t   max_speed;     /* Max port bitrate in kbps */
+
+    struct ofl_port_optical_props opt_props; /* optical props */
 };
 
 

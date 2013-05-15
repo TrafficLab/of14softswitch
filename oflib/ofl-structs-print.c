@@ -68,7 +68,8 @@ void
 ofl_structs_port_print(FILE *stream, struct ofl_port *port) {
     fprintf(stream, "{no=\"");
     ofl_port_print(stream, port->port_no);
-    fprintf(stream, "\", hw_addr=\""ETH_ADDR_FMT"\", name=\"%s\", "
+    if (port->type == OFPPDPT_ETHERNET) {
+        fprintf(stream, "\", hw_addr=\""ETH_ADDR_FMT"\", name=\"%s\", "
                           "config=\"0x%"PRIx32"\", state=\"0x%"PRIx32"\", curr=\"0x%"PRIx32"\", "
                           "adv=\"0x%"PRIx32"\", supp=\"0x%"PRIx32"\", peer=\"0x%"PRIx32"\", "
                           "curr_spd=\"%ukbps\", max_spd=\"%ukbps\"}",
@@ -76,6 +77,25 @@ ofl_structs_port_print(FILE *stream, struct ofl_port *port) {
                   port->config, port->state, port->curr,
                   port->advertised, port->supported, port->peer,
                   port->curr_speed, port->max_speed);
+    } else if (port->type == OFPPDPT_OPTICAL) {
+        fprintf(stream, "\", hw_addr=\""ETH_ADDR_FMT"\", name=\"%s\", "
+                          "config=\"0x%"PRIx32"\", state=\"0x%"PRIx32"\", "
+                          "tx_min_freq=\"%u\", tx_max_freq=\"%u\", "
+                          "tx_grid_freq=\"%u\", rx_min_freq=\"%u\", "
+                          "rx_max_freq=\"%u\", rx_grid_freq=\"%u\", "
+                          "tx_pwr_min=\"%u\", tx_pwr_max=\"%u\""
+                          "}",
+                  ETH_ADDR_ARGS(port->hw_addr), port->name,
+                  port->config, port->state, 
+                  port->opt_props.tx_min_freq_lmda,
+                  port->opt_props.tx_max_freq_lmda,
+                  port->opt_props.tx_grid_freq_lmda,
+                  port->opt_props.rx_min_freq_lmda,
+                  port->opt_props.rx_max_freq_lmda,
+                  port->opt_props.rx_grid_freq_lmda,
+                  port->opt_props.tx_pwr_min,
+                  port->opt_props.tx_pwr_max);
+    }
 }
 
 char *
