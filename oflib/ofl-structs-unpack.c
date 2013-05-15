@@ -1066,7 +1066,7 @@ ofl_structs_port_stats_unpack(struct ofp_port_stats *src, size_t *len, struct of
             struct ofp_port_stats_prop_ethernet *ofp_e =
                 (struct ofp_port_stats_prop_ethernet *) prop;
             *len -= sizeof(*ofp_e);
-
+            p->type         = OFPPSPT_ETHERNET;
             p->rx_frame_err = ntoh64(ofp_e->rx_frame_err);
             p->rx_over_err  = ntoh64(ofp_e->rx_over_err);
             p->rx_crc_err   = ntoh64(ofp_e->rx_crc_err);
@@ -1078,6 +1078,7 @@ ofl_structs_port_stats_unpack(struct ofp_port_stats *src, size_t *len, struct of
                 (struct ofp_port_stats_prop_optical *) prop;
             *len -= sizeof(*ofp_o);
 
+            p->type         = OFPPSPT_OPTICAL;
             p->tx_freq_lmda = ntohl(ofp_o->tx_freq_lmda);
             p->tx_offset = ntohl(ofp_o->tx_offset);
             p->tx_grid_span = ntohl(ofp_o->tx_grid_span);

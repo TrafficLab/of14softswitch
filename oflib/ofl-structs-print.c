@@ -985,7 +985,8 @@ ofl_structs_port_stats_print(FILE *stream, struct ofl_port_stats *s) {
 
     fprintf(stream, "{port=\"");
     ofl_port_print(stream, s->port_no);
-    fprintf(stream, "\", rx_pkt=\"%"PRIu64"\", tx_pkt=\"%"PRIu64"\", "
+    if (s->type == OFPPSPT_ETHERNET) {
+        fprintf(stream, "\", rx_pkt=\"%"PRIu64"\", tx_pkt=\"%"PRIu64"\", "
                           "rx_bytes=\"%"PRIu64"\", tx_bytes=\"%"PRIu64"\", "
                           "rx_drops=\"%"PRIu64"\", tx_drops=\"%"PRIu64"\", "
                           "rx_errs=\"%"PRIu64"\", tx_errs=\"%"PRIu64"\", "
@@ -997,6 +998,25 @@ ofl_structs_port_stats_print(FILE *stream, struct ofl_port_stats *s) {
                   s->rx_errors, s->tx_errors,
                   s->rx_frame_err, s->rx_over_err,
                   s->rx_crc_err, s->collisions);
+    } else if (s->type == OFPPSPT_OPTICAL) {
+        fprintf(stream, "\", rx_pkt=\"%"PRIu64"\", tx_pkt=\"%"PRIu64"\", "
+                          "rx_bytes=\"%"PRIu64"\", tx_bytes=\"%"PRIu64"\", "
+                          "rx_drops=\"%"PRIu64"\", tx_drops=\"%"PRIu64"\", "
+                          "rx_errs=\"%"PRIu64"\", tx_errs=\"%"PRIu64"\", "
+                          "tx_freq_lmda=\"%"PRIu32"\", tx_offset=\"%"PRIu32"\", "
+                          "tx_grid_span=\"%"PRIu32"\", rx_freq_lmda=\"%"PRIu32"\", "
+                          "rx_offset=\"%"PRIu32"\", rx_grid_span=\"%"PRIu32"\", "
+                          "tx_pwr=\"%"PRIu32"\", rx_pwr=\"%"PRIu32"\", "
+                          "bias_current=\"%"PRIu32"\", temperature=\"%"PRIu32"\""
+                          "}",
+                  s->rx_packets, s->tx_packets,
+                  s->rx_bytes, s->tx_bytes,
+                  s->rx_dropped, s->tx_dropped,
+                  s->rx_errors, s->tx_errors,
+                  s->tx_freq_lmda, s->tx_offset, s->tx_grid_span,
+                  s->rx_freq_lmda, s->rx_offset, s->rx_grid_span,
+                  s->tx_pwr, s->rx_pwr, s->bias_current, s->temperature);
+    }
 };
 
 char *
