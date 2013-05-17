@@ -57,7 +57,7 @@ ofl_utils_count_ofp_table_features_properties(void *data, size_t data_len, size_
         prop = (struct ofp_table_feature_prop_header *) d;
         if (data_len < ntohs(prop->length) || ntohs(prop->length) < sizeof(struct ofp_table_feature_prop_header) ){
              OFL_LOG_WARN(LOG_MODULE, "Received property has invalid length (prop->length=%d, data_len=%d).", ntohs(prop->length), (int) data_len);
-             return ofl_error(OFPET_TABLE_FEATURES_FAILED, OFPBPC_BAD_LEN); 
+             return ofl_error(OFPET_BAD_PROPERTY, OFPBPC_BAD_LEN); 
         }
         data_len -= ROUND_UP(ntohs(prop->length), 8);
         d += ROUND_UP(ntohs(prop->length), 8);  
@@ -77,7 +77,7 @@ ofl_utils_count_ofp_table_features(void *data, size_t data_len, size_t *count){
         feature = (struct ofp_table_features *) d;
         if (data_len < ntohs(feature->length) || ntohs(feature->length) < sizeof(struct ofp_table_features) ){
              OFL_LOG_WARN(LOG_MODULE, "Received feature has invalid length (feat->length=%d, data_len=%d).");
-             return ofl_error(OFPET_TABLE_FEATURES_FAILED, OFPBPC_BAD_LEN); 
+             return ofl_error(OFPET_BAD_PROPERTY, OFPBPC_BAD_LEN); 
         }
         data_len -= ntohs(feature->length);
         d += ntohs(feature->length);  
@@ -100,7 +100,7 @@ ofl_utils_count_ofp_instructions(void *data, size_t data_len, size_t *count) {
         inst = (struct ofp_instruction_id *)d;
         if (data_len < ntohs(inst->len) || ntohs(inst->len) < sizeof(struct ofp_instruction_id)) {
             OFL_LOG_WARN(LOG_MODULE, "Received instruction has invalid length.");
-            return ofl_error(OFPET_BAD_REQUEST, OFPBPC_BAD_LEN);
+            return ofl_error(OFPET_BAD_INSTRUCTION, OFPBIC_BAD_LEN);
                     
         }
         data_len -= ntohs(inst->len);

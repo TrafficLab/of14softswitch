@@ -218,12 +218,12 @@ ofl_structs_table_properties_unpack(struct ofp_table_feature_prop_header * src, 
         
     if (*len < sizeof(struct ofp_table_feature_prop_header)){
         OFL_LOG_WARN(LOG_MODULE, "Received feature is too short (%zu).", *len);
-        return ofl_error(OFPET_TABLE_FEATURES_FAILED, OFPBPC_BAD_LEN);
+        return ofl_error(OFPET_BAD_PROPERTY, OFPBPC_BAD_LEN);
     }    
     
     if (*len < ntohs(src->length)) {
         OFL_LOG_WARN(LOG_MODULE, "Received table property has invalid length (set to %u, but only %zu received).", ntohs(src->length), *len);
-        return ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_LEN);
+        return ofl_error(OFPET_BAD_PROPERTY, OFPBPC_BAD_LEN);
     }
     plen = ntohs(src->length);
     
@@ -237,7 +237,7 @@ ofl_structs_table_properties_unpack(struct ofp_table_feature_prop_header * src, 
             
 			if (plen < sizeof(struct ofp_table_feature_prop_instructions)) {
                 OFL_LOG_WARN(LOG_MODULE, "Received INSTRUCTION feature has invalid length (%zu).", *len);
-                return ofl_error(OFPET_TABLE_FEATURES_FAILED, OFPBPC_BAD_LEN);
+                return ofl_error(OFPET_BAD_PROPERTY, OFPBPC_BAD_LEN);
             }
 			
 			dp =  (struct ofl_table_feature_prop_instructions*) malloc(sizeof(struct ofl_table_feature_prop_instructions));		
@@ -265,7 +265,7 @@ ofl_structs_table_properties_unpack(struct ofp_table_feature_prop_header * src, 
 			
 			if (plen < sizeof(struct ofp_table_feature_prop_next_tables)) {
                 OFL_LOG_WARN(LOG_MODULE, "Received NEXT TABLE feature has invalid length (%zu).", *len);
-                return ofl_error(OFPET_TABLE_FEATURES_FAILED, OFPBPC_BAD_LEN);
+                return ofl_error(OFPET_BAD_PROPERTY, OFPBPC_BAD_LEN);
             }			
 			dp = (struct ofl_table_feature_prop_next_tables*) malloc(sizeof(struct ofl_table_feature_prop_next_tables));		
 		    
@@ -288,7 +288,7 @@ ofl_structs_table_properties_unpack(struct ofp_table_feature_prop_header * src, 
 			
 			if (plen < sizeof(struct ofp_table_feature_prop_actions)) {
                 OFL_LOG_WARN(LOG_MODULE, "Received ACTION feature has invalid length (%zu).", *len);
-                return ofl_error(OFPET_TABLE_FEATURES_FAILED, OFPBPC_BAD_LEN);
+                return ofl_error(OFPET_BAD_PROPERTY, OFPBPC_BAD_LEN);
             }
             alen = plen - sizeof(struct ofp_table_feature_prop_actions);
 			dp = (struct ofl_table_feature_prop_actions*) malloc(sizeof(struct ofl_table_feature_prop_actions));		
@@ -322,7 +322,7 @@ ofl_structs_table_properties_unpack(struct ofp_table_feature_prop_header * src, 
 			
 			if (plen < sizeof(struct ofp_table_feature_prop_oxm)) {
                 OFL_LOG_WARN(LOG_MODULE, "Received MATCH feature has invalid length (%zu).", *len);
-                return ofl_error(OFPET_TABLE_FEATURES_FAILED, OFPBPC_BAD_LEN);
+                return ofl_error(OFPET_BAD_PROPERTY, OFPBPC_BAD_LEN);
             }			
 			
 			dp = (struct ofl_table_feature_prop_oxm*) malloc(sizeof(struct ofl_table_feature_prop_oxm));		
@@ -347,7 +347,7 @@ ofl_structs_table_properties_unpack(struct ofp_table_feature_prop_header * src, 
         *len = *len - ntohs(src->length) + plen;
         OFL_LOG_WARN(LOG_MODULE, "The received property contained extra bytes (%zu).", plen);
         //ofl_structs_free_property(inst, exp);
-        return ofl_error(OFPET_TABLE_FEATURES_FAILED, OFPBPC_BAD_LEN);
+        return ofl_error(OFPET_BAD_PROPERTY, OFPBPC_BAD_LEN);
     }
 	*len -= ntohs(src->length);    
 	(*dst) = prop;
@@ -364,7 +364,7 @@ ofl_structs_table_features_unpack(struct ofp_table_features *src,size_t *len, st
     
     if(*len < sizeof(struct ofp_table_features)){
         OFL_LOG_WARN(LOG_MODULE, "Received table feature is too short (%zu).", *len);  
-        return ofl_error(OFPET_TABLE_FEATURES_FAILED, OFPBPC_BAD_LEN);
+        return ofl_error(OFPET_BAD_PROPERTY, OFPBPC_BAD_LEN);
     }
     
     if(*len < ntohs(src->length)){
