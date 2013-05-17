@@ -229,9 +229,20 @@ ofl_msg_print_port_mod(struct ofl_msg_port_mod *msg, FILE *stream) {
 
     fprintf(stream, "{port=\"");
     ofl_port_print(stream, msg->port_no);
-    fprintf(stream, "\", hwaddr=\""ETH_ADDR_FMT"\", config=\"0x%08"PRIx32"\", "
+    if (msg->type == OFPPMPT_ETHERNET) {
+        fprintf(stream, "\", hwaddr=\""ETH_ADDR_FMT"\", config=\"0x%08"PRIx32"\", "
                           "mask=\"0x%"PRIx32"\", adv=\"0x%"PRIx32"\"}",
                   ETH_ADDR_ARGS(msg->hw_addr), msg->config, msg->mask, msg->advertise);
+    } else if (msg->type == OFPPMPT_OPTICAL) {
+        fprintf(stream, "\", hwaddr=\""ETH_ADDR_FMT"\", config=\"0x%08"PRIx32"\", "
+                          "mask=\"0x%"PRIx32"\", configure=\"0x%"PRIx32"\", "
+                          "freq=\"0x%"PRIx32"\", offset=\"0x%"PRIx32"\", "
+                          "grid_span=\"0x%"PRIx32"\", tx_pwr=\"0x%"PRIx32"\""
+                          "}",
+                  ETH_ADDR_ARGS(msg->hw_addr), msg->config, msg->mask,
+                  msg->configure, msg->freq_lmda, msg->fl_offset, msg->grid_span,
+                  msg->tx_pwr);
+    }
 }
 
 static void

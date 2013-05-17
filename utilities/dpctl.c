@@ -754,6 +754,7 @@ static void
 port_mod(struct vconn *vconn, int argc UNUSED, char *argv[]) {
     struct ofl_msg_port_mod msg =
             {{.type = OFPT_PORT_MOD},
+             .type = OFPPMPT_ETHERNET,
              .port_no = OFPP_ANY,
              .config = 0x00000000,
              .mask = 0x00000000,
