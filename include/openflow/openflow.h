@@ -427,8 +427,7 @@ enum ofp_ipv6exthdr_flags {
 /* Header for OXM experimenter match fields. */
 struct ofp_oxm_experimenter_header {
 	uint32_t oxm_header;   /* oxm_class = OFPXMC_EXPERIMENTER */
-	uint32_t experimenter; /* Experimenter ID which takes the same
-                              form as in struct ofp_experimenter_header. */
+	uint32_t experimenter; /* Experimenter ID */
 };
 OFP_ASSERT(sizeof(struct ofp_oxm_experimenter_header) == 8);
 
@@ -522,14 +521,13 @@ struct ofp_instruction_meter {
 OFP_ASSERT(sizeof(struct ofp_instruction_meter) == 8);
 
 /* Instruction structure for experimental instructions */
-struct ofp_instruction_experimenter {
-    uint16_t type;		/* OFPIT_EXPERIMENTER */
-    uint16_t len;               /* Length of this struct in bytes */
-    uint32_t experimenter;      /* Experimenter ID which takes the same form
-                                   as in struct ofp_experimenter_header. */
+struct ofp_instruction_experimenter_header {
+    uint16_t type;		        /* OFPIT_EXPERIMENTER */
+    uint16_t len;               /* Length of this struct in bytes. */
+    uint32_t experimenter;      /* Experimenter ID */
     /* Experimenter-defined arbitrary additional data. */
 };
-OFP_ASSERT(sizeof(struct ofp_instruction_experimenter) == 8);
+OFP_ASSERT(sizeof(struct ofp_instruction_experimenter_header) == 8);
 
 enum ofp_action_type {
     OFPAT_OUTPUT = 0,        /* Output to switch port. */
@@ -648,9 +646,7 @@ OFP_ASSERT(sizeof(struct ofp_action_set_field) == 8);
 struct ofp_action_experimenter_header {
 	uint16_t type;         /* OFPAT_EXPERIMENTER. */
 	uint16_t len;          /* Length is a multiple of 8. */
-	uint32_t experimenter; /* Experimenter ID which takes the same
-                              form as in struct
-                              ofp_experimenter_header. */
+	uint32_t experimenter; /* Experimenter ID */
 };
 OFP_ASSERT(sizeof(struct ofp_action_experimenter_header) == 8);
 
@@ -1031,9 +1027,7 @@ struct ofp_meter_band_experimenter {
     uint16_t len;  /* Length in bytes of this band. */
     uint32_t rate; /* Rate for this band. */
     uint32_t burst_size; /* Size of bursts. */
-    uint32_t experimenter; /* Experimenter ID which takes the same
-                            form as in struct
-                            ofp_experimenter_header. */
+    uint32_t experimenter; /* Experimenter ID */
 };
 OFP_ASSERT(sizeof(struct ofp_meter_band_experimenter) == 16);
 
@@ -1134,7 +1128,7 @@ enum ofp_multipart_types {
     OFPMP_QUEUE_DESC = 15,
     /* Experimenter extension.
     * The request and reply bodies begin with
-    * struct ofp_experimenter_stats_header.
+    * struct ofp_experimenter_multipart_header.
     * The request and reply bodies are otherwise experimenter-defined. */
     OFPMP_EXPERIMENTER = 0xffff
 };
@@ -1649,13 +1643,12 @@ OFP_ASSERT(sizeof(struct ofp_meter_features) == 16);
 
 
 /* Body for ofp_multipart_request/reply of type OFPMP_EXPERIMENTER. */
-struct ofp_experimenter_stats_header {
-	uint32_t experimenter; /* Experimenter ID which takes the same form
-                              as in struct ofp_experimenter_header. */
+struct ofp_experimenter_multipart_header {
+	uint32_t experimenter; /* Experimenter ID */
 	uint32_t exp_type;     /* Experimenter defined. */
 	/* Experimenter-defined arbitrary additional data. */
 };
-OFP_ASSERT(sizeof(struct ofp_experimenter_stats_header) == 8);
+OFP_ASSERT(sizeof(struct ofp_experimenter_multipart_header) == 8);
 
 /* Query for port queue configuration. */
 struct ofp_queue_get_config_request {
@@ -2080,17 +2073,6 @@ enum ofp_table_features_failed_code {
     OFPTFFC_EPERM = 5,        /* Permissions error. */
 };
 
-struct ofp_experimenter_msg {
-    struct ofp_header header;   /* Type OFPT_EXPERIMENTER. */
-    uint32_t experimenter;      /* Experimenter ID:
-                                 * - MSB 0: low-order bytes are IEEE_OUI
-                                 * - MSB != 0: defined by ONF. */
-    uint32_t exp_type;          /* Experimenter defined. */
-    /* Experimenter-defined arbitrary additional data. */
-    uint8_t experimenter_data[0];
-};
-OFP_ASSERT(sizeof(struct ofp_experimenter_msg) == 16);
-
 enum ofp_bad_property_code {
     OFPBPC_BAD_TYPE = 0,         /* Unknown property type. */
     OFPBPC_BAD_LEN = 1,          /* Length problem in property. */
@@ -2107,22 +2089,32 @@ enum ofp_bad_property_code {
 struct ofp_error_experimenter_msg {
 	struct ofp_header header;
 	uint16_t type;         /* OFPET_EXPERIMENTER. */
-	uint16_t exp_type;     /* Experimenter defined. */
-	uint32_t experimenter; /* Experimenter ID which takes the same form
-                              as in struct ofp_experimenter_header. */
+	uint16_t exp_code;     /* Experimenter defined. */
+	uint32_t experimenter; /* Experimenter ID */
 	uint8_t data[0];       /* Variable-length data. Interpreted based
-                              on the type and code. No padding. */
+                              on the type and experimenter. No padding. */
 };
 OFP_ASSERT(sizeof(struct ofp_error_experimenter_msg) == 16);
 
-/* Experimenter extension. */
-struct ofp_experimenter_header {
+/* Typical Experimenter extension. */
+struct ofp_experimenter_structure {
+    uint32_t experimenter;      /* Experimenter ID:
+                                 * - MSB 0: low-order bytes are IEEE OUI.
+                                 * - MSB != 0: defined by ONF. */
+    uint32_t exp_type;          /* Experimenter defined. */
+    uint8_t  experimenter_data[0];
+};
+OFP_ASSERT(sizeof(struct ofp_experimenter_structure) == 8);
+
+/* Experimenter extension message. */
+struct ofp_experimenter_msg {
 	struct ofp_header header; /* Type OFPT_EXPERIMENTER. */
 	uint32_t experimenter;    /* Experimenter ID:
                                * - MSB 0: low-order bytes are IEEE OUI.
                                * - MSB != 0: defined by ONF. */
 	uint32_t exp_type;        /* Experimenter defined. */
 	/* Experimenter-defined arbitrary additional data. */
+    uint8_t  experimenter_data[0];
 };
-OFP_ASSERT(sizeof(struct ofp_experimenter_header) == 16);
+OFP_ASSERT(sizeof(struct ofp_experimenter_msg) == 16);
 #endif /* openflow/openflow.h */

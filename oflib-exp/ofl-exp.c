@@ -65,14 +65,14 @@ ofl_exp_msg_pack(struct ofl_msg_experimenter *msg, uint8_t **buf, size_t *buf_le
 
 ofl_err
 ofl_exp_msg_unpack(struct ofp_header *oh, size_t *len, struct ofl_msg_experimenter **msg) {
-    struct ofp_experimenter_header *exp;
+    struct ofp_experimenter_msg *exp;
 
-    if (*len < sizeof(struct ofp_experimenter_header)) {
-        OFL_LOG_WARN(LOG_MODULE, "Received EXPERIMENTER message is shorter than ofp_experimenter_header.");
+    if (*len < sizeof(struct ofp_experimenter_msg)) {
+        OFL_LOG_WARN(LOG_MODULE, "Received EXPERIMENTER message is shorter than ofp_experimenter_msg.");
         return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
     }
 
-    exp = (struct ofp_experimenter_header *)oh;
+    exp = (struct ofp_experimenter_msg *)oh;
 
     switch (htonl(exp->experimenter)) {
         case (OPENFLOW_VENDOR_ID): {
