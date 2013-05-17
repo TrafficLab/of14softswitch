@@ -684,7 +684,7 @@ static ofl_err
 ofl_msg_validate_pmp_size(struct ofp_port_mod_prop_header *pph, size_t *len) {
     size_t sz;
 
-    switch (pph->type) {
+    switch (ntohs(pph->type)) {
     case OFPPMPT_ETHERNET:
         sz = *len - sizeof(struct ofp_port_mod_prop_ethernet);
         if (sz < 0)
@@ -733,11 +733,16 @@ ofl_msg_unpack_port_mod(struct ofp_header *src, size_t *len, struct ofl_msg_head
     dm->mask =      ntohl(sm->mask);
 
     /* TODO: Refactor this when we have experimenters */
-    switch (pph->type) {
+    switch (ntohs(pph->type)) {
         case OFPPMPT_ETHERNET: {
             struct ofp_port_mod_prop_ethernet *props = 
                 (struct ofp_port_mod_prop_ethernet *) pph;
 
+            if (ntohs(pph->length) != sizeof(*props)) {
+                return ofl_error(OFPET_BAD_PROPERTY, OFPBPC_BAD_LEN);
+            }
+
+            dm->type = ntohs(pph->type);
             dm->advertise = ntohl(props->advertise);
             break;
         }
@@ -745,6 +750,11 @@ ofl_msg_unpack_port_mod(struct ofp_header *src, size_t *len, struct ofl_msg_head
             struct ofp_port_mod_prop_optical *props =
                 (struct ofp_port_mod_prop_optical *) pph;
 
+            if (ntohs(pph->length) != sizeof(*props)) {
+                return ofl_error(OFPET_BAD_PROPERTY, OFPBPC_BAD_LEN);
+            }
+
+            dm->type = ntohs(pph->type);
             dm->configure = ntohl(props->configure);
             dm->freq_lmda = ntohl(props->freq_lmda);
             dm->fl_offset = ntohl(props->fl_offset);
@@ -753,9 +763,9 @@ ofl_msg_unpack_port_mod(struct ofp_header *src, size_t *len, struct ofl_msg_head
             break;
         }
         case OFPPMPT_EXPERIMENTER:
-            break;
+            return ofl_error(OFPET_BAD_PROPERTY, OFPBPC_BAD_EXP_TYPE);
         default:
-            return -EINVAL;
+            return ofl_error(OFPET_BAD_PROPERTY, OFPBPC_BAD_TYPE);
     };
 
     *msg = (struct ofl_msg_header *)dm;
