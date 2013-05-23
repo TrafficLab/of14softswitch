@@ -191,8 +191,8 @@ ofl_actions_pack(struct ofl_action_header *src, struct ofp_action_header *dst, u
             return sizeof(struct ofp_action_nw_ttl);
         }
         case OFPAT_DEC_NW_TTL: {
-            dst->len = htons(sizeof(struct ofp_action_header));
-            return sizeof(struct ofp_action_header);
+            dst->len = htons(sizeof(struct ofp_action_generic));
+            return sizeof(struct ofp_action_generic);
         }
         case OFPAT_SET_FIELD: {
             struct ofl_action_set_field *sa = (struct ofl_action_set_field *) src;
