@@ -551,7 +551,7 @@ ofl_structs_flow_stats_pack(struct ofl_flow_stats *src, uint8_t *dst, struct ofl
     data = (dst) + ROUND_UP(sizeof(struct ofp_flow_stats) -4 + src->match->length, 8);  
     
     for (i=0; i < src->instructions_num; i++) {
-        data += ofl_structs_instructions_pack(src->instructions[i], (struct ofp_instruction_id *) data, exp);
+        data += ofl_structs_instructions_pack(src->instructions[i], (struct ofp_instruction_header *) data, exp);
     }
     return total_len;
 }

@@ -517,7 +517,7 @@ ofl_msg_unpack_flow_mod(struct ofp_header *src,uint8_t* buf, size_t *len, struct
         return error;
     }
     
-    error = ofl_utils_count_ofp_instructions((struct ofp_instruction_id *)(buf + ROUND_UP(match_pos + dm->match->length,8)), *len, &dm->instructions_num);
+    error = ofl_utils_count_ofp_instructions((struct ofp_instruction_header *)(buf + ROUND_UP(match_pos + dm->match->length,8)), *len, &dm->instructions_num);
     if (error) {
         ofl_structs_free_match(dm->match, exp);
         free(dm);

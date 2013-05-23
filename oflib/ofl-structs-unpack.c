@@ -50,7 +50,7 @@ ofl_structs_instructions_unpack(struct ofp_instruction_header *src, size_t *len,
     size_t ilen;
     struct ofl_instruction_header *inst = NULL;
 
-    if (*len < sizeof(struct ofp_instruction_id)) {
+    if (*len < sizeof(struct ofp_instruction_header)) {
         OFL_LOG_WARN(LOG_MODULE, "Received instruction is too short (%zu).", *len);
         return ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_LEN);
     }
@@ -251,7 +251,7 @@ ofl_structs_table_properties_unpack(struct ofp_table_feature_prop_header * src, 
 
             ptr = (uint8_t *) sp->instruction_ids;	
 			for (i = 0; i < dp->ids_num; i++) {
-			    dp->instruction_ids[i].type = ntohs(((struct ofp_instruction_id*) ptr)->type);
+			    dp->instruction_ids[i].type = ntohs(((struct ofp_instruction_id *)ptr)->type);
                 if (dp->instruction_ids[i].type == OFPIT_EXPERIMENTER) {
                     if (exp == NULL || exp->inst == NULL || exp->inst->id_unpack == NULL) {
                         OFL_LOG_WARN(LOG_MODULE, "Received EXPERIMENTER instruction, but no callback was given.");
