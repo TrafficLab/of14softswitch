@@ -523,8 +523,7 @@ OFP_ASSERT(sizeof(struct ofp_instruction_meter) == 8);
 struct ofp_instruction_experimenter_header {
     uint16_t type;		        /* OFPIT_EXPERIMENTER */
     uint16_t len;               /* Length is padded to 64 bits. */
-    uint32_t experimenter;      /* Experimenter ID which takes the same form
-                                   as in struct ofp_experimenter_header. */
+    uint32_t experimenter;      /* Experimenter ID */
     /* Experimenter-defined arbitrary additional data. */
 };
 OFP_ASSERT(sizeof(struct ofp_instruction_experimenter_header) == 8);

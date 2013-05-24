@@ -177,7 +177,7 @@ void
 update_instruction_length(struct ofpbuf *buffer, size_t oia_offset)
 {
     struct ofp_header *oh = ofpbuf_at_assert(buffer, 0, sizeof *oh);
-    struct ofp_instruction_id *ih = ofpbuf_at_assert(buffer, oia_offset,
+    struct ofp_instruction_header *ih = ofpbuf_at_assert(buffer, oia_offset,
 						  sizeof *ih);
     ih->len = htons(buffer->size - oia_offset);
 }
@@ -407,9 +407,9 @@ check_ofp_message(const struct ofp_header *msg, uint8_t type, size_t size)
  * 'array_elt_size' blocks in 'msg' past the first 'min_size' bytes, when
  * successful. */
 int
-check_ofp_instruction_array(const struct ofp_instruction_id *inst, uint8_t type,
-			    size_t min_size, size_t array_elt_size,
-			    size_t *n_array_elts)
+check_ofp_instruction_array(const struct ofp_instruction_header *inst,
+                            uint8_t type, size_t min_size,
+                            size_t array_elt_size, size_t *n_array_elts)
 {
     size_t got_size;
 
