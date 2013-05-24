@@ -54,18 +54,18 @@ ofl_actions_ofp_len(struct ofl_action_header *action, struct ofl_exp *exp) {
        
         case OFPAT_COPY_TTL_OUT:
         case OFPAT_COPY_TTL_IN:
-            return sizeof(struct ofp_action_empty);
+            return sizeof(struct ofp_action_generic);
         case OFPAT_SET_MPLS_TTL:
             return sizeof(struct ofp_action_mpls_ttl);
         case OFPAT_DEC_MPLS_TTL:
-            return sizeof(struct ofp_action_empty);
+            return sizeof(struct ofp_action_generic);
         case OFPAT_PUSH_VLAN:
         case OFPAT_PUSH_PBB:
         case OFPAT_PUSH_MPLS:  
             return sizeof(struct ofp_action_push);
         case OFPAT_POP_VLAN:
         case OFPAT_POP_PBB:
-            return sizeof(struct ofp_action_empty);
+            return sizeof(struct ofp_action_generic);
         case OFPAT_POP_MPLS:
             return sizeof(struct ofp_action_pop_mpls);
         case OFPAT_SET_QUEUE:
@@ -75,7 +75,7 @@ ofl_actions_ofp_len(struct ofl_action_header *action, struct ofl_exp *exp) {
         case OFPAT_SET_NW_TTL:
             return sizeof(struct ofp_action_nw_ttl);
         case OFPAT_DEC_NW_TTL:
-            return sizeof(struct ofp_action_empty);
+            return sizeof(struct ofp_action_generic);
         case OFPAT_SET_FIELD: {
             struct ofl_action_set_field  *a = (struct ofl_action_set_field  *) action;  
             return sizeof(struct ofp_action_set_field) + ROUND_UP(OXM_LENGTH(a->field->header),8) ;
@@ -105,7 +105,7 @@ size_t
 ofl_actions_pack(struct ofl_action_header *src, struct ofp_action_header *dst, uint8_t* data,  struct ofl_exp *exp) {
 
     dst->type = htons(src->type);
-    memset(((struct ofp_action_empty *) dst)->pad, 0x00, 4);
+    memset(((struct ofp_action_generic *) dst)->pad, 0x00, 4);
 
     switch (src->type) {
         case OFPAT_OUTPUT: {
@@ -121,8 +121,8 @@ ofl_actions_pack(struct ofl_action_header *src, struct ofp_action_header *dst, u
       
         case OFPAT_COPY_TTL_OUT:
         case OFPAT_COPY_TTL_IN: {
-            dst->len = htons(sizeof(struct ofp_action_empty));
-            return sizeof(struct ofp_action_empty);
+            dst->len = htons(sizeof(struct ofp_action_generic));
+            return sizeof(struct ofp_action_generic);
         }
       
         case OFPAT_SET_MPLS_TTL: {
@@ -135,8 +135,8 @@ ofl_actions_pack(struct ofl_action_header *src, struct ofp_action_header *dst, u
             return sizeof(struct ofp_action_mpls_ttl);
         }
         case OFPAT_DEC_MPLS_TTL: {
-            dst->len = htons(sizeof(struct ofp_action_empty));
-            return sizeof(struct ofp_action_empty);
+            dst->len = htons(sizeof(struct ofp_action_generic));
+            return sizeof(struct ofp_action_generic);
         }
         case OFPAT_PUSH_VLAN:
         case OFPAT_PUSH_MPLS: 
@@ -153,8 +153,8 @@ ofl_actions_pack(struct ofl_action_header *src, struct ofp_action_header *dst, u
         case OFPAT_POP_PBB: {
             struct ofp_action_header *da = (struct ofp_action_header *)dst;
 
-            da->len = htons(sizeof(struct ofp_action_empty));
-            return sizeof (struct ofp_action_empty);
+            da->len = htons(sizeof(struct ofp_action_generic));
+            return sizeof (struct ofp_action_generic);
         }
         case OFPAT_POP_MPLS: {
             struct ofl_action_pop_mpls *sa = (struct ofl_action_pop_mpls *)src;

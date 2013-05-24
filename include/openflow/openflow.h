@@ -577,12 +577,12 @@ enum ofp_controller_max_len {
 
 /* Action structure for OFPAT_COPY_TTL_OUT, OFPAT_COPY_TTL_IN,
  * OFPAT_DEC_MPLS_TTL,  OFPAT_DEC_NW_TTL, OFPAT_POP_VLAN and OFPAT_POP_PBB. */
-struct ofp_action_empty {
+struct ofp_action_generic {
 	uint16_t type;     /* OFPAT_GROUP. */
 	uint16_t len;      /* Length is 8. */
 	uint8_t pad[4];    /* Pad to 64 bits. */
 };
-OFP_ASSERT(sizeof(struct ofp_action_empty) == 8);
+OFP_ASSERT(sizeof(struct ofp_action_generic) == 8);
 
 /* Action structure for OFPAT_GROUP. */
 struct ofp_action_group {
