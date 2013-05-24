@@ -286,7 +286,9 @@ make_packet_out(const struct ofpbuf *packet, uint32_t buffer_id,
                 uint32_t in_port,
                 const struct ofp_action_header *actions, size_t n_actions)
 {
-    size_t actions_len = n_actions * sizeof *actions;
+    /* This is broken because actions have variable size.
+     * All callers are using a single OFPAT_OUTPUT. Jean II */
+    size_t actions_len = n_actions * (sizeof (struct ofp_action_output));
     struct ofp_packet_out *opo;
     size_t size = sizeof *opo + actions_len + (packet ? packet->size : 0);
     struct ofpbuf *out = ofpbuf_new(size);

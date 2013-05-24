@@ -51,7 +51,7 @@ OFL_LOG_INIT(LOG_MODULE)
 ofl_err
 ofl_actions_unpack(struct ofp_action_header *src, size_t *len, struct ofl_action_header **dst, struct ofl_exp *exp) {
 
-    if (*len < sizeof(struct ofp_action_header)) {
+    if (*len < sizeof(struct ofp_action_empty)) {
         OFL_LOG_WARN(LOG_MODULE, "Received action is too short (%zu).", *len);
         return ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_LEN);
     }
@@ -98,15 +98,15 @@ ofl_actions_unpack(struct ofp_action_header *src, size_t *len, struct ofl_action
             break;
         }
         case OFPAT_COPY_TTL_OUT: {
-            //ofp_action_header length was already checked
-            *len -= sizeof(struct ofp_action_header);
+            //ofp_action_empty length was already checked
+            *len -= sizeof(struct ofp_action_empty);
             *dst = (struct ofl_action_header *)malloc(sizeof(struct ofl_action_header));
             break;
         }
 
         case OFPAT_COPY_TTL_IN: {
-            //ofp_action_header length was already checked
-            *len -= sizeof(struct ofp_action_header);
+            //ofp_action_empty length was already checked
+            *len -= sizeof(struct ofp_action_empty);
             *dst = (struct ofl_action_header *)malloc(sizeof(struct ofl_action_header));
             break;
         }
@@ -131,7 +131,7 @@ ofl_actions_unpack(struct ofp_action_header *src, size_t *len, struct ofl_action
         }
 
         case OFPAT_DEC_MPLS_TTL: {
-            //ofp_action_header length was already checked
+            //ofp_action_empty length was already checked
             *len -= sizeof(struct ofp_action_mpls_ttl);
             *dst = (struct ofl_action_header *)malloc(sizeof(struct ofl_action_header));
             break;
@@ -172,8 +172,8 @@ ofl_actions_unpack(struct ofp_action_header *src, size_t *len, struct ofl_action
 
         case OFPAT_POP_VLAN: 
         case OFPAT_POP_PBB: {
-            //ofp_action_header length was already checked
-            *len -= sizeof(struct ofp_action_header);
+            //ofp_action_empty length was already checked
+            *len -= sizeof(struct ofp_action_empty);
             *dst = (struct ofl_action_header *)malloc(sizeof(struct ofl_action_header));
             break;
         }
@@ -264,8 +264,8 @@ ofl_actions_unpack(struct ofp_action_header *src, size_t *len, struct ofl_action
         }
 
         case OFPAT_DEC_NW_TTL: {
-            //ofp_action_header length was already checked
-            *len -= sizeof(struct ofp_action_header);
+            //ofp_action_empty length was already checked
+            *len -= sizeof(struct ofp_action_empty);
             *dst = (struct ofl_action_header *)malloc(sizeof(struct ofl_action_header));
             break;
         }

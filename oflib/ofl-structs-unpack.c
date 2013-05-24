@@ -783,7 +783,7 @@ ofl_structs_meter_config_unpack(struct ofp_meter_config *src, size_t *len, struc
 ofl_err
 ofl_structs_queue_prop_unpack(struct ofp_queue_prop_header *src, size_t *len, struct ofl_queue_prop_header **dst) {
 
-    if (*len < sizeof(struct ofp_action_header)) {
+    if (*len < sizeof(struct ofp_queue_prop_header)) {
         OFL_LOG_WARN(LOG_MODULE, "Received queue property is too short (%zu).", *len);
         return ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_LEN);
     }
