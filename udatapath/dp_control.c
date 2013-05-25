@@ -347,16 +347,10 @@ handle_control_msg(struct datapath *dp, struct ofl_msg_header *msg,
         case OFPT_ECHO_REPLY: {
             return handle_control_echo_reply(dp, (struct ofl_msg_echo *)msg, sender);
         }
-        case OFPT_QUEUE_GET_CONFIG_REQUEST: {
-            return dp_ports_handle_queue_get_config_request(dp, (struct ofl_msg_queue_get_config_request *)msg, sender);
-        }
         case OFPT_ROLE_REQUEST: {
             return dp_handle_role_request(dp, (struct ofl_msg_role_request*)msg, sender);
         }
         case OFPT_ROLE_REPLY:{
-            return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
-        }
-        case OFPT_QUEUE_GET_CONFIG_REPLY: {
             return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
         }
         case OFPT_METER_MOD:{

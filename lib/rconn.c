@@ -974,8 +974,7 @@ is_admitted_msg(const struct ofpbuf *b)
         case OFPT_PORT_MOD :
         case OFPT_TABLE_MOD :
         case OFPT_MULTIPART_REQUEST :
-        case OFPT_BARRIER_REQUEST :
-        case OFPT_QUEUE_GET_CONFIG_REQUEST : {
+        case OFPT_BARRIER_REQUEST : {
             return true;
         }
         default: {

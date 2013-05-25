@@ -520,8 +520,6 @@ ofl_message_type_print(FILE *stream, uint16_t type) {
         case OFPT_MULTIPART_REPLY: {              fprintf(stream, "stat_repl"); return; }
         case OFPT_BARRIER_REQUEST: {          fprintf(stream, "barr_req"); return; }
         case OFPT_BARRIER_REPLY: {            fprintf(stream, "barr_repl"); return; }
-        case OFPT_QUEUE_GET_CONFIG_REQUEST: { fprintf(stream, "q_cnf_req"); return; }
-        case OFPT_QUEUE_GET_CONFIG_REPLY:   { fprintf(stream, "q_cnf_repl"); return; }
 		case OFPT_GET_ASYNC_REQUEST:        { fprintf(stream, "get_async_req"); return;}
 		case OFPT_GET_ASYNC_REPLY:          { fprintf(stream, "get_async_rep"); return;}
 		case OFPT_SET_ASYNC:                { fprintf(stream, "set_async"); return;}

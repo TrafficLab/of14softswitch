@@ -506,7 +506,7 @@ size_t
 ofl_structs_group_stats_pack(struct ofl_group_stats *src, struct ofp_group_stats *dst);
 
 size_t
-ofl_structs_queue_prop_pack(struct ofl_queue_prop_header *src, struct ofp_queue_prop_header *dst);
+ofl_structs_queue_prop_pack(struct ofl_queue_prop_header *src, struct ofp_queue_desc_prop_header *dst);
 
 size_t
 ofl_structs_packet_queue_pack(struct ofl_packet_queue *src, struct ofp_packet_queue *dst);
@@ -550,7 +550,7 @@ ofl_err
 ofl_structs_flow_stats_unpack(struct ofp_flow_stats *src,uint8_t *buf, size_t *len, struct ofl_flow_stats **dst, struct ofl_exp *exp);
 
 ofl_err
-ofl_structs_queue_prop_unpack(struct ofp_queue_prop_header *src, size_t *len, struct ofl_queue_prop_header **dst);
+ofl_structs_queue_prop_unpack(struct ofp_queue_desc_prop_header *src, size_t *len, struct ofl_queue_prop_header **dst);
 
 ofl_err
 ofl_structs_packet_queue_unpack(struct ofp_packet_queue *src, size_t *len, struct ofl_packet_queue **dst);

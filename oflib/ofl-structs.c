@@ -357,21 +357,21 @@ ofl_utils_count_ofp_group_desc_stats(void *data UNUSED, size_t data_len, size_t 
 
 ofl_err
 ofl_utils_count_ofp_queue_props(void *data, size_t data_len, size_t *count) {
-    struct ofp_queue_prop_header *prop;
+    struct ofp_queue_desc_prop_header *prop;
     uint8_t *d;
 
     d = (uint8_t *)data;
     (*count) = 0;
 
-    while (data_len >= sizeof(struct ofp_queue_prop_header)) {
-        prop = (struct ofp_queue_prop_header *)d;
+    while (data_len >= sizeof(struct ofp_queue_desc_prop_header)) {
+        prop = (struct ofp_queue_desc_prop_header *)d;
 
-        if (data_len < ntohs(prop->len) || ntohs(prop->len) < sizeof(struct ofp_queue_prop_header)) {
+        if (data_len < ntohs(prop->length) || ntohs(prop->length) < sizeof(struct ofp_queue_desc_prop_header)) {
             OFL_LOG_WARN(LOG_MODULE, "Received queue prop has invalid length.");
             return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
         }
-        data_len -= ntohs(prop->len);
-        d += ntohs(prop->len);
+        data_len -= ntohs(prop->length);
+        d += ntohs(prop->length);
         (*count)++;
     }
 

@@ -679,29 +679,6 @@ ofl_msg_print_multipart_reply(struct ofl_msg_multipart_reply_header *msg, FILE *
     fprintf(stream, "}");
 }
 
-static void
-ofl_msg_print_queue_get_config_request(struct ofl_msg_queue_get_config_request *msg, FILE *stream) {
-    fprintf(stream, "{port=\"");
-    ofl_port_print(stream, msg->port);
-    fprintf(stream, "\"}");
-}
-
-static void
-ofl_msg_print_queue_get_config_reply(struct ofl_msg_queue_get_config_reply *msg, FILE *stream) {
-    size_t i;
-
-    fprintf(stream, "{port=\"");
-    ofl_port_print(stream, msg->port);
-    fprintf(stream, "\" queues=[");
-
-    for (i=0; i<msg->queues_num; i++) {
-        ofl_structs_queue_print(stream, msg->queues[i]);
-        if (i < msg->queues_num - 1) { fprintf(stream, ", "); }
-    }
-
-    fprintf(stream, "]}");
-}
-
 static void 
 ofl_msg_print_role_msg(struct ofl_msg_role_request *msg, FILE *stream){
     
@@ -781,9 +758,6 @@ ofl_msg_print(FILE *stream, struct ofl_msg_header *msg, struct ofl_exp *exp) {
         case OFPT_ROLE_REPLY:{
             ofl_msg_print_role_msg((struct ofl_msg_role_request*)msg, stream);        
         }
-        /* Queue Configuration messages. */
-        case OFPT_QUEUE_GET_CONFIG_REQUEST: { ofl_msg_print_queue_get_config_request((struct ofl_msg_queue_get_config_request *)msg, stream); return; }
-        case OFPT_QUEUE_GET_CONFIG_REPLY: { ofl_msg_print_queue_get_config_reply((struct ofl_msg_queue_get_config_reply *)msg, stream); return; }
 		
 		/* Asynchronous message configuration. */
 		case OFPT_GET_ASYNC_REQUEST:{return;}

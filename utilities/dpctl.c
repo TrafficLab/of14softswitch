@@ -792,23 +792,6 @@ table_mod(struct vconn *vconn, int argc UNUSED, char *argv[]) {
     dpctl_send_and_print(vconn, (struct ofl_msg_header *)&msg);
 }
 
-
-
-static void
-queue_get_config(struct vconn *vconn, int argc UNUSED, char *argv[]) {
-    struct ofl_msg_queue_get_config_request msg =
-            {{.type = OFPT_QUEUE_GET_CONFIG_REQUEST},
-             .port = OFPP_ALL};
-
-    if (parse_port(argv[0], &msg.port)) {
-        ofp_fatal(0, "Error parsing queue_get_config port: %s.", argv[0]);
-    }
-
-    dpctl_transact_and_print(vconn, (struct ofl_msg_header *)&msg, NULL);
-}
-
-
-
 static void
 set_desc(struct vconn *vconn, int argc UNUSED, char *argv[]) {
     struct ofl_exp_openflow_msg_set_dp_desc msg =
@@ -926,7 +909,6 @@ static struct command all_commands[] = {
     {"get-async",0,0, get_async},
     {"port-mod", 1, 1, port_mod },
     {"table-mod", 1, 1, table_mod },
-    {"queue-get-config", 1, 1, queue_get_config},
     {"set-desc", 1, 1, set_desc},
 
     {"queue-mod", 3, 3, queue_mod},
@@ -1080,7 +1062,6 @@ usage(void)
             "  SWITCH meter-mod ARG [BANDARG ...]     send meter_mod message\n"
             "  SWITCH port-mod ARG                    send port_mod message\n"
             "  SWITCH table-mod ARG                   send table_mod message\n"
-            "  SWITCH queue-get-config PORT           send queue_get_config message\n"
             "\n"
             "OpenFlow extensions\n"
             "  SWITCH set-desc DESC                   sets the DP description\n"

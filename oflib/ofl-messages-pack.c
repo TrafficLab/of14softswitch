@@ -1130,42 +1130,6 @@ ofl_msg_pack_multipart_reply(struct ofl_msg_multipart_reply_header *msg, uint8_t
 }
 
 static int
-ofl_msg_pack_queue_get_config_request(struct ofl_msg_queue_get_config_request *msg, uint8_t **buf, size_t *buf_len) {
-    struct ofp_queue_get_config_request *req;
-
-    *buf_len = sizeof(struct ofp_queue_get_config_request);
-    *buf     = (uint8_t *)malloc(*buf_len);
-
-    req = (struct ofp_queue_get_config_request *)(*buf);
-    req->port = htonl(msg->port);
-    memset(req->pad, 0x00, 4);
-
-    return 0;
-}
-
-static int
-ofl_msg_pack_queue_get_config_reply(struct ofl_msg_queue_get_config_reply *msg, uint8_t **buf, size_t *buf_len) {
-    struct ofp_queue_get_config_reply *resp;
-    uint8_t *data;
-    size_t i;
-
-    *buf_len = sizeof(struct ofp_queue_get_config_reply) + ofl_structs_packet_queue_ofp_total_len(msg->queues, msg->queues_num);
-    *buf     = (uint8_t *)malloc(*buf_len);
-
-    resp = (struct ofp_queue_get_config_reply *)(*buf);
-    resp->port = htonl(msg->port);
-    memset(resp->pad, 0x00, 4);
-
-    data = (uint8_t *)resp->queues;
-
-    for (i=0; i<msg->queues_num; i++) {
-        data += ofl_structs_packet_queue_pack(msg->queues[i], (struct ofp_packet_queue *)data);
-    }
-
-    return 0;
-}
-
-static int
 ofl_msg_pack_empty(struct ofl_msg_header *msg UNUSED, uint8_t **buf, size_t *buf_len) {
 
     *buf_len = sizeof(struct ofp_header);
@@ -1292,15 +1256,6 @@ ofl_msg_pack(struct ofl_msg_header *msg, uint32_t xid, uint8_t **buf, size_t *bu
             break;
         }
 
-        /* Queue Configuration messages. */
-        case OFPT_QUEUE_GET_CONFIG_REQUEST: {
-            error = ofl_msg_pack_queue_get_config_request((struct ofl_msg_queue_get_config_request *)msg, buf, buf_len);
-            break;
-        }
-        case OFPT_QUEUE_GET_CONFIG_REPLY: {
-            error = ofl_msg_pack_queue_get_config_reply((struct ofl_msg_queue_get_config_reply *)msg, buf, buf_len);
-            break;
-        }
         case OFPT_ROLE_REQUEST:
         case OFPT_ROLE_REPLY:
             error = ofl_msg_pack_role_request((struct ofl_msg_role_request*)msg, buf, buf_len);

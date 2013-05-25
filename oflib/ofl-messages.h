@@ -474,27 +474,6 @@ struct ofl_msg_multipart_reply_experimenter {
  * Barrier messages
  *******************/
 
-struct ofl_msg_queue_get_config_request {
-    struct ofl_msg_header   header; /* OFPT_QUEUE_GET_CONFIG_REQUEST */
-
-    uint32_t   port; /* Port to be queried. Should refer
-                       to a valid physical port (i.e. < OFPP_MAX) */
-};
-
-/************************
- * Queue config messages
- ************************/
-
-struct ofl_msg_queue_get_config_reply {
-    struct ofl_msg_header header;   /* OFPT_QUEUE_GET_CONFIG_REPLY */
-    uint32_t   port;
-
-    size_t                    queues_num;
-    struct ofl_packet_queue **queues; /* List of configured queues. */
-};
-
-
-
 /****************************************************************************
  * Functions for (un)packing message structures
  ****************************************************************************/

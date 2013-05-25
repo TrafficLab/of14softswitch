@@ -277,8 +277,7 @@ ofl_msg_free(struct ofl_msg_header *msg, struct ofl_exp *exp) {
             return ofl_msg_free_multipart_reply((struct ofl_msg_multipart_reply_header *)msg, exp);
         }
         case OFPT_BARRIER_REQUEST:
-        case OFPT_BARRIER_REPLY:
-        case OFPT_QUEUE_GET_CONFIG_REQUEST: {
+        case OFPT_BARRIER_REPLY: {
             break;
         }
         case OFPT_ROLE_REPLY:
@@ -292,13 +291,6 @@ ofl_msg_free(struct ofl_msg_header *msg, struct ofl_exp *exp) {
         }
         case OFPT_METER_MOD:{
             return ofl_msg_free_meter_mod((struct ofl_msg_meter_mod*)msg, true);
-        }
-        case OFPT_QUEUE_GET_CONFIG_REPLY: {
-            struct ofl_msg_queue_get_config_reply *mod =
-                                (struct ofl_msg_queue_get_config_reply *)msg;
-            OFL_UTILS_FREE_ARR_FUN(mod->queues, mod->queues_num,
-                                   ofl_structs_free_packet_queue);
-            break;
         }
     }
     

@@ -112,20 +112,20 @@ extern char *openflow_queue_prop_strings[];
 
 
 /* Buffer alloc weight queue property description */
-struct ofp_queue_prop_buf_alloc {
-    struct ofp_queue_prop_header prop_header; /* prop: OFPQDPT_MIN, len: 16 */
+struct ofp_queue_desc_prop_buf_alloc {
+    struct ofp_queue_desc_prop_header prop_header; /* prop: OFPQDPT_MIN, len: 16 */
     uint16_t alloc_val;       /* 0 disabled; 1 min; 0xffff max */
     uint8_t pad[6];           /* 64-bit alignment */
 };
-OFP_ASSERT(sizeof(struct ofp_queue_prop_buf_alloc) == 16);
+OFP_ASSERT(sizeof(struct ofp_queue_desc_prop_buf_alloc) == 16);
 
 /* Max-Rate queue property description */
-struct ofp_queue_prop_sched_weight {
-    struct ofp_queue_prop_header prop_header; /* prop: OFPQDPT_MIN, len: 16 */
+struct ofp_queue_desc_prop_sched_weight {
+    struct ofp_queue_desc_prop_header prop_header; /* prop: OFPQDPT_MIN, len: 16 */
     uint16_t weight;   /* discipline specific; 0 disabled; 1 min; 0xffff max */
     uint8_t pad[6];    /* 64-bit alignment */
 };
-OFP_ASSERT(sizeof(struct ofp_queue_prop_sched_weight) == 16);
+OFP_ASSERT(sizeof(struct ofp_queue_desc_prop_sched_weight) == 16);
 
 #endif
 

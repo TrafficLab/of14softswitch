@@ -79,9 +79,6 @@ enum ofp_type {
     /* Barrier messages. */
     OFPT_BARRIER_REQUEST = 20, /* Controller/switch message */
     OFPT_BARRIER_REPLY = 21,   /* Controller/switch message */
-    /* Queue Configuration messages. */
-    OFPT_QUEUE_GET_CONFIG_REQUEST = 22, /* Controller/switch message */
-    OFPT_QUEUE_GET_CONFIG_REPLY = 23,   /* Controller/switch message */
     /* Controller role change request messages. */
     OFPT_ROLE_REQUEST = 24, /* Controller/switch message */
     OFPT_ROLE_REPLY = 25,   /* Controller/switch message */
@@ -258,12 +255,11 @@ enum ofp_port_features {
     OFPPF_PAUSE_ASYM = 1 << 15  /* Asymmetric pause. */
 };
 
-/* Common description for a queue. */
-struct ofp_queue_prop_header {
-	uint16_t property;  /* One of OFPQDPT_. */
-	uint16_t len;       /* Length of property, including this header. */
+struct ofp_queue_desc_prop_header {
+	uint16_t         type;    /* OFPQSPT_EXPERIMENTER. */
+	uint16_t         length;  /* Length in bytes of this property. */
 };
-OFP_ASSERT(sizeof(struct ofp_queue_prop_header) == 4);
+OFP_ASSERT(sizeof(struct ofp_queue_desc_prop_header) == 4);
 
 /* Full description for a queue. */
 struct ofp_packet_queue {
@@ -271,7 +267,7 @@ struct ofp_packet_queue {
 	uint32_t port;                              /* Port this queue is attached to. */
 	uint16_t len;                               /* Length in bytes of this queue desc. */
 	uint8_t pad[6];                             /* 64-bit alignment. */
-	struct ofp_queue_prop_header properties[0]; /* List of properties. */
+	struct ofp_queue_desc_prop_header properties[0]; /* List of properties. */
 };
 OFP_ASSERT(sizeof(struct ofp_packet_queue) == 16);
 
@@ -289,24 +285,27 @@ enum ofp_queue_desc_prop_type {
 };
 
 /* Min-Rate queue property description. */
-struct ofp_queue_prop_min_rate {
-	struct ofp_queue_prop_header prop_header; /* prop: OFPQDPT_MIN, len: 16. */
-	uint16_t rate;                            /* In 1/10 of a percent; >1000 -> disabled. */
-	uint8_t pad[2];                           /* 64-bit alignment */
+struct ofp_queue_desc_prop_min_rate {
+    uint16_t         type;                  /* OFPQDPT_MIN_RATE. */
+    uint16_t         length;                /* Length is 8. */
+	uint16_t rate;                          /* In 1/10 of a percent; >1000 -> disabled. */
+	uint8_t pad[2];                         /* 64-bit alignment */
 };
-OFP_ASSERT(sizeof(struct ofp_queue_prop_min_rate) == 8);
+OFP_ASSERT(sizeof(struct ofp_queue_desc_prop_min_rate) == 8);
 
 /* Max-Rate queue property description. */
-struct ofp_queue_prop_max_rate {
-	struct ofp_queue_prop_header prop_header; /* prop: OFPQDPT_MAX, len: 16. */
+struct ofp_queue_desc_prop_max_rate {
+    uint16_t         type;                  /* OFPQDPT_MAX_RATE. */
+    uint16_t         length;                /* Length is 8. */
 	uint16_t rate;                            /* In 1/10 of a percent; >1000 -> disabled. */
 	uint8_t pad[2];                           /* 64-bit alignment */
 };
-OFP_ASSERT(sizeof(struct ofp_queue_prop_max_rate) == 8);
+OFP_ASSERT(sizeof(struct ofp_queue_desc_prop_max_rate) == 8);
 
 /* Experimenter queue property description. */
-struct ofp_queue_prop_experimenter {
-	struct ofp_queue_prop_header prop_header; /* prop: OFPQDPT_EXPERIMENTER, len: 16. */
+struct ofp_queue_desc_prop_experimenter {
+    uint16_t         type;                  /* OFPQDPT_EXPERIMENTER. */
+    uint16_t         length;                /* Length is 8. */
 	uint32_t experimenter;			  /* Experimenter ID which takes the same
                                                    *  form as in struct
 						   *  ofp_experimenter_header.
@@ -318,7 +317,7 @@ struct ofp_queue_prop_experimenter {
 	 *     bytes of all-zero bytes */
 	uint32_t experimenter_data[0];            /* Experimenter defined data. */
 };
-OFP_ASSERT(sizeof(struct ofp_queue_prop_experimenter) == 12);
+OFP_ASSERT(sizeof(struct ofp_queue_desc_prop_experimenter) == 12);
 
 /* Fields to match against flows */
 struct ofp_match {
@@ -1512,12 +1511,6 @@ struct ofp_queue_desc_request {
 };
 OFP_ASSERT(sizeof(struct ofp_queue_desc_request) == 8);
 
-struct ofp_queue_desc_prop_header {
-	uint16_t         type;    /* OFPQSPT_EXPERIMENTER. */
-	uint16_t         length;  /* Length in bytes of this property. */
-};
-OFP_ASSERT(sizeof(struct ofp_queue_desc_prop_header) == 4);
-
 /* Body of reply to OFPMP_QUEUE_DESC request. */
 struct ofp_queue_desc {
 	uint32_t port_no;      /* Port this queue is attached to. */
@@ -1661,26 +1654,6 @@ struct ofp_meter_features {
     uint8_t pad[2];
 };
 OFP_ASSERT(sizeof(struct ofp_meter_features) == 16);
-
-/* Query for port queue configuration. */
-struct ofp_queue_get_config_request {
-	struct ofp_header header;
-	uint32_t port; /* Port to be queried. Should refer
-                    to a valid physical port (i.e. < OFPP_MAX),
-                    or OFPP_ANY to request all configured
-                    queues.*/
-	uint8_t pad[4];
-};
-OFP_ASSERT(sizeof(struct ofp_queue_get_config_request) == 16);
-
-/* Queue configuration for a given port. */
-struct ofp_queue_get_config_reply {
-	struct ofp_header header;
-	uint32_t port;
-	uint8_t pad[4];
-	struct ofp_packet_queue queues[0]; /* List of configured queues. */
-};
-OFP_ASSERT(sizeof(struct ofp_queue_get_config_reply) == 16);
 
 /* Send packet (controller -> datapath). */
 struct ofp_packet_out {

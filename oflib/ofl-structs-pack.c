@@ -735,13 +735,13 @@ ofl_structs_queue_prop_ofp_len(struct ofl_queue_prop_header *prop) {
     switch (prop->type) {
        
         case OFPQDPT_MIN_RATE: {
-            return sizeof(struct ofp_queue_prop_min_rate);
+            return sizeof(struct ofp_queue_desc_prop_min_rate);
         }
         case OFPQDPT_MAX_RATE:{
-           return sizeof(struct ofp_queue_prop_max_rate);
+           return sizeof(struct ofp_queue_desc_prop_max_rate);
         }
         case OFPQDPT_EXPERIMENTER:{
-           return sizeof(struct ofp_queue_prop_experimenter);
+           return sizeof(struct ofp_queue_desc_prop_experimenter);
         }
     }
     return 0;
@@ -749,37 +749,37 @@ ofl_structs_queue_prop_ofp_len(struct ofl_queue_prop_header *prop) {
 
 size_t
 ofl_structs_queue_prop_pack(struct ofl_queue_prop_header *src,
-                            struct ofp_queue_prop_header *dst) {
-    dst->property = htons(src->type);
+                            struct ofp_queue_desc_prop_header *dst) {
+    dst->type = htons(src->type);
 
     switch (src->type) {
        
         case OFPQDPT_MIN_RATE: {
             struct ofl_queue_prop_min_rate *sp = (struct ofl_queue_prop_min_rate *)src;
-            struct ofp_queue_prop_min_rate *dp = (struct ofp_queue_prop_min_rate *)dst;
+            struct ofp_queue_desc_prop_min_rate *dp = (struct ofp_queue_desc_prop_min_rate *)dst;
 
-            dp->prop_header.len = htons(sizeof(struct ofp_queue_prop_min_rate));
+            dp->length          = htons(sizeof(struct ofp_queue_desc_prop_min_rate));
             dp->rate            = htons(sp->rate);
             memset(dp->pad, 0x00, 2);
 
-            return sizeof(struct ofp_queue_prop_min_rate);
+            return sizeof(struct ofp_queue_desc_prop_min_rate);
         }
         case OFPQDPT_MAX_RATE:{
             struct ofl_queue_prop_max_rate *sp = (struct ofl_queue_prop_max_rate *)src;
-            struct ofp_queue_prop_max_rate *dp = (struct ofp_queue_prop_max_rate *)dst;
-            dp->prop_header.len = htons(sizeof(struct ofp_queue_prop_max_rate));
+            struct ofp_queue_desc_prop_max_rate *dp = (struct ofp_queue_desc_prop_max_rate *)dst;
+            dp->length          = htons(sizeof(struct ofp_queue_desc_prop_max_rate));
             dp->rate            = htons(sp->rate);
             memset(dp->pad, 0x00, 2);
 
-            return sizeof(struct ofp_queue_prop_max_rate);
+            return sizeof(struct ofp_queue_desc_prop_max_rate);
         }
         case OFPQDPT_EXPERIMENTER:{
             //struct ofl_queue_prop_experimenter *sp = (struct ofl_queue_prop_experimenter *)src;
-            struct ofp_queue_prop_experimenter *dp = (struct ofp_queue_prop_experimenter*)dst;
-            dp->prop_header.len = htons(sizeof(struct ofp_queue_prop_experimenter));
+            struct ofp_queue_desc_prop_experimenter *dp = (struct ofp_queue_desc_prop_experimenter*)dst;
+            dp->length          = htons(sizeof(struct ofp_queue_desc_prop_experimenter));
             /*TODO Eder: How to copy without a know len?? */
             //dp->data = sp->data;
-            return sizeof(struct ofp_queue_prop_experimenter);
+            return sizeof(struct ofp_queue_desc_prop_experimenter);
         }
         default: {
             return 0;
@@ -822,7 +822,7 @@ ofl_structs_packet_queue_pack(struct ofl_packet_queue *src, struct ofp_packet_qu
 
     for (i=0; i<src->properties_num; i++) {
         len = ofl_structs_queue_prop_pack(src->properties[i],
-                                        (struct ofp_queue_prop_header *)data);
+                                        (struct ofp_queue_desc_prop_header *)data);
         data += len;
     }
 
@@ -954,7 +954,7 @@ ofl_structs_queue_desc_pack(struct ofl_packet_queue *src,
     for (i = 0; i < src->properties_num; i++) {
         size_t len;
         len = ofl_structs_queue_prop_pack(src->properties[i],
-                                            (struct ofp_queue_prop_header *)data);
+                                            (struct ofp_queue_desc_prop_header *)data);
         data += len;
         sz += len;
     }
