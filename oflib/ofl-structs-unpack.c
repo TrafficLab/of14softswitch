@@ -1142,7 +1142,7 @@ ofl_structs_queue_desc_unpack(struct ofp_queue_desc *src, size_t *len, struct of
             OFL_LOG_WARN(LOG_MODULE, "Received queue desc has invalid port_id (%s).", ps);
             free(ps);
         }
-        return ofl_error(OFPET_BAD_ACTION, OFPBRC_BAD_LEN);
+        return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_PORT);
     }
 
     p = (struct ofl_packet_queue *)malloc(sizeof(struct ofl_packet_queue));
