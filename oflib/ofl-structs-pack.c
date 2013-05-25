@@ -734,13 +734,13 @@ size_t
 ofl_structs_queue_prop_ofp_len(struct ofl_queue_prop_header *prop) {
     switch (prop->type) {
        
-        case OFPQT_MIN_RATE: {
+        case OFPQDPT_MIN_RATE: {
             return sizeof(struct ofp_queue_prop_min_rate);
         }
-        case OFPQT_MAX_RATE:{
+        case OFPQDPT_MAX_RATE:{
            return sizeof(struct ofp_queue_prop_max_rate);
         }
-        case OFPQT_EXPERIMENTER:{
+        case OFPQDPT_EXPERIMENTER:{
            return sizeof(struct ofp_queue_prop_experimenter);
         }
     }
@@ -754,7 +754,7 @@ ofl_structs_queue_prop_pack(struct ofl_queue_prop_header *src,
 
     switch (src->type) {
        
-        case OFPQT_MIN_RATE: {
+        case OFPQDPT_MIN_RATE: {
             struct ofl_queue_prop_min_rate *sp = (struct ofl_queue_prop_min_rate *)src;
             struct ofp_queue_prop_min_rate *dp = (struct ofp_queue_prop_min_rate *)dst;
 
@@ -764,7 +764,7 @@ ofl_structs_queue_prop_pack(struct ofl_queue_prop_header *src,
 
             return sizeof(struct ofp_queue_prop_min_rate);
         }
-        case OFPQT_MAX_RATE:{
+        case OFPQDPT_MAX_RATE:{
             struct ofl_queue_prop_max_rate *sp = (struct ofl_queue_prop_max_rate *)src;
             struct ofp_queue_prop_max_rate *dp = (struct ofp_queue_prop_max_rate *)dst;
             dp->prop_header.len = htons(sizeof(struct ofp_queue_prop_max_rate));
@@ -773,7 +773,7 @@ ofl_structs_queue_prop_pack(struct ofl_queue_prop_header *src,
 
             return sizeof(struct ofp_queue_prop_max_rate);
         }
-        case OFPQT_EXPERIMENTER:{
+        case OFPQDPT_EXPERIMENTER:{
             //struct ofl_queue_prop_experimenter *sp = (struct ofl_queue_prop_experimenter *)src;
             struct ofp_queue_prop_experimenter *dp = (struct ofp_queue_prop_experimenter*)dst;
             dp->prop_header.len = htons(sizeof(struct ofp_queue_prop_experimenter));
@@ -922,6 +922,44 @@ ofl_structs_port_pack(struct ofl_port *src, struct ofp_port *dst) {
 
     dst->length = htons(port_size);
     return port_size;
+}
+
+/* returns the required size of this port */
+size_t ofl_structs_queue_desc_pack_size(struct ofl_packet_queue *src)
+{
+    size_t sz = 0;
+
+    sz = sizeof(struct ofp_queue_desc);
+
+    sz += ofl_structs_queue_prop_ofp_total_len(src->properties,
+                                                src->properties_num);
+
+    return sz;
+}
+
+size_t
+ofl_structs_queue_desc_pack(struct ofl_packet_queue *src,
+                            struct ofp_queue_desc *dst) {
+    size_t sz = 0;
+    int i = 0;
+    uint8_t *data;
+
+    sz = sizeof(*dst);
+
+    dst->port_no    = htonl(src->port_no);
+    dst->queue_id   = htonl(src->queue_id);
+    memset(dst->pad, 0x00, sizeof(dst->pad));
+
+    data = (uint8_t *)dst->properties;
+    for (i = 0; i < src->properties_num; i++) {
+        size_t len;
+        len = ofl_structs_queue_prop_pack(src->properties[i],
+                                            (struct ofp_queue_prop_header *)data);
+        data += len;
+        sz += len;
+    }
+    dst->len = ntohs(sz);
+    return sz;
 }
 
 size_t

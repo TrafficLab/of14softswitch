@@ -601,6 +601,8 @@ ofl_structs_queue_print(FILE *stream, struct ofl_packet_queue *q) {
 
     fprintf(stream, "{q=\"");
     ofl_queue_print(stream, q->queue_id);
+    fprintf(stream, "\", port=\"");
+    ofl_port_print(stream, q->port_no);
     fprintf(stream, "\", props=[");
 
     for (i=0; i<q->properties_num; i++) {
@@ -626,10 +628,22 @@ ofl_structs_queue_prop_print(FILE *stream, struct ofl_queue_prop_header *p) {
     ofl_queue_prop_type_print(stream, p->type);
 
     switch(p->type) {
-        case (OFPQT_MIN_RATE): {
+        case (OFPQDPT_MIN_RATE): {
             struct ofl_queue_prop_min_rate *pm = (struct ofl_queue_prop_min_rate *)p;
 
             fprintf(stream, "{rate=\"%u\"}", pm->rate);
+            break;
+        }
+        case (OFPQDPT_MAX_RATE): {
+            struct ofl_queue_prop_max_rate *pm = (struct ofl_queue_prop_max_rate *)p;
+
+            fprintf(stream, "{rate=\"%u\"}", pm->rate);
+            break;
+        }
+        case (OFPQDPT_EXPERIMENTER): {
+            struct ofl_queue_prop_experimenter *pm = (struct ofl_queue_prop_experimenter *)p;
+
+            fprintf(stream, "{exp=\"%u\"}", pm->experimenter);
             break;
         }
         
@@ -1039,6 +1053,11 @@ ofl_structs_queue_stats_print(FILE *stream, struct ofl_queue_stats *s) {
     fprintf(stream, "\", tx_bytes=\"%"PRIu64"\", "
                           "tx_pkt=\"%"PRIu64"\", tx_err=\"%"PRIu64"\"}",
                   s->tx_bytes, s->tx_packets, s->tx_errors);
+};
+
+void
+ofl_structs_queue_desc_print(FILE *stream, struct ofl_packet_queue *s) {
+    ofl_structs_queue_print(stream, s);
 };
 
 char *

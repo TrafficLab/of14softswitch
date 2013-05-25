@@ -454,6 +454,13 @@ struct ofl_msg_multipart_reply_port_desc {
     struct ofl_port **stats;
 };
 
+struct ofl_msg_multipart_reply_queue_desc {
+    struct ofl_msg_multipart_reply_header   header; /* OFPMP_QUEUE_DESC */
+
+    size_t                  queues_num;
+    struct ofl_packet_queue **queues;
+};
+
 struct ofl_msg_multipart_reply_experimenter {
     struct ofl_msg_multipart_reply_header   header; /* OFPMP_EXPERIMENTER */
 

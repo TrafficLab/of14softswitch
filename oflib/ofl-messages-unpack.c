@@ -929,6 +929,36 @@ ofl_msg_unpack_multipart_request_queue(struct ofp_multipart_request *os, size_t 
 }
 
 static ofl_err
+ofl_msg_unpack_multipart_request_queue_desc(struct ofp_multipart_request *os, size_t *len, struct ofl_msg_header **msg) {
+    struct ofp_queue_desc_request *sm;
+    struct ofl_msg_multipart_request_queue *dm;
+
+    // ofp_multipart_request length was checked at ofl_msg_unpack_multipart_request
+
+    if (*len < sizeof(struct ofp_queue_desc_request)) {
+        OFL_LOG_WARN(LOG_MODULE, "Received QUEUE desc request has invalid length (%zu).", *len);
+        return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
+    }
+
+    sm = (struct ofp_queue_desc_request *)os->body;
+
+    if (ntohl(sm->port_no) == 0 ||
+        (ntohl(sm->port_no) > OFPP_MAX && ntohl(sm->port_no) != OFPP_ANY)) {
+        OFL_LOG_WARN(LOG_MODULE, "Received QUEUE stats request has invalid port (%u).", ntohl(sm->port_no));
+        return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
+    }
+    *len -= sizeof(struct ofp_queue_desc_request);
+
+    dm = (struct ofl_msg_multipart_request_queue *) malloc(sizeof(struct ofl_msg_multipart_request_queue));
+
+    dm->port_no = ntohl(sm->port_no);
+    dm->queue_id = ntohl(sm->queue_id);
+
+    *msg = (struct ofl_msg_header *)dm;
+    return 0;
+}
+
+static ofl_err
 ofl_msg_unpack_multipart_request_group(struct ofp_multipart_request *os, size_t *len, struct ofl_msg_header **msg) {
     struct ofp_group_stats_request *sm;
     struct ofl_msg_multipart_request_group *dm;
@@ -1035,6 +1065,10 @@ ofl_msg_unpack_multipart_request(struct ofp_header *src,uint8_t *buf, size_t *le
         }
         case OFPMP_PORT_DESC: {
             error = ofl_msg_unpack_multipart_request_empty(os, len, msg);
+            break;
+        }        
+        case OFPMP_QUEUE_DESC: {
+            error = ofl_msg_unpack_multipart_request_queue_desc(os, len, msg);
             break;
         }        
         case OFPMP_EXPERIMENTER: {
@@ -1466,6 +1500,35 @@ ofl_msg_unpack_multipart_reply_port_desc(struct ofp_multipart_reply *src, size_t
 }
 
 static ofl_err
+ofl_msg_unpack_multipart_reply_queue_desc(struct ofp_multipart_reply *src, size_t *len, struct ofl_msg_header **msg) {
+    struct ofp_queue_desc *qdesc;
+    struct ofl_msg_multipart_reply_queue_desc *qd;
+    ofl_err error;
+	size_t i;
+	qdesc = (struct ofp_queue_desc *)src->body;
+	qd = (struct ofl_msg_multipart_reply_queue_desc *) malloc(sizeof(struct ofl_msg_multipart_reply_queue_desc));
+    
+	error = ofl_utils_count_ofp_queue_descs(qdesc, *len, &qd->queues_num);
+    if (error) {
+        free(qd);
+        return error;
+    }    
+    	
+    qd->queues = (struct ofl_packet_queue **)malloc(qd->queues_num * sizeof(struct ofl_packet_queue));
+	for(i = 0; i < qd->queues_num; i++){
+		error = ofl_structs_queue_desc_unpack(qdesc, len, &qd->queues[i]); 
+        if (error) {
+            OFL_UTILS_FREE_ARR(qd->queues, i);
+            free(qd);
+            return error;
+        }
+        qdesc = (struct ofp_queue_desc *)((uint8_t *)qdesc + ntohs(qdesc->len));
+	}
+    *msg = (struct ofl_msg_header *)qd;
+    return 0;
+}
+
+static ofl_err
 ofl_msg_unpack_multipart_reply_meter_features(struct ofp_multipart_reply *os, size_t *len, struct ofl_msg_header **msg) {
     struct ofp_meter_features *src;
     struct ofl_msg_multipart_reply_meter_features *dst;
@@ -1557,6 +1620,10 @@ ofl_msg_unpack_multipart_reply(struct ofp_header *src, uint8_t *buf, size_t *len
         }
 		case OFPMP_PORT_DESC:{
 			error = ofl_msg_unpack_multipart_reply_port_desc(os, len, msg);
+			break;	
+		}
+		case OFPMP_QUEUE_DESC:{
+			error = ofl_msg_unpack_multipart_reply_queue_desc(os, len, msg);
 			break;	
 		}
         case OFPMP_EXPERIMENTER: {

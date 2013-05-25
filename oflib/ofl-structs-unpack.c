@@ -794,7 +794,7 @@ ofl_structs_queue_prop_unpack(struct ofp_queue_prop_header *src, size_t *len, st
     }
 
     switch (ntohs(src->property)) {
-        case OFPQT_MIN_RATE: {
+        case OFPQDPT_MIN_RATE: {
             struct ofp_queue_prop_min_rate *sp = (struct ofp_queue_prop_min_rate *)src;
             struct ofl_queue_prop_min_rate *dp = (struct ofl_queue_prop_min_rate *)malloc(sizeof(struct ofl_queue_prop_min_rate));
 
@@ -802,14 +802,13 @@ ofl_structs_queue_prop_unpack(struct ofp_queue_prop_header *src, size_t *len, st
                 OFL_LOG_WARN(LOG_MODULE, "Received MIN_RATE queue property has invalid length (%zu).", *len);
                 return ofl_error(OFPET_BAD_PROPERTY, OFPBPC_BAD_LEN);
             }
-            *len -= sizeof(struct ofp_queue_prop_min_rate);
-
+            *len -= sizeof(*sp);
             dp->rate = ntohs(sp->rate);
 
             *dst = (struct ofl_queue_prop_header *)dp;
             break;
         }
-        case OFPQT_MAX_RATE:{
+        case OFPQDPT_MAX_RATE:{
             struct ofp_queue_prop_max_rate *sp = (struct ofp_queue_prop_max_rate *)src;
             struct ofl_queue_prop_max_rate *dp = (struct ofl_queue_prop_max_rate *)malloc(sizeof(struct ofl_queue_prop_max_rate));
             
@@ -817,14 +816,14 @@ ofl_structs_queue_prop_unpack(struct ofp_queue_prop_header *src, size_t *len, st
                 OFL_LOG_WARN(LOG_MODULE, "Received MAX_RATE queue property has invalid length (%zu).", *len);
                 return ofl_error(OFPET_BAD_PROPERTY, OFPBPC_BAD_LEN);
             }
-            *len -= sizeof(struct ofp_queue_prop_max_rate);   
+            *len -= sizeof(*sp);
             dp->rate = ntohs(sp->rate);
 
             *dst = (struct ofl_queue_prop_header *)dp;
             break;    
         
         }
-        case OFPQT_EXPERIMENTER:{
+        case OFPQDPT_EXPERIMENTER:{
             struct ofp_queue_prop_experimenter *sp = (struct ofp_queue_prop_experimenter *)src;
             struct ofl_queue_prop_experimenter *dp = (struct ofl_queue_prop_experimenter *)malloc(sizeof(struct ofl_queue_prop_experimenter));
             
@@ -832,7 +831,7 @@ ofl_structs_queue_prop_unpack(struct ofp_queue_prop_header *src, size_t *len, st
                 OFL_LOG_WARN(LOG_MODULE, "Received EXPERIMENTER queue property has invalid length (%zu).", *len);
                 return ofl_error(OFPET_BAD_PROPERTY, OFPBPC_BAD_LEN);
             }
-            *len -= sizeof(struct ofp_queue_prop_experimenter);   
+            *len -= sizeof(*sp);
             dp->experimenter_data = sp->experimenter_data;
 
             *dst = (struct ofl_queue_prop_header *)dp;
@@ -845,7 +844,7 @@ ofl_structs_queue_prop_unpack(struct ofp_queue_prop_header *src, size_t *len, st
         }
     }
 
-    (*dst)->type = (enum ofp_queue_properties)ntohs(src->property);
+    (*dst)->type = (enum ofp_queue_desc_prop_type)ntohs(src->property);
     return 0;
 }
 
@@ -1117,6 +1116,54 @@ ofl_structs_port_stats_unpack(struct ofp_port_stats *src, size_t *len, struct of
         }
         default:
             break;
+    }
+
+    *dst = p;
+    return 0;
+}
+
+ofl_err
+ofl_structs_queue_desc_unpack(struct ofp_queue_desc *src, size_t *len, struct ofl_packet_queue **dst) {
+    struct ofl_packet_queue *p;
+    struct ofp_queue_prop_header *prop;
+    size_t data_len;
+    int i = 0;
+    ofl_err error;
+
+    if (*len < sizeof(struct ofp_queue_desc)) {
+        OFL_LOG_WARN(LOG_MODULE, "Received queue desc has invalid length (%zu).", *len);
+        return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
+    }
+    *len -= sizeof(struct ofp_queue_desc);
+
+    if (ntohl(src->port_no) == 0 || ntohl(src->port_no) > OFPP_MAX) {
+        if (OFL_LOG_IS_WARN_ENABLED(LOG_MODULE)) {
+            char *ps = ofl_port_to_string(ntohl(src->port_no));
+            OFL_LOG_WARN(LOG_MODULE, "Received queue desc has invalid port_id (%s).", ps);
+            free(ps);
+        }
+        return ofl_error(OFPET_BAD_ACTION, OFPBRC_BAD_LEN);
+    }
+
+    p = (struct ofl_packet_queue *)malloc(sizeof(struct ofl_packet_queue));
+
+    p->port_no =    ntohl(src->port_no);
+    p->queue_id =   ntohl(src->queue_id);
+
+    data_len = ntohs(src->len) - sizeof(*src);
+    error = ofl_utils_count_ofp_queue_props((uint8_t *)src->properties, data_len, &p->properties_num);
+    if (error) {
+        return error;
+    }
+
+    p->properties = (struct ofl_queue_prop_header **)malloc(p->properties_num * sizeof(struct ofl_queue_prop_header *));
+    prop = src->properties;
+    for (i = 0; i < p->properties_num; i++) {
+        error = ofl_structs_queue_prop_unpack(prop, len, &(p->properties[i]));
+        if (error) {
+            return error;
+        }
+        prop = (struct ofp_queue_prop_header *)((uint8_t *)prop + ntohs(prop->len));
     }
 
     *dst = p;

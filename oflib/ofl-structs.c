@@ -189,6 +189,37 @@ ofl_utils_count_ofp_ports(void *data UNUSED, size_t data_len, size_t *count) {
     return 0;
 }
 
+ofl_err
+ofl_utils_count_ofp_queue_descs(void *data UNUSED, size_t data_len, size_t *count) {
+    struct ofp_queue_desc *oqd;
+    size_t bytes_read = 0;
+    size_t oqd_length;
+
+    *count = 0;
+
+    oqd = (struct ofp_queue_desc *)data;
+    while (bytes_read < data_len) {
+        /* not enough bytes left to fit a port */
+        if ((data_len - bytes_read) < sizeof(struct ofp_queue_desc)) {
+            return ofl_error(OFPET_BAD_PROPERTY, OFPBPC_BAD_LEN);
+        }
+
+        oqd_length = ntohs(oqd->len);
+        oqd = (struct ofp_queue_desc *)((uint8_t *)oqd + oqd_length);
+        bytes_read += oqd_length;
+
+        /* length fields are wrong */
+        if (oqd_length == 0 ||
+            (oqd_length < sizeof(struct ofp_queue_desc))) {
+            return ofl_error(OFPET_BAD_PROPERTY, OFPBPC_BAD_LEN);
+        }
+
+        (*count)++;
+    }
+
+    return 0;
+}
+
 
 ofl_err
 ofl_utils_count_ofp_packet_queues(void *data, size_t data_len, size_t *count) {

@@ -51,6 +51,7 @@ struct ofl_exp;
  ****************************************************************************/
  
 struct ofl_packet_queue {
+    uint32_t   port_no;
     uint32_t   queue_id; /* id for the specific queue. */
     size_t                         properties_num;
     struct ofl_queue_prop_header **properties;
@@ -58,23 +59,23 @@ struct ofl_packet_queue {
 
 
 struct ofl_queue_prop_header {
-    enum ofp_queue_properties   type; /* One of OFPQT_. */
+    enum ofp_queue_desc_prop_type   type; /* One of OFPQDPT_. */
 };
 
 struct ofl_queue_prop_min_rate {
-    struct ofl_queue_prop_header   header; /* OFPQT_MIN_RATE */
+    struct ofl_queue_prop_header   header; /* OFPQDPT_MIN_RATE */
 
     uint16_t   rate; /* In 1/10 of a percent; >1000 -> disabled. */
 };
 
 struct ofl_queue_prop_max_rate {
-    struct ofl_queue_prop_header   header; /* OFPQT_MAX_RATE */
+    struct ofl_queue_prop_header   header; /* OFPQDPT_MAX_RATE */
 
     uint16_t   rate; /* In 1/10 of a percent; >1000 -> disabled. */
 };
 
 struct ofl_queue_prop_experimenter {
-    struct ofl_queue_prop_header prop_header; /* prop: OFPQT_EXPERIMENTER, len: 16. */
+    struct ofl_queue_prop_header prop_header; /* prop: OFPQDPT_EXPERIMENTER, len: 16. */
     uint32_t experimenter;
     uint8_t *experimenter_data; /* Experimenter defined data. */
 };
@@ -558,6 +559,9 @@ ofl_err
 ofl_structs_port_unpack(const struct ofp_port *src, size_t *len, struct ofl_port **dst);
 
 ofl_err
+ofl_structs_queue_desc_unpack(struct ofp_queue_desc *src, size_t *len, struct ofl_packet_queue **dst);
+
+ofl_err
 ofl_structs_table_stats_unpack(struct ofp_table_stats *src, size_t *len, struct ofl_table_stats **dst);
 
 ofl_err
@@ -657,6 +661,9 @@ ofl_utils_count_ofp_meter_bands(void *data, size_t data_len, size_t *count);
 
 ofl_err
 ofl_utils_count_ofp_ports(void *data, size_t data_len, size_t *count);
+
+ofl_err
+ofl_utils_count_ofp_queue_descs(void *data, size_t data_len, size_t *count);
 
 ofl_err
 ofl_utils_count_ofp_flow_stats(void *data, size_t data_len, size_t *count);

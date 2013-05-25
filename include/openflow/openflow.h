@@ -260,7 +260,7 @@ enum ofp_port_features {
 
 /* Common description for a queue. */
 struct ofp_queue_prop_header {
-	uint16_t property;  /* One of OFPQT_. */
+	uint16_t property;  /* One of OFPQDPT_. */
 	uint16_t len;       /* Length of property, including this header. */
 };
 OFP_ASSERT(sizeof(struct ofp_queue_prop_header) == 4);
@@ -282,15 +282,15 @@ OFP_ASSERT(sizeof(struct ofp_packet_queue) == 16);
 #define OFPQ_MIN_RATE_UNCFG      0xffff
 
 
-enum ofp_queue_properties {
-    OFPQT_MIN_RATE = 1,         /* Minimum datarate guaranteed. */
-    OFPQT_MAX_RATE = 2,         /* Maximum datarate. */
-    OFPQT_EXPERIMENTER = 0xffff /* Experimenter defined property. */
+enum ofp_queue_desc_prop_type {
+    OFPQDPT_MIN_RATE = 1,         /* Minimum datarate guaranteed. */
+    OFPQDPT_MAX_RATE = 2,         /* Maximum datarate. */
+    OFPQDPT_EXPERIMENTER = 0xffff /* Experimenter defined property. */
 };
 
 /* Min-Rate queue property description. */
 struct ofp_queue_prop_min_rate {
-	struct ofp_queue_prop_header prop_header; /* prop: OFPQT_MIN, len: 16. */
+	struct ofp_queue_prop_header prop_header; /* prop: OFPQDPT_MIN, len: 16. */
 	uint16_t rate;                            /* In 1/10 of a percent; >1000 -> disabled. */
 	uint8_t pad[2];                           /* 64-bit alignment */
 };
@@ -298,7 +298,7 @@ OFP_ASSERT(sizeof(struct ofp_queue_prop_min_rate) == 8);
 
 /* Max-Rate queue property description. */
 struct ofp_queue_prop_max_rate {
-	struct ofp_queue_prop_header prop_header; /* prop: OFPQT_MAX, len: 16. */
+	struct ofp_queue_prop_header prop_header; /* prop: OFPQDPT_MAX, len: 16. */
 	uint16_t rate;                            /* In 1/10 of a percent; >1000 -> disabled. */
 	uint8_t pad[2];                           /* 64-bit alignment */
 };
@@ -306,7 +306,7 @@ OFP_ASSERT(sizeof(struct ofp_queue_prop_max_rate) == 8);
 
 /* Experimenter queue property description. */
 struct ofp_queue_prop_experimenter {
-	struct ofp_queue_prop_header prop_header; /* prop: OFPQT_EXPERIMENTER, len: 16. */
+	struct ofp_queue_prop_header prop_header; /* prop: OFPQDPT_EXPERIMENTER, len: 16. */
 	uint32_t experimenter;			  /* Experimenter ID which takes the same
                                                    *  form as in struct
 						   *  ofp_experimenter_header.
@@ -1049,6 +1049,15 @@ struct ofp_multipart_request {
 };
 OFP_ASSERT(sizeof(struct ofp_multipart_request) == 16);
 
+/* Body for ofp_multipart_request/reply of type OFPMP_EXPERIMENTER. */
+struct ofp_experimenter_multipart_header {
+    uint32_t experimenter;    /* Experimenter ID which takes the same form
+                                 as in struct ofp_experimenter_header. */
+    uint32_t exp_type;        /* Experimenter defined. */
+    /* Experimenter-defined arbitrary additional data. */
+};
+OFP_ASSERT(sizeof(struct ofp_experimenter_multipart_header) == 8);
+
 enum ofp_multipart_request_flags {
     OFPMPF_REQ_MORE = 1 << 0 /* More requests to follow. */
 };
@@ -1475,8 +1484,8 @@ enum ofp_queue_stats_prop_type {
 
 /* Common header for all queue properties. */
 struct ofp_queue_stats_prop_header {
-	uint16_t type;	   /* One of OFPQSPT.* */
-	uint16_t length;   /* Length in bytes of this propery. */
+	uint16_t type;	   /* One of OFPQSPT_*. */
+	uint16_t length;   /* Length in bytes of this property. */
 };
 OFP_ASSERT(sizeof(struct ofp_queue_stats_prop_header) == 4);
 
@@ -1520,24 +1529,28 @@ struct ofp_queue_desc {
 };
 OFP_ASSERT(sizeof(struct ofp_queue_desc) == 16);
 
+/* Body for ofp_multipart_request of type OFPMP_QUEUE_STATS. */
 struct ofp_queue_stats_request {
 	uint32_t port_no;  /* All ports if OFPP_ANY. */
 	uint32_t queue_id; /* All queues if OFPQ_ALL. */
 };
 OFP_ASSERT(sizeof(struct ofp_queue_stats_request) == 8);
 
+/* Body of reply to OFPMP_QUEUE_STATS request. */
 struct ofp_queue_stats {
-	uint32_t port_no;
-	uint32_t queue_id;   /* Queue i.d */
-	uint64_t tx_bytes;   /* Number of transmitted bytes. */
-	uint64_t tx_packets; /* Number of transmitted packets. */
-	uint64_t tx_errors;  /* Number of packets dropped due to overrun. */
-	uint32_t duration_sec; /* Time queue has been alive in seconds. */
+    uint16_t length;        /* Length of this entry. */
+    uint8_t pad[6];         /* Align to 64 bits. */
+	uint32_t port_no;       /* Port the queue is attached to. */
+	uint32_t queue_id;      /* Queue i.d */
+	uint64_t tx_bytes;      /* Number of transmitted bytes. */
+	uint64_t tx_packets;    /* Number of transmitted packets. */
+	uint64_t tx_errors;     /* Number of packets dropped due to overrun. */
+	uint32_t duration_sec;  /* Time queue has been alive in seconds. */
 	uint32_t duration_nsec; /* Time queue has been alive in nanoseconds beyond
                                 duration_sec. */
 	struct ofp_queue_stats_prop_header properties[0]; /* List of properties. */
 };
-OFP_ASSERT(sizeof(struct ofp_queue_stats) == 40);
+OFP_ASSERT(sizeof(struct ofp_queue_stats) == 48);
 
 /* Body of OFPMP_GROUP request. */
 struct ofp_group_stats_request {
@@ -1648,15 +1661,6 @@ struct ofp_meter_features {
     uint8_t pad[2];
 };
 OFP_ASSERT(sizeof(struct ofp_meter_features) == 16);
-
-
-/* Body for ofp_multipart_request/reply of type OFPMP_EXPERIMENTER. */
-struct ofp_experimenter_multipart_header {
-	uint32_t experimenter; /* Experimenter ID */
-	uint32_t exp_type;     /* Experimenter defined. */
-	/* Experimenter-defined arbitrary additional data. */
-};
-OFP_ASSERT(sizeof(struct ofp_experimenter_multipart_header) == 8);
 
 /* Query for port queue configuration. */
 struct ofp_queue_get_config_request {

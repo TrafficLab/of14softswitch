@@ -83,6 +83,8 @@ ofl_msg_free_multipart_request(struct ofl_msg_multipart_request_header *msg, str
         }
         case OFPMP_PORT_DESC:
             break;
+        case OFPMP_QUEUE_DESC:
+            break;
         case OFPMP_EXPERIMENTER: {
             if (exp == NULL || exp->stats == NULL || exp->stats->req_free == NULL) {
                 OFL_LOG_WARN(LOG_MODULE, "Trying to free EXPERIMENTER stats request, but no callback was given.");
@@ -169,6 +171,11 @@ ofl_msg_free_multipart_reply(struct ofl_msg_multipart_reply_header *msg, struct 
             struct ofl_msg_multipart_reply_port_desc *stat = (struct ofl_msg_multipart_reply_port_desc *)msg;        
             OFL_UTILS_FREE_ARR_FUN(stat->stats, stat->stats_num,
                                     ofl_structs_free_port);
+            break;            
+        }
+        case OFPMP_QUEUE_DESC:{
+            struct ofl_msg_multipart_reply_queue *stat = (struct ofl_msg_multipart_reply_queue *)msg;        
+            OFL_UTILS_FREE_ARR(stat->stats, stat->stats_num);
             break;            
         }
         case OFPMP_TABLE_FEATURES:{

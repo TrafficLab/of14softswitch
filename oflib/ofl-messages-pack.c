@@ -557,6 +557,22 @@ ofl_msg_pack_multipart_request_queue(struct ofl_msg_multipart_request_queue *msg
 }
 
 static int
+ofl_msg_pack_multipart_request_queue_desc(struct ofl_msg_multipart_request_queue *msg, uint8_t **buf, size_t *buf_len) {
+    struct ofp_multipart_request *req;
+    struct ofp_queue_desc_request *stats;
+
+    *buf_len = sizeof(struct ofp_multipart_request) + sizeof(struct ofp_queue_desc_request);
+    *buf     = (uint8_t *)malloc(*buf_len);
+
+    req = (struct ofp_multipart_request *)(*buf);
+    stats = (struct ofp_queue_desc_request *)req->body;
+    stats->port_no = htonl(msg->port_no);
+    stats->queue_id = htonl(msg->queue_id);
+
+    return 0;
+}
+
+static int
 ofl_msg_pack_multipart_request_group(struct ofl_msg_multipart_request_group *msg UNUSED, uint8_t **buf, size_t *buf_len) {
     struct ofp_multipart_request *req;
     struct ofp_group_stats_request *stats;
@@ -674,6 +690,10 @@ ofl_msg_pack_multipart_request(struct ofl_msg_multipart_request_header *msg, uin
    }
    case OFPMP_PORT_DESC:{
         error = ofl_msg_pack_multipart_request_empty(msg, buf, buf_len);
+        break;
+   }
+   case OFPMP_QUEUE_DESC:{
+        error = ofl_msg_pack_multipart_request_queue_desc((struct ofl_msg_multipart_request_queue *)msg, buf, buf_len);
         break;
    }
     case OFPMP_EXPERIMENTER: {
@@ -966,6 +986,38 @@ ofl_msg_pack_multipart_reply_port_status_desc(struct ofl_msg_multipart_reply_por
     return 0;
 }
 
+static size_t
+ofl_msg_pack_multipart_reply_queue_desc_size(struct ofl_msg_multipart_reply_queue_desc *msg) {
+    int i;
+    size_t desc_size;
+
+    desc_size = sizeof(struct ofp_multipart_reply);
+
+    for (i = 0; i < msg->queues_num; i++) {
+        desc_size += ofl_structs_queue_desc_pack_size(msg->queues[i]);
+    }
+
+    return desc_size;
+}
+
+static int
+ofl_msg_pack_multipart_reply_queue_desc(struct ofl_msg_multipart_reply_queue_desc *msg, uint8_t **buf, size_t *buf_len) {
+    struct ofp_multipart_reply * resp;
+	uint8_t *data;
+	size_t i;
+    *buf_len = ofl_msg_pack_multipart_reply_queue_desc_size(msg);
+    *buf     = (uint8_t *)malloc(*buf_len);
+
+	resp = (struct ofp_multipart_reply *)(*buf);
+    data = (uint8_t *)resp->body;
+
+    for (i = 0; i < msg->queues_num; i++) {
+		data += ofl_structs_queue_desc_pack(msg->queues[i], (struct ofp_queue_desc *)data);
+	}
+
+    return 0;
+}
+
 static int
 ofl_msg_pack_multipart_reply_meter_features(struct ofl_msg_multipart_reply_meter_features *msg, uint8_t **buf, size_t *buf_len) {
     struct ofp_multipart_reply *resp;
@@ -1045,6 +1097,10 @@ ofl_msg_pack_multipart_reply(struct ofl_msg_multipart_reply_header *msg, uint8_t
         }
 		case OFPMP_PORT_DESC:{
 			error = ofl_msg_pack_multipart_reply_port_status_desc((struct ofl_msg_multipart_reply_port_desc*)msg, buf, buf_len);
+			break;
+		}
+		case OFPMP_QUEUE_DESC:{
+			error = ofl_msg_pack_multipart_reply_queue_desc((struct ofl_msg_multipart_reply_queue_desc *)msg, buf, buf_len);
 			break;
 		}
         case OFPMP_EXPERIMENTER: {

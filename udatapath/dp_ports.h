@@ -183,5 +183,10 @@ ofl_err
 dp_ports_handle_queue_delete(struct datapath *dp, struct ofl_exp_openflow_msg_queue *msg,
         const struct sender *sender);
 
+ofl_err
+dp_ports_handle_queue_desc_request(struct datapath *dp,
+                                  struct ofl_msg_multipart_request_queue * msg,
+                                  const struct sender *sender UNUSED);
+
 
 #endif /* DP_PORTS_H */

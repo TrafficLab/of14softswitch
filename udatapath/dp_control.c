@@ -227,6 +227,9 @@ handle_control_stats_request(struct datapath *dp,
         case OFPMP_PORT_DESC:{
             return dp_ports_handle_port_desc_request(dp, msg, sender);        
         }
+        case OFPMP_QUEUE_DESC:{
+            return dp_ports_handle_queue_desc_request(dp, (struct ofl_msg_multipart_request_queue *)msg, sender);
+        }
         case (OFPMP_EXPERIMENTER): {
             return dp_exp_stats(dp, (struct ofl_msg_multipart_request_experimenter *)msg, sender);
         }

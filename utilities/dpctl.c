@@ -448,6 +448,17 @@ port_desc(struct vconn *vconn, int argc UNUSED, char *argv[] UNUSED) {
 }
 
 static void
+queue_desc(struct vconn *vconn, int argc UNUSED, char *argv[] UNUSED) {
+    struct ofl_msg_multipart_request_queue req =
+            {{{.type = OFPT_MULTIPART_REQUEST},
+              .type = OFPMP_QUEUE_DESC, .flags = 0x0000},
+             .port_no = OFPP_ANY,
+             .queue_id = OFPQ_ALL};
+
+    dpctl_transact_and_print(vconn, (struct ofl_msg_header *)&req, NULL);
+}
+
+static void
 stats_flow(struct vconn *vconn, int argc, char *argv[]) {
     struct ofl_msg_multipart_request_flow req =
             {{{.type = OFPT_MULTIPART_REQUEST},
@@ -838,7 +849,7 @@ queue_mod(struct vconn *vconn, int argc UNUSED, char *argv[]) {
 
     p = xmalloc(sizeof(struct ofl_queue_prop_min_rate));
     pq->properties[0] = (struct ofl_queue_prop_header *)p;
-    p->header.type = OFPQT_MIN_RATE;
+    p->header.type = OFPQDPT_MIN_RATE;
 
     if (parse16(argv[2], NULL,0, UINT16_MAX, &p->rate)) {
         ofp_fatal(0, "Error parsing queue_mod bw: %s.", argv[2]);
@@ -907,6 +918,7 @@ static struct command all_commands[] = {
     {"stats-meter", 0, 1, stats_meter},
     {"meter-config", 0, 1, meter_config},
     {"port-desc", 0, 0, port_desc},
+    {"queue-desc", 0, 0, queue_desc},
     {"set-config", 1, 1, set_config},
     {"flow-mod", 1, 8/*+1 for each inst type*/, flow_mod },
     {"group-mod", 1, UINT8_MAX, group_mod },
