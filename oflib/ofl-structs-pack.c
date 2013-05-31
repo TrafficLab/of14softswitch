@@ -1033,7 +1033,65 @@ ofl_structs_port_stats_pack(struct ofl_port_stats *src, struct ofp_port_stats *d
 }
 
 size_t
+ofl_structs_queue_stats_prop_ofp_len(struct ofl_queue_stats_prop_header *prop) {
+    switch (prop->type) {
+       
+        case OFPQSPT_EXPERIMENTER:{
+           return sizeof(struct ofp_queue_stats_prop_experimenter);
+        }
+    }
+    return 0;
+}
+
+size_t
+ofl_structs_queue_stats_prop_ofp_total_len(struct ofl_queue_stats_prop_header ** props,
+                                     size_t props_num) {
+    size_t sum;
+    OFL_UTILS_SUM_ARR_FUN(sum, props, props_num,
+            ofl_structs_queue_stats_prop_ofp_len);
+    return sum;
+}
+
+size_t ofl_structs_queue_stats_ofp_total_len(struct ofl_queue_stats **stats, size_t stats_num, struct ofl_exp * exp UNUSED){
+    
+    int i, total_len;
+    total_len = 0;
+    for(i = 0; i < stats_num; i++){
+        total_len +=  sizeof(struct ofp_queue_stats) + ofl_structs_queue_stats_prop_ofp_total_len(stats[i]->properties, stats[i]->properties_num);   
+    }
+    return total_len;
+}
+
+size_t
+ofl_structs_queue_stats_prop_pack(struct ofl_queue_stats_prop_header *src,
+                            struct ofp_queue_stats_prop_header *dst) {
+    dst->type = htons(src->type);
+
+    switch (src->type) {
+       
+        case OFPQSPT_EXPERIMENTER:{
+            //struct ofl_queue_prop_experimenter *sp = (struct ofl_queue_prop_experimenter *)src;
+            struct ofp_queue_stats_prop_experimenter *dp = (struct ofp_queue_stats_prop_experimenter*)dst;
+            dp->length          = htons(sizeof(struct ofp_queue_stats_prop_experimenter));
+            /*TODO Eder: How to copy without a know len?? */
+            //dp->data = sp->data;
+            return sizeof(struct ofp_queue_stats_prop_experimenter);
+        }
+        default: {
+            return 0;
+        }
+    }
+
+}
+
+size_t
 ofl_structs_queue_stats_pack(struct ofl_queue_stats *src, struct ofp_queue_stats *dst) {
+    size_t total_len;
+    uint8_t *ptr;
+    int i;
+
+    total_len = sizeof(struct ofp_queue_stats) + ofl_structs_queue_stats_prop_ofp_total_len(src->properties, src->properties_num);
+
     dst->port_no = htonl(src->port_no);
     dst->queue_id = htonl(src->queue_id);
     dst->tx_bytes = hton64(src->tx_bytes);
@@ -1042,7 +1100,12 @@ ofl_structs_queue_stats_pack(struct ofl_queue_stats *src, struct ofp_queue_stats
     dst->duration_sec = ntohl(src->duration_sec);
     dst->duration_nsec = ntohl(src->duration_nsec);
 
-    return sizeof(struct ofp_queue_stats);
+    ptr = (uint8_t*) (((char *) dst) + sizeof(struct ofp_queue_stats));
+    for(i = 0; i < src->properties_num; i++){
+        ptr += ofl_structs_queue_stats_prop_pack(src->properties[i], (struct ofp_queue_stats_prop_header*) ptr);
+    }
+    dst->length = htons(total_len);
+    return total_len;
 }
 
 size_t

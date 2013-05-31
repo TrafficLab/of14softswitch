@@ -363,6 +363,15 @@ struct ofl_port {
 };
 
 
+struct ofl_queue_stats_prop_header {
+    enum ofp_queue_stats_prop_type   type; /* One of OFPQSPT_. */
+};
+
+struct ofl_queue_stats_prop_experimenter {
+    struct ofl_queue_stats_prop_header prop_header; /* prop: OFPQSPT_EXPERIMENTER, len: 16. */
+    uint32_t experimenter;
+    uint8_t *experimenter_data; /* Experimenter defined data. */
+};
 
 struct ofl_queue_stats {
     uint32_t   port_no;
@@ -373,6 +382,8 @@ struct ofl_queue_stats {
     uint32_t   duration_sec; /* Time queue has been alive in seconds */
     uint32_t   duration_nsec; /* Time queue has been alive in nanoseconds 
                                  beyond duration_sec */    
+    size_t                         properties_num;
+    struct ofl_queue_stats_prop_header **properties;
 };
 
 struct ofl_group_desc_stats {
@@ -526,7 +537,16 @@ ofl_structs_table_stats_pack(struct ofl_table_stats *src, struct ofp_table_stats
 
 
 size_t
+ofl_structs_queue_stats_prop_pack(struct ofl_queue_stats_prop_header *src, struct ofp_queue_stats_prop_header *dst);
+
+size_t
 ofl_structs_queue_stats_pack(struct ofl_queue_stats *src, struct ofp_queue_stats *dst);
+
+size_t ofl_structs_queue_desc_pack_size(struct ofl_packet_queue *src);
+
+size_t
+ofl_structs_queue_desc_pack(struct ofl_packet_queue *src,
+                            struct ofp_queue_desc *dst);
 
 size_t
 ofl_structs_group_desc_stats_pack(struct ofl_group_desc_stats *src, struct ofp_group_desc_stats *dst, struct ofl_exp *exp);
@@ -566,6 +586,9 @@ ofl_structs_table_stats_unpack(struct ofp_table_stats *src, size_t *len, struct 
 
 ofl_err
 ofl_structs_port_stats_unpack(struct ofp_port_stats *src, size_t *len, struct ofl_port_stats **dst);
+
+ofl_err
+ofl_structs_queue_stats_prop_unpack(struct ofp_queue_stats_prop_header *src, size_t *len, struct ofl_queue_stats_prop_header **dst);
 
 ofl_err
 ofl_structs_group_stats_unpack(struct ofp_group_stats *src, size_t *len, struct ofl_group_stats **dst);
@@ -693,6 +716,9 @@ ofl_err
 ofl_utils_count_ofp_queue_props(void *data, size_t data_len, size_t *count);
 
 ofl_err
+ofl_utils_count_ofp_queue_stats_props(void *data, size_t data_len, size_t *count);
+
+ofl_err
 ofl_utils_count_ofp_table_features_properties(void *data, size_t data_len, size_t *count);
 
 ofl_err
@@ -756,6 +782,15 @@ ofl_structs_queue_prop_ofp_total_len(struct ofl_queue_prop_header ** props, size
 
 size_t
 ofl_structs_queue_prop_ofp_len(struct ofl_queue_prop_header *prop);
+
+size_t
+ofl_structs_queue_stats_prop_ofp_len(struct ofl_queue_stats_prop_header *prop);
+
+size_t
+ofl_structs_queue_stats_prop_ofp_total_len(struct ofl_queue_stats_prop_header ** props, size_t props_num);
+
+size_t
+ofl_structs_queue_stats_ofp_total_len(struct ofl_queue_stats **stats, size_t stats_num, struct ofl_exp * exp UNUSED);
 
 size_t
 ofl_structs_packet_queue_ofp_total_len(struct ofl_packet_queue ** queues, size_t queues_num);

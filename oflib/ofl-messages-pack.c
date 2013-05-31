@@ -541,7 +541,7 @@ ofl_msg_pack_multipart_request_port(struct ofl_msg_multipart_request_port *msg, 
 }
 
 static int
-ofl_msg_pack_multipart_request_queue(struct ofl_msg_multipart_request_queue *msg, uint8_t **buf, size_t *buf_len) {
+ofl_msg_pack_multipart_request_queue_stats(struct ofl_msg_multipart_request_queue *msg, uint8_t **buf, size_t *buf_len) {
     struct ofp_multipart_request *req;
     struct ofp_queue_stats_request *stats;
 
@@ -660,7 +660,7 @@ ofl_msg_pack_multipart_request(struct ofl_msg_multipart_request_header *msg, uin
         break;
     }
     case OFPMP_QUEUE_STATS: {
-        error = ofl_msg_pack_multipart_request_queue((struct ofl_msg_multipart_request_queue *)msg, buf, buf_len);
+        error = ofl_msg_pack_multipart_request_queue_stats((struct ofl_msg_multipart_request_queue *)msg, buf, buf_len);
         break;
     }
     case OFPMP_GROUP: {
@@ -823,12 +823,12 @@ ofl_msg_pack_multipart_reply_port(struct ofl_msg_multipart_reply_port *msg, uint
 
 
 static int
-ofl_msg_pack_multipart_reply_queue(struct ofl_msg_multipart_reply_queue *msg, uint8_t **buf, size_t *buf_len) {
+ofl_msg_pack_multipart_reply_queue_stats(struct ofl_msg_multipart_reply_queue_stats *msg, uint8_t **buf, size_t *buf_len, struct ofl_exp *exp) {
     struct ofp_multipart_reply *resp;
     size_t i;
     uint8_t *data;
 
-    *buf_len = sizeof(struct ofp_multipart_reply) + msg->stats_num * sizeof(struct ofp_queue_stats);
+    *buf_len = sizeof(struct ofp_multipart_reply) + ofl_structs_queue_stats_ofp_total_len(msg->stats, msg->stats_num, exp);
     *buf     = (uint8_t *)malloc(*buf_len);
 
     resp = (struct ofp_multipart_reply *)(*buf);
@@ -1068,7 +1068,7 @@ ofl_msg_pack_multipart_reply(struct ofl_msg_multipart_reply_header *msg, uint8_t
             break;
         }
         case OFPMP_QUEUE_STATS: {
-            error = ofl_msg_pack_multipart_reply_queue((struct ofl_msg_multipart_reply_queue *)msg, buf, buf_len);
+	  error = ofl_msg_pack_multipart_reply_queue_stats((struct ofl_msg_multipart_reply_queue_stats *)msg, buf, buf_len, exp);
             break;
         }
         case OFPMP_GROUP: {

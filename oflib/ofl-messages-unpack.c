@@ -1254,14 +1254,15 @@ ofl_msg_unpack_multipart_reply_port(struct ofp_multipart_reply *os, size_t *len,
 static ofl_err
 ofl_msg_unpack_multipart_reply_queue(struct ofp_multipart_reply *os, size_t *len, struct ofl_msg_header **msg) {
     struct ofp_queue_stats *stat = (struct ofp_queue_stats *)os->body;
-    struct ofl_msg_multipart_reply_queue *dm = (struct ofl_msg_multipart_reply_queue *) malloc(sizeof(struct ofl_msg_multipart_reply_queue));
+    struct ofl_msg_multipart_reply_queue_stats *dm = (struct ofl_msg_multipart_reply_queue_stats *) malloc(sizeof(struct ofl_msg_multipart_reply_queue_stats));
     ofl_err error;
     size_t i;
 
     // ofp_multipart_reply was already checked and subtracted in unpack_multipart_reply
 
     stat = (struct ofp_queue_stats *)os->body;
-    dm = (struct ofl_msg_multipart_reply_queue *) malloc(sizeof(struct ofl_msg_multipart_reply_queue));
+    // Already allocated above !
+    //dm = (struct ofl_msg_multipart_reply_queue_stats *) malloc(sizeof(struct ofl_msg_multipart_reply_queue_stats));
 
     error = ofl_utils_count_ofp_queue_stats(stat, *len, &dm->stats_num);
     if (error) {

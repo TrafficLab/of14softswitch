@@ -397,7 +397,7 @@ struct ofl_msg_multipart_reply_port {
     struct ofl_port_stats **stats;
 };
 
-struct ofl_msg_multipart_reply_queue {
+struct ofl_msg_multipart_reply_queue_stats {
     struct ofl_msg_multipart_reply_header   header; /* OFPMP_QUEUE_STATS */
 
     size_t                   stats_num;
@@ -560,8 +560,8 @@ ofl_msg_merge_multipart_reply_port(struct ofl_msg_multipart_reply_port *orig,
 /* Merges two flow stats reply messages. Returns true if the merged message was
  * the last in a series of multi-messages. */
 bool
-ofl_msg_merge_multipart_reply_queue(struct ofl_msg_multipart_reply_queue *orig,
-                               struct ofl_msg_multipart_reply_queue *merge);
+ofl_msg_merge_multipart_reply_queue_stats(struct ofl_msg_multipart_reply_queue_stats *orig,
+                               struct ofl_msg_multipart_reply_queue_stats *merge);
 
 
 

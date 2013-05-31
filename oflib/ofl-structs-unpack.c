@@ -832,7 +832,7 @@ ofl_structs_queue_prop_unpack(struct ofp_queue_desc_prop_header *src, size_t *le
                 return ofl_error(OFPET_BAD_PROPERTY, OFPBPC_BAD_LEN);
             }
             *len -= sizeof(*sp);
-            dp->experimenter_data = sp->experimenter_data;
+            //dp->experimenter_data = sp->experimenter_data;
 
             *dst = (struct ofl_queue_prop_header *)dp;
             break;    
@@ -1171,8 +1171,50 @@ ofl_structs_queue_desc_unpack(struct ofp_queue_desc *src, size_t *len, struct of
 }
 
 ofl_err
+ofl_structs_queue_stats_prop_unpack(struct ofp_queue_stats_prop_header *src, size_t *len, struct ofl_queue_stats_prop_header **dst) {
+
+    if (*len < sizeof(struct ofp_queue_stats_prop_header)) {
+        OFL_LOG_WARN(LOG_MODULE, "Received queue stats property is too short (%zu).", *len);
+        return ofl_error(OFPET_BAD_PROPERTY, OFPBPC_BAD_LEN);
+    }
+
+    if (*len < ntohs(src->length)) {
+        OFL_LOG_WARN(LOG_MODULE, "Received queue stats property has invalid length (set to %u, but only %zu received).", ntohs(src->length), *len);
+        return ofl_error(OFPET_BAD_PROPERTY, OFPBPC_BAD_LEN);
+    }
+
+    switch (ntohs(src->type)) {
+        case OFPQDPT_EXPERIMENTER:{
+            struct ofp_queue_stats_prop_experimenter *sp = (struct ofp_queue_stats_prop_experimenter *)src;
+            struct ofl_queue_stats_prop_experimenter *dp = (struct ofl_queue_stats_prop_experimenter *)malloc(sizeof(struct ofl_queue_stats_prop_experimenter));
+            
+            if (*len < sizeof(struct ofp_queue_stats_prop_experimenter)) {
+                OFL_LOG_WARN(LOG_MODULE, "Received EXPERIMENTER queue stats property has invalid length (%zu).", *len);
+                return ofl_error(OFPET_BAD_PROPERTY, OFPBPC_BAD_LEN);
+            }
+            *len -= sizeof(*sp);
+            //dp->experimenter_data = sp->experimenter_data;
+
+            *dst = (struct ofl_queue_stats_prop_header *)dp;
+            break;    
+        
+        }
+        default: {
+            OFL_LOG_WARN(LOG_MODULE, "Received unknown queue stats prop type.");
+            return ofl_error(OFPET_BAD_PROPERTY, OFPBPC_BAD_TYPE);
+        }
+    }
+
+    (*dst)->type = (enum ofp_queue_stats_prop_type)ntohs(src->type);
+    return 0;
+}
+
+ofl_err
 ofl_structs_queue_stats_unpack(struct ofp_queue_stats *src, size_t *len, struct ofl_queue_stats **dst) {
     struct ofl_queue_stats *p;
+    struct ofp_queue_stats_prop_header *prop;
+    ofl_err error;
+    size_t i;
 
     if (*len < sizeof(struct ofp_queue_stats)) {
         OFL_LOG_WARN(LOG_MODULE, "Received queue stats has invalid length (%zu).", *len);
@@ -1198,6 +1240,20 @@ ofl_structs_queue_stats_unpack(struct ofp_queue_stats *src, size_t *len, struct 
     p->tx_errors =  ntoh64(src->tx_errors);
     p->duration_sec = ntohl(src->duration_sec);
     p->duration_nsec = ntohl(src->duration_nsec);
+
+    error = ofl_utils_count_ofp_queue_stats_props((uint8_t *)src->properties, *len, &p->properties_num);
+    if (error) {
+        free(p);
+        return error;
+    }
+    p->properties = (struct ofl_queue_stats_prop_header **)malloc(p->properties_num * sizeof(struct ofl_queue_stats_prop_header *));
+
+    prop = src->properties;
+    for (i = 0; i < p->properties_num; i++) {
+        ofl_structs_queue_stats_prop_unpack(prop, len, &(p->properties[i]));
+        prop = (struct ofp_queue_stats_prop_header *)((uint8_t *)prop + ntohs(prop->length));
+    }
+
     *dst = p;
     return 0;
 }

@@ -136,7 +136,7 @@ ofl_msg_free_multipart_reply(struct ofl_msg_multipart_reply_header *msg, struct 
             break;
         }
         case OFPMP_QUEUE_STATS: {
-            struct ofl_msg_multipart_reply_queue *stat = (struct ofl_msg_multipart_reply_queue *)msg;
+            struct ofl_msg_multipart_reply_queue_stats *stat = (struct ofl_msg_multipart_reply_queue_stats *)msg;
             OFL_UTILS_FREE_ARR(stat->stats, stat->stats_num);
             break;
         }
@@ -174,8 +174,8 @@ ofl_msg_free_multipart_reply(struct ofl_msg_multipart_reply_header *msg, struct 
             break;            
         }
         case OFPMP_QUEUE_DESC:{
-            struct ofl_msg_multipart_reply_queue *stat = (struct ofl_msg_multipart_reply_queue *)msg;        
-            OFL_UTILS_FREE_ARR(stat->stats, stat->stats_num);
+            struct ofl_msg_multipart_reply_queue_desc *stat = (struct ofl_msg_multipart_reply_queue_desc *)msg;        
+            OFL_UTILS_FREE_ARR(stat->queues, stat->queues_num);
             break;            
         }
         case OFPMP_TABLE_FEATURES:{
@@ -418,7 +418,7 @@ ofl_msg_merge_multipart_reply_port(struct ofl_msg_multipart_reply_port *orig, st
 }
 
 bool
-ofl_msg_merge_multipart_reply_queue(struct ofl_msg_multipart_reply_queue *orig, struct ofl_msg_multipart_reply_queue *merge) {
+ofl_msg_merge_multipart_reply_queue_stats(struct ofl_msg_multipart_reply_queue_stats *orig, struct ofl_msg_multipart_reply_queue_stats *merge) {
     uint32_t new_stats_num;
     size_t i, j;
 
