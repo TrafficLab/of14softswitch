@@ -373,6 +373,7 @@ ofl_msg_print_multipart_request(struct ofl_msg_multipart_request_header *msg, FI
             break;
         }
         case OFPMP_QUEUE_DESC:{
+            ofl_msg_print_stats_request_queue((struct ofl_msg_multipart_request_queue *)msg, stream);
             break;
         }
         case OFPMP_EXPERIMENTER: {

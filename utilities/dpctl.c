@@ -455,6 +455,13 @@ queue_desc(struct vconn *vconn, int argc UNUSED, char *argv[] UNUSED) {
              .port_no = OFPP_ANY,
              .queue_id = OFPQ_ALL};
 
+    if (argc > 0 && parse_port(argv[0], &req.port_no)) {
+        ofp_fatal(0, "Error parsing port: %s.", argv[0]);
+    }
+    if (argc > 1 && parse_queue(argv[1], &req.queue_id)) {
+        ofp_fatal(0, "Error parsing queue: %s.", argv[1]);
+    }
+
     dpctl_transact_and_print(vconn, (struct ofl_msg_header *)&req, NULL);
 }
 
@@ -901,7 +908,7 @@ static struct command all_commands[] = {
     {"stats-meter", 0, 1, stats_meter},
     {"meter-config", 0, 1, meter_config},
     {"port-desc", 0, 0, port_desc},
-    {"queue-desc", 0, 0, queue_desc},
+    {"queue-desc", 0, 2, queue_desc},
     {"set-config", 1, 1, set_config},
     {"flow-mod", 1, 8/*+1 for each inst type*/, flow_mod },
     {"group-mod", 1, UINT8_MAX, group_mod },

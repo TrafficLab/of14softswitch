@@ -256,7 +256,7 @@ enum ofp_port_features {
 };
 
 struct ofp_queue_desc_prop_header {
-	uint16_t         type;    /* OFPQSPT_EXPERIMENTER. */
+	uint16_t         type;    /* One of OFPQDPT_*. */
 	uint16_t         length;  /* Length in bytes of this property. */
 };
 OFP_ASSERT(sizeof(struct ofp_queue_desc_prop_header) == 4);
@@ -305,7 +305,7 @@ OFP_ASSERT(sizeof(struct ofp_queue_desc_prop_max_rate) == 8);
 /* Experimenter queue property description. */
 struct ofp_queue_desc_prop_experimenter {
     uint16_t         type;                  /* OFPQDPT_EXPERIMENTER. */
-    uint16_t         length;                /* Length is 8. */
+    uint16_t         length;                /* Length in bytes of this property. */
 	uint32_t experimenter;			  /* Experimenter ID which takes the same
                                                    *  form as in struct
 						   *  ofp_experimenter_header.

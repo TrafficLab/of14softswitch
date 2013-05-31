@@ -944,7 +944,7 @@ ofl_msg_unpack_multipart_request_queue_desc(struct ofp_multipart_request *os, si
 
     if (ntohl(sm->port_no) == 0 ||
         (ntohl(sm->port_no) > OFPP_MAX && ntohl(sm->port_no) != OFPP_ANY)) {
-        OFL_LOG_WARN(LOG_MODULE, "Received QUEUE stats request has invalid port (%u).", ntohl(sm->port_no));
+        OFL_LOG_WARN(LOG_MODULE, "Received QUEUE desc request has invalid port (%u).", ntohl(sm->port_no));
         return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_PORT);
     }
     *len -= sizeof(struct ofp_queue_desc_request);
