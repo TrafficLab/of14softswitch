@@ -8,6 +8,8 @@ man_MANS += udatapath/ofdatapath.8
 udatapath_ofdatapath_SOURCES = \
 	udatapath/action_set.c \
 	udatapath/action_set.h \
+	udatapath/bundle.c \
+	udatapath/bundle.h \
 	udatapath/crc32.c \
 	udatapath/crc32.h \
 	udatapath/datapath.c \

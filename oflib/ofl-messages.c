@@ -293,6 +293,13 @@ ofl_msg_free(struct ofl_msg_header *msg, struct ofl_exp *exp) {
                                    ofl_structs_free_packet_queue);
             break;
         }
+        case OFPT_BUNDLE_CONTROL: {
+            break;
+        }
+        case OFPT_BUNDLE_APPEND: {
+            free(((struct ofl_msg_bundle_append *)msg)->message);
+            break;
+        }
     }
     
     free(msg);

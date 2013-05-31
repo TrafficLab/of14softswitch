@@ -91,6 +91,20 @@ enum ofp_type {
     OFPT_SET_ASYNC = 28, /* Controller/switch message */
     /* Meters and rate limiters configuration messages. */
     OFPT_METER_MOD = 29, /* Controller/switch message */
+    /* Bundle messages. */
+    OFPT_BUNDLE_CONTROL = 30,    /* Controller/switch message */
+    OFPT_BUNDLE_APPEND  = 31,    /* Controller/switch message */
+};
+
+enum ofp_bundle_type {
+    OFPBT_OPEN_REQUEST = 0,
+    OFPBT_OPEN_REPLY = 1,
+    OFPBT_CLOSE_REQUEST = 2,
+    OFPBT_CLOSE_REPLY = 3,
+    OFPBT_COMMIT_REQUEST = 4,
+    OFPBT_COMMIT_REPLY = 5,
+    OFPBT_DISCARD_REQUEST = 6,
+    OFPBT_DISCARD_REPLY = 7,
 };
 
 /* OFPT_HELLO.  This message has an empty body, but implementations must
@@ -859,6 +873,48 @@ struct ofp_meter_band_experimenter {
 };
 OFP_ASSERT(sizeof(struct ofp_meter_band_experimenter) == 16);
 
+/* Bundle properties. */
+struct ofp_bundle_prop_header {
+    uint16_t type;   /* One of the OFPBPT_* constants. */
+    uint16_t length; /* Length in bytes of this property. */
+    uint8_t pad[4];
+};
+OFP_ASSERT(sizeof(struct ofp_bundle_prop_header) == 8);
+
+/* Bundle control messages. */
+struct ofp_bundle_control {
+    struct ofp_header header;
+    uint32_t bundle_id;  /* ID of the bundle. */
+    uint16_t type;       /* One of the OFPBT_* constants. */
+    uint16_t flags;      /* OFPBF_* flags. */
+    /* Bundle property list. */
+    struct ofp_bundle_prop_header properties[0];
+};
+OFP_ASSERT(sizeof(struct ofp_bundle_control) == 16);
+
+/* Bundle append message. */
+struct ofp_bundle_append {
+    struct ofp_header header;
+    uint32_t bundle_id;           /* ID of the bundle. */
+    uint16_t flags;               /* OFPBF_* flags. */
+    uint8_t pad[2];               /* Align to 64 bits. */
+    struct ofp_header message[0]; /* Message to append. */
+    /* Bundle property list. */
+    struct ofp_bundle_prop_header properties[0];
+};
+OFP_ASSERT(sizeof(struct ofp_bundle_control) == 16);
+
+/* Bundle property types. */
+enum ofp_bundle_prop_type {
+    OFPBPT_EXPERIMENTER = 0xFFFF, /* Experimenter property. */
+};
+
+/* Bundle configuration flags. */
+enum ofp_bundle_flags {
+    OFPBF_ATOMIC  = 1 << 0,  /* Execute atomically. */
+    OFPBF_ORDERED = 1 << 1,  /* Execute in specified order. */
+};
+
 
 struct ofp_multipart_request {
 	struct ofp_header header;
@@ -1510,6 +1566,7 @@ enum ofp_error_type {
     OFPET_ROLE_REQUEST_FAILED = 11,  /* Controller Role request failed. */
     OFPET_METER_MOD_FAILED = 12,     /* Error in meter. */
     OFPET_TABLE_FEATURES_FAILED = 13, /* Setting table features failed. */
+    OFPET_BUNDLE_FAILED = 14,        /* Bundle related operation failed. */
     OFPET_EXPERIMENTER = 0xffff      /* Experimenter error messages. */
 };
 
@@ -1726,6 +1783,21 @@ enum ofp_table_features_failed_code {
     OFPTFFC_BAD_LEN = 3,      /* Length problem in properties. */
     OFPTFFC_BAD_ARGUMENT = 4, /* Unsupported property value. */
     OFPTFFC_EPERM = 5,        /* Permissions error. */
+};
+
+/* ofp_error_msg ’code’ values for OFPET_BUNDLE_FAILED. ’data’ contains
+* at least the first 64 bytes of the failed request. */
+enum ofp_bundle_failed_code {
+    OFPBFC_UNKNOWN = 0,      /* Unspecified error. */
+    OFPBFC_EPERM = 1,        /* Permissions error. */
+    OFPBFC_UNSUP = 2,        /* Unsupported message or message combination in bundle. */
+    OFPBFC_OUT_OF_MEM = 3,   /* No room for bundled message or rollback related state. */
+    OFPBFC_BAD_ID = 4,       /* Bundle ID doesn't exist. */
+    OFPBFC_BAD_TYPE = 5,     /* Unsupported or unknown message or property type. */
+    OFPBFC_BAD_ARGUMENT = 6, /* Unsupported property value. */
+    OFPBFC_BAD_FLAGS = 7,    /* Unsupported, unknown, or inconsistent flags. */
+    OFPBFC_BAD_LEN = 8,      /* Length problem in properties or appended message. */
+    OFPBFC_BAD_SEQ = 9,      /* Unsupported or invalid sequence of operations. */
 };
 
 /* OFPET_EXPERIMENTER: Error message (datapath -> controller). */

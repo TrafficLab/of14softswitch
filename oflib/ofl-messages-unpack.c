@@ -678,6 +678,58 @@ ofl_msg_unpack_table_mod(struct ofp_header *src, size_t *len, struct ofl_msg_hea
 }
 
 static ofl_err
+ofl_msg_unpack_bundle_control(struct ofp_header *src, size_t *len, struct ofl_msg_header **msg) {
+    struct ofp_bundle_control *sm;
+    struct ofl_msg_bundle_control *dm;
+
+    if (*len < sizeof(struct ofp_bundle_control)) {
+        OFL_LOG_WARN(LOG_MODULE, "Received BUNDLE_CONTROL message has invalid length (%zu).", *len);
+        return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
+    }
+    *len -= sizeof(struct ofp_bundle_control);
+
+    sm = (struct ofp_bundle_control *)src;
+    dm = (struct ofl_msg_bundle_control *)malloc(sizeof(struct ofl_msg_bundle_control));
+    dm->bundle_id = ntohl(sm->bundle_id);
+    dm->type = ntohs(sm->type);
+    dm->flags = ntohs(sm->flags);
+
+    *msg = (struct ofl_msg_header *)dm;
+    return 0;
+}
+
+static ofl_err
+ofl_msg_unpack_bundle_append(struct ofp_header *src, size_t *len, struct ofl_msg_header **msg) {
+    struct ofp_bundle_append *sm;
+    struct ofl_msg_bundle_append *dm;
+    size_t message_length;
+
+    if (*len < sizeof(struct ofp_bundle_append)) {
+        OFL_LOG_WARN(LOG_MODULE, "Received BUNDLE_APPEND message has invalid length (%zu).", *len);
+        return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
+    }
+    *len -= sizeof(struct ofp_bundle_append);
+
+    sm = (struct ofp_bundle_append *)src;
+    message_length = ntohs(sm->message->length);
+    if (*len < message_length) {
+        OFL_LOG_WARN(LOG_MODULE, "Received BUNDLE_APPEND message has invalid length (received %zu, expected %zu).",
+                     *len + sizeof(struct ofp_bundle_append),
+                     message_length + sizeof(struct ofp_bundle_append));
+        return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
+    }
+    *len -= message_length;
+
+    dm = (struct ofl_msg_bundle_append *)malloc(sizeof(struct ofl_msg_bundle_append));
+    dm->bundle_id = ntohl(sm->bundle_id);
+    dm->flags = ntohs(sm->flags);
+    dm->message = message_length > 0 ? (uint8_t *)memcpy(malloc(message_length), sm->message, message_length) : NULL;
+
+    *msg = (struct ofl_msg_header *)dm;
+    return 0;
+}
+
+static ofl_err
 ofl_msg_unpack_multipart_request_flow(struct ofp_multipart_request *os, uint8_t* buf, size_t *len, struct ofl_msg_header **msg, struct ofl_exp *exp) {
     struct ofp_flow_stats_request *sm;
     struct ofl_msg_multipart_request_flow *dm;
@@ -1678,7 +1730,17 @@ ofl_msg_unpack(uint8_t *buf, size_t buf_len, struct ofl_msg_header **msg, uint32
         case OFPT_METER_MOD:
         	error = ofl_msg_unpack_meter_mod(oh, &len, msg);
         	break;            
-		default: {
+
+        /* Bundle messages. */
+        case OFPT_BUNDLE_CONTROL:
+            error = ofl_msg_unpack_bundle_control(oh, &len, msg);
+            break;
+
+        case OFPT_BUNDLE_APPEND:
+            error = ofl_msg_unpack_bundle_append(oh, &len, msg);
+            break;
+
+        default: {
             error = ofl_error(OFPET_BAD_REQUEST, OFPGMFC_BAD_TYPE);
         }
     }

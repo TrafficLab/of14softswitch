@@ -344,6 +344,7 @@ ofl_error_type_print(FILE *stream, uint16_t type) {
         case (OFPET_TABLE_MOD_FAILED): {     fprintf(stream, "TABLE_MOD_FAILED"); return; }
         case (OFPET_QUEUE_OP_FAILED): {      fprintf(stream, "QUEUE_OP_FAILED"); return; }
         case (OFPET_SWITCH_CONFIG_FAILED): { fprintf(stream, "SWITCH_CONFIG_FAILED"); return; }
+        case (OFPET_BUNDLE_FAILED): {        fprintf(stream, "BUNDLE_FAILED"); return; }
         default: {                           fprintf(stream, "?(%u)", type); return; }
     }
 }
@@ -478,6 +479,21 @@ ofl_error_code_print(FILE *stream, uint16_t type, uint16_t code) {
             }
             break;
         }
+        case (OFPET_BUNDLE_FAILED): {
+            switch (code) {
+                case (OFPBFC_UNKNOWN) :      { fprintf(stream, "UNKNOWN"); return; }
+                case (OFPBFC_EPERM) :        { fprintf(stream, "EPERM"); return; }
+                case (OFPBFC_UNSUP) :        { fprintf(stream, "UNSUP"); return; }
+                case (OFPBFC_OUT_OF_MEM) :   { fprintf(stream, "OUT_OF_MEM"); return; }
+                case (OFPBFC_BAD_ID) :       { fprintf(stream, "BAD_ID"); return; }
+                case (OFPBFC_BAD_TYPE) :     { fprintf(stream, "BAD_TYPE"); return; }
+                case (OFPBFC_BAD_ARGUMENT) : { fprintf(stream, "BAD_ARGUMENT"); return; }
+                case (OFPBFC_BAD_FLAGS) :    { fprintf(stream, "BAD_FLAGS"); return; }
+                case (OFPBFC_BAD_LEN) :      { fprintf(stream, "BAD_LEN"); return; }
+                case (OFPBFC_BAD_SEQ) :      { fprintf(stream, "BAD_SEQ"); return; }
+            }
+            break;
+        }
     }
     fprintf(stream, "?(%u)", type);
 }
@@ -528,6 +544,8 @@ ofl_message_type_print(FILE *stream, uint16_t type) {
 		case OFPT_METER_MOD:				{ fprintf(stream, "meter_mod"); return;}  
 		case OFPT_ROLE_REQUEST:             { fprintf(stream, "role_request"); return;}
 		case OFPT_ROLE_REPLY:               { fprintf(stream, "role_reply"); return;}
+        case OFPT_BUNDLE_CONTROL: {           fprintf(stream, "bundle_control"); return; }
+        case OFPT_BUNDLE_APPEND: {            fprintf(stream, "bundle_append"); return; }
 		default: {                            fprintf(stream, "?(%u)", type); return; }
     }
 }

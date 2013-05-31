@@ -99,6 +99,13 @@ pipeline_handle_stats_request_aggregate(struct pipeline *pl,
                                   struct ofl_msg_multipart_request_flow *msg,
                                   const struct sender *sender);
 
+/* Saves current table features state to enable restoring it later. */
+ofl_err
+pipeline_handle_table_features_save(struct pipeline *pl);
+
+/* Restores table features state, undoing changes that occurred since saving. */
+ofl_err
+pipeline_handle_table_features_restore(struct pipeline *pl);
 
 /* Commands pipeline to check if any flow in any table is timed out. */
 void

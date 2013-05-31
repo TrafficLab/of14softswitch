@@ -98,6 +98,9 @@ usage(void) NO_RETURN;
 static void
 parse_options(int argc, char *argv[]);
 
+static uint32_t bundle_id = (uint32_t)-1;
+static uint16_t bundle_flags = 0;
+
 static uint8_t mask_all[] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 
 
@@ -287,6 +290,21 @@ dpctl_send(struct vconn *vconn, struct ofl_msg_header *msg) {
     error = ofl_msg_pack(msg, XID, &buf, &buf_size, &dpctl_exp);
     if (error) {
         ofp_fatal(0, "Error packing request.");
+    }
+
+    if(bundle_id != (uint32_t)-1) {
+        struct ofl_msg_bundle_append append =
+            {{.type = OFPT_BUNDLE_APPEND}};
+
+        append.message = buf;
+        append.bundle_id = bundle_id;
+        append.flags = bundle_flags;
+
+        error = ofl_msg_pack((struct ofl_msg_header *) &append, XID, &buf, &buf_size, &dpctl_exp);
+        if (error) {
+              ofp_fatal(0, "Error wrapping request into bundle.");
+        }
+        printf("Wrapped in bundle (ID=%u)\n", bundle_id);
     }
 
     ofpbuf = ofpbuf_new(0);
@@ -886,6 +904,29 @@ get_async(struct vconn *vconn, int argc UNUSED, char *argv[] UNUSED){
     dpctl_transact_and_print(vconn, (struct ofl_msg_header *)&msg, NULL);
 }
 
+static void
+bundle_control(struct vconn *vconn, int argc UNUSED, char *argv[] UNUSED) {
+    struct ofl_msg_bundle_control req =
+            {{.type = OFPT_BUNDLE_CONTROL}};
+
+    if (strcmp(argv[0], "open") == 0) {
+        req.type = OFPBT_OPEN_REQUEST;
+    } else if (strcmp(argv[0], "close") == 0) {
+        req.type = OFPBT_CLOSE_REQUEST;
+    } else if (strcmp(argv[0], "commit") == 0) {
+        req.type = OFPBT_COMMIT_REQUEST;
+    } else if (strcmp(argv[0], "discard") == 0) {
+        req.type = OFPBT_DISCARD_REQUEST;
+    } else {
+        ofp_fatal(0, "Error parsing bundle subcommand: %s.", argv[0]);
+    }
+
+    req.bundle_id = bundle_id;
+    req.flags = bundle_flags;
+
+    dpctl_transact_and_print(vconn, (struct ofl_msg_header *)&req, NULL);
+}
+
 static struct command all_commands[] = {
     {"ping", 0, 2, ping},
     {"monitor", 0, 0, monitor},
@@ -917,7 +958,8 @@ static struct command all_commands[] = {
     {"set-desc", 1, 1, set_desc},
 
     {"queue-mod", 3, 3, queue_mod},
-    {"queue-del", 2, 2, queue_del}
+    {"queue-del", 2, 2, queue_del},
+    {"bundle", 1, 1, bundle_control}
 };
 
 
@@ -985,6 +1027,8 @@ parse_options(int argc, char *argv[])
     };
     static struct option long_options[] = {
         {"timeout", required_argument, 0, 't'},
+        {"bundle", required_argument, 0, 'b'},
+        {"flags", required_argument, 0, 'f'},
         {"verbose", optional_argument, 0, 'v'},
         {"strict", no_argument, 0, OPT_STRICT},
         {"help", no_argument, 0, 'h'},
@@ -1012,6 +1056,15 @@ parse_options(int argc, char *argv[])
             } else {
                 time_alarm(timeout);
             }
+            break;
+
+        case 'b':
+            bundle_id = strtoul(optarg, NULL, 10);
+            break;
+
+        case 'f':
+            bundle_flags = strtoul(optarg, NULL, 10);
+            // TODO permit comma separated list of identifiers
             break;
 
         case 'h':
@@ -1069,6 +1122,8 @@ usage(void)
             "  SWITCH table-mod ARG                   send table_mod message\n"
             "  SWITCH queue-get-config PORT           send queue_get_config message\n"
             "\n"
+            "  SWITCH bundle [open|close|commit|discard] send bundle control message\n"
+            "\n"
             "OpenFlow extensions\n"
             "  SWITCH set-desc DESC                   sets the DP description\n"
             "  SWITCH queue-mod PORT QUEUE BW         adds/modifies queue\n"
@@ -1080,6 +1135,8 @@ usage(void)
      printf("\nOther options:\n"
             "  --strict                    use strict match for flow commands\n"
             "  -t, --timeout=SECS          give up after SECS seconds\n"
+            "  -b, --bundle=ID             operate on specified bundle\n"
+            "  -f, --flags=INTEGER         flags for bundle operations\n"
             "  -h, --help                  display this help message\n"
             "  -V, --version               display version information\n");
      exit(EXIT_SUCCESS);

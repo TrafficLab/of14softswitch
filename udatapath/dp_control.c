@@ -359,6 +359,12 @@ handle_control_msg(struct datapath *dp, struct ofl_msg_header *msg,
         case OFPT_METER_MOD:{
 			return meter_table_handle_meter_mod(dp->meters, (struct ofl_msg_meter_mod *)msg, sender);
 		}
+        case OFPT_BUNDLE_CONTROL:{
+            return bundle_handle_control(dp, dp->bundles, (struct ofl_msg_bundle_control *)msg, sender);
+        }
+        case OFPT_BUNDLE_APPEND:{
+            return bundle_handle_append(dp->bundles, (struct ofl_msg_bundle_append *)msg, sender);
+        }
         case OFPT_EXPERIMENTER: {
             return dp_exp_message(dp, (struct ofl_msg_experimenter *)msg, sender);
         }

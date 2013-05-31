@@ -260,6 +260,21 @@ struct ofl_msg_meter_mod {
                                               in the header. */
 };
 
+/* Bundled operations - control messages. OFPT_BUNDLE_CONTROL. */
+struct ofl_msg_bundle_control {
+    struct    ofl_msg_header header;
+    uint32_t  bundle_id; /* Bundle instance. */
+    uint16_t  type;      /* One of OFPBT_*. */
+    uint16_t  flags;     /* One of OFPBF_*. */
+};
+
+/* Bundled operations - append message. OFPT_BUNDLE_APPEND. */
+struct ofl_msg_bundle_append {
+    struct    ofl_msg_header header;
+    uint32_t  bundle_id;
+    uint16_t  flags;                 /* One of OFPBF_*. */
+    struct ofp_header *message;      /* Message to append. */
+};
 
 /**********************
  * Statistics messages

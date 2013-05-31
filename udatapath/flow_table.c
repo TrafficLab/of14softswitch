@@ -379,6 +379,9 @@ flow_table_create(struct datapath *dp, uint8_t table_id) {
     table->features->max_entries   = FLOW_TABLE_MAX_ENTRIES;
     table->features->properties_num = flow_table_features(table->features);
 
+    /* Init saved table features */
+    table->saved_features = xmalloc(sizeof(struct ofl_table_features));
+
     list_init(&table->match_entries);
     list_init(&table->hard_entries);
     list_init(&table->idle_entries);
@@ -394,6 +397,7 @@ flow_table_destroy(struct flow_table *table) {
         flow_entry_destroy(entry);
     }
     free(table->features);
+    free(table->saved_features);
     free(table->stats);
     free(table);
 }
