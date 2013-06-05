@@ -1213,11 +1213,17 @@ ofl_err
 ofl_structs_queue_stats_unpack(struct ofp_queue_stats *src, size_t *len, struct ofl_queue_stats **dst) {
     struct ofl_queue_stats *p;
     struct ofp_queue_stats_prop_header *prop;
+    size_t total_len;
     ofl_err error;
     size_t i;
 
     if (*len < sizeof(struct ofp_queue_stats)) {
         OFL_LOG_WARN(LOG_MODULE, "Received queue stats has invalid length (%zu).", *len);
+        return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
+    }
+    total_len = ntohs(src->length);
+    if (total_len < sizeof(struct ofp_queue_stats)) {
+        OFL_LOG_WARN(LOG_MODULE, "Received queue stats has invalid length field (%zu).", total_len);
         return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
     }
 
@@ -1229,7 +1235,7 @@ ofl_structs_queue_stats_unpack(struct ofp_queue_stats *src, size_t *len, struct 
         }
         return ofl_error(OFPET_BAD_ACTION, OFPBRC_BAD_LEN);
     }
-    *len -= sizeof(struct ofp_queue_stats);
+    *len -= total_len;
 
     p = (struct ofl_queue_stats *)malloc(sizeof(struct ofl_queue_stats));
 
@@ -1241,7 +1247,7 @@ ofl_structs_queue_stats_unpack(struct ofp_queue_stats *src, size_t *len, struct 
     p->duration_sec = ntohl(src->duration_sec);
     p->duration_nsec = ntohl(src->duration_nsec);
 
-    error = ofl_utils_count_ofp_queue_stats_props((uint8_t *)src->properties, *len, &p->properties_num);
+    error = ofl_utils_count_ofp_queue_stats_props((uint8_t *)src->properties, total_len - sizeof(struct ofp_queue_stats), &p->properties_num);
     if (error) {
         free(p);
         return error;

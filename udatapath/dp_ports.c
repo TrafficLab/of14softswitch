@@ -953,6 +953,8 @@ new_queue(struct sw_port * port, struct sw_queue * queue,
     queue->stats->tx_errors = 0;
     queue->stats->duration_sec = 0;
     queue->stats->duration_nsec = 0;
+    queue->stats->properties_num = 0;
+    queue->stats->properties = NULL;
 
     /* class_id is the internal mapping to class. It is the offset
      * in the array of queues for each port. Note that class_id is
