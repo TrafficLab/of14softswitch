@@ -803,21 +803,31 @@ dp_ports_handle_queue_desc_request(struct datapath *dp,
         p = dp_ports_lookup(dp, msg->port_no);
 
         if (p == NULL || (p->stats->port_no != msg->port_no)) {
-            free(reply.queues);
-            ofl_msg_free((struct ofl_msg_header *)msg, dp->exp);
             return ofl_error(OFPET_QUEUE_OP_FAILED, OFPQOFC_BAD_PORT);
         } else {
-            size_t i, idx = 0;
+            if(msg->queue_id == OFPQ_ALL) {
 
-            reply.queues_num = p->num_queues;
-            reply.queues     = xmalloc(sizeof(struct ofl_packet_queue *) * p->num_queues);
+                size_t i, idx = 0;
 
-            for (i=0; i<p->max_queues; i++) {
-                if (p->queues[i].port != NULL) {
-                    reply.queues[idx] = p->queues[i].props;
-                    idx++;
+                reply.queues_num = p->num_queues;
+                reply.queues     = xmalloc(sizeof(struct ofl_packet_queue *) * p->num_queues);
+
+                for (i=0; i<p->max_queues; i++) {
+                    if (p->queues[i].port != NULL) {
+                        reply.queues[idx] = p->queues[i].props;
+                        idx++;
+                    }
                 }
-            }
+            } else {
+	        if((msg->queue_id < p->max_queues)
+		   && (p->queues[msg->queue_id].port != NULL)) {
+		    reply.queues_num = 1;
+		    reply.queues     = xmalloc(sizeof(struct ofl_packet_queue *));
+		    reply.queues[0] = p->queues[msg->queue_id].props;
+		} else {
+		    return ofl_error(OFPET_QUEUE_OP_FAILED, OFPQOFC_BAD_QUEUE);
+		}
+           }
         }
     }
 
