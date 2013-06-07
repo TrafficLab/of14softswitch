@@ -699,31 +699,31 @@ ofl_msg_unpack_bundle_control(struct ofp_header *src, size_t *len, struct ofl_ms
 }
 
 static ofl_err
-ofl_msg_unpack_bundle_append(struct ofp_header *src, size_t *len, struct ofl_msg_header **msg) {
-    struct ofp_bundle_append *sm;
-    struct ofl_msg_bundle_append *dm;
+ofl_msg_unpack_bundle_add_msg(struct ofp_header *src, size_t *len, struct ofl_msg_header **msg) {
+    struct ofp_bundle_add_msg *sm;
+    struct ofl_msg_bundle_add_msg *dm;
     size_t message_length;
 
-    if (*len < sizeof(struct ofp_bundle_append)) {
-        OFL_LOG_WARN(LOG_MODULE, "Received BUNDLE_APPEND message has invalid length (%zu).", *len);
+    if (*len < sizeof(struct ofp_bundle_add_msg)) {
+        OFL_LOG_WARN(LOG_MODULE, "Received BUNDLE_ADD_MESSAGE message has invalid length (%zu).", *len);
         return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
     }
-    *len -= sizeof(struct ofp_bundle_append);
+    *len -= sizeof(struct ofp_bundle_add_msg) - sizeof(struct ofp_header);
 
-    sm = (struct ofp_bundle_append *)src;
-    message_length = ntohs(sm->message->length);
+    sm = (struct ofp_bundle_add_msg *)src;
+    message_length = ntohs(sm->message.length);
     if (*len < message_length) {
-        OFL_LOG_WARN(LOG_MODULE, "Received BUNDLE_APPEND message has invalid length (received %zu, expected %zu).",
-                     *len + sizeof(struct ofp_bundle_append),
-                     message_length + sizeof(struct ofp_bundle_append));
-        return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
+        OFL_LOG_WARN(LOG_MODULE, "Received BUNDLE_ADD_MESSAGE message has invalid length (received %zu, expected %zu).",
+                     *len + sizeof(struct ofp_bundle_add_msg),
+                     message_length + sizeof(struct ofp_bundle_add_msg));
+        return ofl_error(OFPET_BUNDLE_FAILED, OFPBFC_MSG_BAD_LEN);
     }
     *len -= message_length;
 
-    dm = (struct ofl_msg_bundle_append *)malloc(sizeof(struct ofl_msg_bundle_append));
+    dm = (struct ofl_msg_bundle_add_msg *)malloc(sizeof(struct ofl_msg_bundle_add_msg));
     dm->bundle_id = ntohl(sm->bundle_id);
     dm->flags = ntohs(sm->flags);
-    dm->message = message_length > 0 ? (uint8_t *)memcpy(malloc(message_length), sm->message, message_length) : NULL;
+    dm->message = (struct ofp_header *) (message_length > 0 ? (uint8_t *)memcpy(malloc(message_length), &(sm->message), message_length) : NULL);
 
     *msg = (struct ofl_msg_header *)dm;
     return 0;
@@ -1736,8 +1736,8 @@ ofl_msg_unpack(uint8_t *buf, size_t buf_len, struct ofl_msg_header **msg, uint32
             error = ofl_msg_unpack_bundle_control(oh, &len, msg);
             break;
 
-        case OFPT_BUNDLE_APPEND:
-            error = ofl_msg_unpack_bundle_append(oh, &len, msg);
+        case OFPT_BUNDLE_ADD_MESSAGE:
+            error = ofl_msg_unpack_bundle_add_msg(oh, &len, msg);
             break;
 
         default: {

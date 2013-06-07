@@ -47,20 +47,20 @@ static struct vlog_rate_limit rl = VLOG_RATE_LIMIT_INIT(60, 60);
 
 /* Create a structure to retain an appended message. */
 static struct bundle_message *
-bundle_message_create(struct ofl_msg_bundle_append *append) {
+bundle_message_create(struct ofl_msg_bundle_add_msg *add_msg) {
     struct bundle_message *msg;
     size_t message_length;
 
     msg = xmalloc(sizeof(struct bundle_message));
     list_init(&msg->node);
 
-    message_length = ntohs(append->message->length);
+    message_length = ntohs(add_msg->message->length);
     msg->message = xmalloc(message_length);
-    memcpy(msg->message, append->message, message_length);
+    memcpy(msg->message, add_msg->message, message_length);
 
     printf("Created %u byte bundle message entry for bundle ID %u.\n",
            message_length,
-           append->bundle_id);
+           add_msg->bundle_id);
 
     return msg;
 }
@@ -151,7 +151,7 @@ bundle_open(struct bundle_table *table,
 
     entry = bundle_table_entry_find(table, bundle_id);
     if (entry != NULL) {
-        error = ofl_error(OFPET_BUNDLE_FAILED, OFPBFC_BAD_SEQ);
+        error = ofl_error(OFPET_BUNDLE_FAILED, OFPBFC_BUNDLE_EXIST);
         bundle_table_entry_destroy(entry);
     } else {
         entry = bundle_table_entry_create(bundle_id, flags);
@@ -177,7 +177,7 @@ bundle_close(struct bundle_table *table,
             error = ofl_error(OFPET_BUNDLE_FAILED, OFPBFC_BAD_FLAGS);
             bundle_table_entry_destroy(entry);
         } else if (entry->closed) {
-            error = ofl_error(OFPET_BUNDLE_FAILED, OFPBFC_BAD_SEQ);
+            error = ofl_error(OFPET_BUNDLE_FAILED, OFPBFC_BUNDLE_CLOSED);
             bundle_table_entry_destroy(entry);
         } else {
             /* TODO check bundled messages (e.g. syntax / parameter check
@@ -215,28 +215,28 @@ bundle_discard(struct bundle_table *table,
     return error;
 }
 
-/* Append message operation. */
+/* ADD_MESSAGE message operation. */
 static ofl_err
-bundle_append(struct bundle_table *table, struct ofl_msg_bundle_append *append) {
+bundle_add_msg(struct bundle_table *table, struct ofl_msg_bundle_add_msg *add_msg) {
     struct bundle_table_entry *entry;
     struct bundle_message *new_message;
     ofl_err error = 0;
 
-    entry = bundle_table_entry_find(table, append->bundle_id);
+    entry = bundle_table_entry_find(table, add_msg->bundle_id);
 
     if (entry != NULL) {
-        if (entry->flags != append->flags) {
+        if (entry->flags != add_msg->flags) {
             error = ofl_error(OFPET_BUNDLE_FAILED, OFPBFC_BAD_FLAGS);
         } else if (entry->closed) {
-            error = ofl_error(OFPET_BUNDLE_FAILED, OFPBFC_BAD_SEQ);
+            error = ofl_error(OFPET_BUNDLE_FAILED, OFPBFC_BUNDLE_CLOSED);
             bundle_table_entry_destroy(entry);
         }
     } else {
-        entry = bundle_table_entry_create(append->bundle_id, append->flags);
+        entry = bundle_table_entry_create(add_msg->bundle_id, add_msg->flags);
         list_push_back(&table->bundle_table_entries, &entry->node);
     }
 
-    new_message = bundle_message_create(append);
+    new_message = bundle_message_create(add_msg);
     list_push_back(&entry->bundle_message_list, &new_message->node);
 
     return error;
@@ -330,44 +330,44 @@ bundle_handle_control(struct datapath *dp,
 
     printf("Processing bundle control message with type %d\n", ctl->type);
     switch (ctl->type) {
-        case OFPBT_OPEN_REQUEST: {
+        case OFPBCT_OPEN_REQUEST: {
             printf("Processing bundle open of bundle ID %u\n", ctl->bundle_id);
             error = bundle_open(table, ctl->bundle_id, ctl->flags);
             if(!error) {
-                reply.type = OFPBT_OPEN_REPLY;
+                reply.type = OFPBCT_OPEN_REPLY;
                 reply.bundle_id = ctl->bundle_id;
                 dp_send_message(dp, (struct ofl_msg_header *)&reply, sender);
                 ofl_msg_free((struct ofl_msg_header *)ctl, dp->exp);
             }
             return error;
         }
-        case OFPBT_CLOSE_REQUEST: {
+        case OFPBCT_CLOSE_REQUEST: {
             printf("Processing bundle close of bundle ID %u\n", ctl->bundle_id);
             error = bundle_close(table, ctl->bundle_id, ctl->flags);
             if(!error) {
-                reply.type = OFPBT_CLOSE_REPLY;
+                reply.type = OFPBCT_CLOSE_REPLY;
                 reply.bundle_id = ctl->bundle_id;
                 dp_send_message(dp, (struct ofl_msg_header *)&reply, sender);
                 ofl_msg_free((struct ofl_msg_header *)ctl, dp->exp);
             }
             return error;
         }
-        case OFPBT_DISCARD_REQUEST: {
+        case OFPBCT_DISCARD_REQUEST: {
             printf("Processing bundle discard of bundle ID %u\n", ctl->bundle_id);
             error = bundle_discard(table, ctl->bundle_id, ctl->flags);
             if(!error) {
-                reply.type = OFPBT_DISCARD_REPLY;
+                reply.type = OFPBCT_DISCARD_REPLY;
                 reply.bundle_id = ctl->bundle_id;
                 dp_send_message(dp, (struct ofl_msg_header *)&reply, sender);
                 ofl_msg_free((struct ofl_msg_header *)ctl, dp->exp);
             }
             return error;
         }
-        case OFPBT_COMMIT_REQUEST: {
+        case OFPBCT_COMMIT_REQUEST: {
             printf("Processing bundle commit of bundle ID %u\n", ctl->bundle_id);
             error = bundle_commit(dp, table, ctl->bundle_id, ctl->flags, sender);
             if(!error) {
-                reply.type = OFPBT_COMMIT_REPLY;
+                reply.type = OFPBCT_COMMIT_REPLY;
                 reply.bundle_id = ctl->bundle_id;
                 dp_send_message(dp, (struct ofl_msg_header *)&reply, sender);
                 ofl_msg_free((struct ofl_msg_header *)ctl, dp->exp);
@@ -380,13 +380,13 @@ bundle_handle_control(struct datapath *dp,
     }
 }
 
-/* Handle bundle append operation. */
+/* Handle bundle add_msg operation. */
 ofl_err
-bundle_handle_append(struct bundle_table *table,
-                     struct ofl_msg_bundle_append *append,
+bundle_handle_add_msg(struct bundle_table *table,
+                     struct ofl_msg_bundle_add_msg *add_msg,
                      const struct sender *sender) {
     if(sender->remote->role == OFPCR_ROLE_SLAVE)
         return ofl_error(OFPET_BAD_REQUEST, OFPBRC_IS_SLAVE);
 
-    return bundle_append(table, append);
+    return bundle_add_msg(table, add_msg);
 }

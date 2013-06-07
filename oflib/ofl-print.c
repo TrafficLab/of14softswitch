@@ -483,14 +483,19 @@ ofl_error_code_print(FILE *stream, uint16_t type, uint16_t code) {
             switch (code) {
                 case (OFPBFC_UNKNOWN) :      { fprintf(stream, "UNKNOWN"); return; }
                 case (OFPBFC_EPERM) :        { fprintf(stream, "EPERM"); return; }
-                case (OFPBFC_UNSUP) :        { fprintf(stream, "UNSUP"); return; }
-                case (OFPBFC_OUT_OF_MEM) :   { fprintf(stream, "OUT_OF_MEM"); return; }
                 case (OFPBFC_BAD_ID) :       { fprintf(stream, "BAD_ID"); return; }
+                case (OFPBFC_BUNDLE_EXIST) : { fprintf(stream, "BUNDLE_EXIST"); return; }
+                case (OFPBFC_BUNDLE_CLOSED) : { fprintf(stream, "BUNDLE_CLOSED"); return; }
+                case (OFPBFC_OUT_OF_BUNDLES) : { fprintf(stream, "OUT_OF_BUNDLES"); return; }
                 case (OFPBFC_BAD_TYPE) :     { fprintf(stream, "BAD_TYPE"); return; }
-                case (OFPBFC_BAD_ARGUMENT) : { fprintf(stream, "BAD_ARGUMENT"); return; }
                 case (OFPBFC_BAD_FLAGS) :    { fprintf(stream, "BAD_FLAGS"); return; }
-                case (OFPBFC_BAD_LEN) :      { fprintf(stream, "BAD_LEN"); return; }
-                case (OFPBFC_BAD_SEQ) :      { fprintf(stream, "BAD_SEQ"); return; }
+                case (OFPBFC_MSG_BAD_LEN) :  { fprintf(stream, "MSG_BAD_LEN"); return; }
+                case (OFPBFC_MSG_UNSUP) :    { fprintf(stream, "MSG_UNSUP"); return; }
+                case (OFPBFC_MSG_CONFLICT) : { fprintf(stream, "MSG_CONFLICT"); return; }
+                case (OFPBFC_MSG_TOO_MANY) : { fprintf(stream, "MSG_TOO_MANY"); return; }
+                case (OFPBFC_MSG_BAD_XID) :  { fprintf(stream, "MSG_BAD_XID"); return; }
+                case (OFPBFC_TIMEOUT) :      { fprintf(stream, "TIMEOUT"); return; }
+                case (OFPBFC_BUNDLE_IN_PROGRESS) : { fprintf(stream, "BUNDLE_IN_PROGRESS"); return; }
             }
             break;
         }
@@ -545,7 +550,7 @@ ofl_message_type_print(FILE *stream, uint16_t type) {
 		case OFPT_ROLE_REQUEST:             { fprintf(stream, "role_request"); return;}
 		case OFPT_ROLE_REPLY:               { fprintf(stream, "role_reply"); return;}
         case OFPT_BUNDLE_CONTROL: {           fprintf(stream, "bundle_control"); return; }
-        case OFPT_BUNDLE_APPEND: {            fprintf(stream, "bundle_append"); return; }
+        case OFPT_BUNDLE_ADD_MESSAGE: {       fprintf(stream, "bundle_add_message"); return; }
 		default: {                            fprintf(stream, "?(%u)", type); return; }
     }
 }

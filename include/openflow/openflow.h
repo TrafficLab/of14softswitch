@@ -93,18 +93,7 @@ enum ofp_type {
     OFPT_METER_MOD = 29, /* Controller/switch message */
     /* Bundle messages. */
     OFPT_BUNDLE_CONTROL = 30,    /* Controller/switch message */
-    OFPT_BUNDLE_APPEND  = 31,    /* Controller/switch message */
-};
-
-enum ofp_bundle_type {
-    OFPBT_OPEN_REQUEST = 0,
-    OFPBT_OPEN_REPLY = 1,
-    OFPBT_CLOSE_REQUEST = 2,
-    OFPBT_CLOSE_REPLY = 3,
-    OFPBT_COMMIT_REQUEST = 4,
-    OFPBT_COMMIT_REPLY = 5,
-    OFPBT_DISCARD_REQUEST = 6,
-    OFPBT_DISCARD_REPLY = 7,
+    OFPT_BUNDLE_ADD_MESSAGE = 31,    /* Controller/switch message */
 };
 
 /* OFPT_HELLO.  This message has an empty body, but implementations must
@@ -877,15 +866,30 @@ OFP_ASSERT(sizeof(struct ofp_meter_band_experimenter) == 16);
 struct ofp_bundle_prop_header {
     uint16_t type;   /* One of the OFPBPT_* constants. */
     uint16_t length; /* Length in bytes of this property. */
-    uint8_t pad[4];
 };
-OFP_ASSERT(sizeof(struct ofp_bundle_prop_header) == 8);
+OFP_ASSERT(sizeof(struct ofp_bundle_prop_header) == 4);
+
+/* Bundle property types. */
+enum ofp_bundle_prop_type {
+    OFPBPT_EXPERIMENTER = 0xFFFF, /* Experimenter property. */
+};
+
+enum ofp_bundle_ctrl_type {
+    OFPBCT_OPEN_REQUEST = 0,
+    OFPBCT_OPEN_REPLY = 1,
+    OFPBCT_CLOSE_REQUEST = 2,
+    OFPBCT_CLOSE_REPLY = 3,
+    OFPBCT_COMMIT_REQUEST = 4,
+    OFPBCT_COMMIT_REPLY = 5,
+    OFPBCT_DISCARD_REQUEST = 6,
+    OFPBCT_DISCARD_REPLY = 7,
+};
 
 /* Bundle control messages. */
 struct ofp_bundle_control {
     struct ofp_header header;
     uint32_t bundle_id;  /* ID of the bundle. */
-    uint16_t type;       /* One of the OFPBT_* constants. */
+    uint16_t type;       /* One of the OFPBCT_* constants. */
     uint16_t flags;      /* OFPBF_* flags. */
     /* Bundle property list. */
     struct ofp_bundle_prop_header properties[0];
@@ -893,21 +897,16 @@ struct ofp_bundle_control {
 OFP_ASSERT(sizeof(struct ofp_bundle_control) == 16);
 
 /* Bundle append message. */
-struct ofp_bundle_append {
+struct ofp_bundle_add_msg {
     struct ofp_header header;
     uint32_t bundle_id;           /* ID of the bundle. */
-    uint16_t flags;               /* OFPBF_* flags. */
     uint8_t pad[2];               /* Align to 64 bits. */
-    struct ofp_header message[0]; /* Message to append. */
+    uint16_t flags;               /* OFPBF_* flags. */
+    struct ofp_header message; /* Message to add. */
     /* Bundle property list. */
     struct ofp_bundle_prop_header properties[0];
 };
-OFP_ASSERT(sizeof(struct ofp_bundle_control) == 16);
-
-/* Bundle property types. */
-enum ofp_bundle_prop_type {
-    OFPBPT_EXPERIMENTER = 0xFFFF, /* Experimenter property. */
-};
+OFP_ASSERT(sizeof(struct ofp_bundle_add_msg) == 24);
 
 /* Bundle configuration flags. */
 enum ofp_bundle_flags {
@@ -1788,16 +1787,21 @@ enum ofp_table_features_failed_code {
 /* ofp_error_msg ’code’ values for OFPET_BUNDLE_FAILED. ’data’ contains
 * at least the first 64 bytes of the failed request. */
 enum ofp_bundle_failed_code {
-    OFPBFC_UNKNOWN = 0,      /* Unspecified error. */
-    OFPBFC_EPERM = 1,        /* Permissions error. */
-    OFPBFC_UNSUP = 2,        /* Unsupported message or message combination in bundle. */
-    OFPBFC_OUT_OF_MEM = 3,   /* No room for bundled message or rollback related state. */
-    OFPBFC_BAD_ID = 4,       /* Bundle ID doesn't exist. */
-    OFPBFC_BAD_TYPE = 5,     /* Unsupported or unknown message or property type. */
-    OFPBFC_BAD_ARGUMENT = 6, /* Unsupported property value. */
-    OFPBFC_BAD_FLAGS = 7,    /* Unsupported, unknown, or inconsistent flags. */
-    OFPBFC_BAD_LEN = 8,      /* Length problem in properties or appended message. */
-    OFPBFC_BAD_SEQ = 9,      /* Unsupported or invalid sequence of operations. */
+    OFPBFC_UNKNOWN = 0,       /* Unspecified error. */
+    OFPBFC_EPERM = 1,         /* Permissions error. */
+    OFPBFC_BAD_ID = 2,        /* Bundle ID doesn't exist. */
+    OFPBFC_BUNDLE_EXIST = 3,  /* Bundle ID already exist. */
+    OFPBFC_BUNDLE_CLOSED = 4, /* Bundle ID is closed. */
+    OFPBFC_OUT_OF_BUNDLES = 5, /* Too many bundles IDs. */
+    OFPBFC_BAD_TYPE = 6,   /* Unsupported or unknown message control type. */
+    OFPBFC_BAD_FLAGS = 7,  /* Unsupported, unknown, or inconsistent flags. */
+    OFPBFC_MSG_BAD_LEN = 8,  /* Length problem in included message. */
+    OFPBFC_MSG_BAD_XID = 9,  /* Inconsistent or duplicate XID. */
+    OFPBFC_MSG_UNSUP = 10,   /* Unsupported message in this bundle. */
+    OFPBFC_MSG_CONFLICT = 11,  /* Unsupported message combination in this bundle. */
+    OFPBFC_MSG_TOO_MANY = 12, /* Can’t handle this many messages in bundle. */
+    OFPBFC_TIMEOUT = 13,      /* Bundle is taking too long. */
+    OFPBFC_BUNDLE_IN_PROGRESS = 14, /* Bundle is locking the resource. */
 };
 
 /* OFPET_EXPERIMENTER: Error message (datapath -> controller). */

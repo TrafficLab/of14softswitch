@@ -682,20 +682,20 @@ ofl_msg_print_role_msg(struct ofl_msg_role_request *msg, FILE *stream){
 static void
 ofl_msg_print_bundle_control(struct ofl_msg_bundle_control *msg, FILE *stream) {
     fprintf(stream, "{type=%s,bundle_id=%u}",
-            (msg->type == OFPBT_OPEN_REQUEST)    ? "OPEN_REQUEST" :
-            (msg->type == OFPBT_OPEN_REPLY)      ? "OPEN_REPLY" :
-            (msg->type == OFPBT_CLOSE_REQUEST)   ? "CLOSE_REQUEST" :
-            (msg->type == OFPBT_CLOSE_REPLY)     ? "CLOSE_REPLY" :
-            (msg->type == OFPBT_COMMIT_REQUEST)  ? "COMMIT_REQUEST" :
-            (msg->type == OFPBT_COMMIT_REPLY)    ? "COMMIT_REPLY" :
-            (msg->type == OFPBT_DISCARD_REQUEST) ? "DISCARD_REQUEST" :
-            (msg->type == OFPBT_DISCARD_REPLY)   ? "DISCARD_REPLY" :
+            (msg->type == OFPBCT_OPEN_REQUEST)    ? "OPEN_REQUEST" :
+            (msg->type == OFPBCT_OPEN_REPLY)      ? "OPEN_REPLY" :
+            (msg->type == OFPBCT_CLOSE_REQUEST)   ? "CLOSE_REQUEST" :
+            (msg->type == OFPBCT_CLOSE_REPLY)     ? "CLOSE_REPLY" :
+            (msg->type == OFPBCT_COMMIT_REQUEST)  ? "COMMIT_REQUEST" :
+            (msg->type == OFPBCT_COMMIT_REPLY)    ? "COMMIT_REPLY" :
+            (msg->type == OFPBCT_DISCARD_REQUEST) ? "DISCARD_REQUEST" :
+            (msg->type == OFPBCT_DISCARD_REPLY)   ? "DISCARD_REPLY" :
             "???",
             msg->bundle_id);
 }
 
 static void
-ofl_msg_print_bundle_append(struct ofl_msg_bundle_append *msg, FILE *stream) {
+ofl_msg_print_bundle_add_msg(struct ofl_msg_bundle_add_msg *msg, FILE *stream) {
     fprintf(stream, "{bundle_id=%u}", msg->bundle_id);
 
 }
@@ -785,7 +785,7 @@ ofl_msg_print(FILE *stream, struct ofl_msg_header *msg, struct ofl_exp *exp) {
 			    	
         /* Bundle messages. */
         case OFPT_BUNDLE_CONTROL: { ofl_msg_print_bundle_control((struct ofl_msg_bundle_control *)msg, stream); return; }
-        case OFPT_BUNDLE_APPEND: { ofl_msg_print_bundle_append((struct ofl_msg_bundle_append *)msg, stream); return; }
+        case OFPT_BUNDLE_ADD_MESSAGE: { ofl_msg_print_bundle_add_msg((struct ofl_msg_bundle_add_msg *)msg, stream); return; }
     }
 }
 

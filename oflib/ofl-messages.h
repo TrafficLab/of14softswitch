@@ -269,11 +269,11 @@ struct ofl_msg_bundle_control {
 };
 
 /* Bundled operations - append message. OFPT_BUNDLE_APPEND. */
-struct ofl_msg_bundle_append {
+struct ofl_msg_bundle_add_msg {
     struct    ofl_msg_header header;
     uint32_t  bundle_id;
     uint16_t  flags;                 /* One of OFPBF_*. */
-    struct ofp_header *message;      /* Message to append. */
+    struct ofp_header *message;      /* Message to add. */
 };
 
 /**********************

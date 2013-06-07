@@ -111,23 +111,21 @@ ofl_msg_pack_bundle_control(struct ofl_msg_bundle_control *msg, uint8_t **buf, s
 }
 
 static int
-ofl_msg_pack_bundle_append(struct ofl_msg_bundle_append *msg, uint8_t **buf, size_t *buf_len) {
-        struct ofp_bundle_append *append;
-        struct ofp_header *message;
+ofl_msg_pack_bundle_add_msg(struct ofl_msg_bundle_add_msg *msg, uint8_t **buf, size_t *buf_len) {
+        struct ofp_bundle_add_msg *add_msg;
         size_t message_length;
 
         message_length = ntohs(msg->message->length);
-        *buf_len = sizeof(struct ofp_bundle_append) + message_length;
+        *buf_len = sizeof(struct ofp_bundle_add_msg) - sizeof(struct ofp_header) + message_length;
         *buf     = (uint8_t *)malloc(*buf_len);
 
-        append = (struct ofp_bundle_control *)(*buf);
-        append->bundle_id =  htonl(msg->bundle_id);
-        append->flags     =  htons(msg->flags);
-        memset(append->pad,0,sizeof(append->pad));
+        add_msg = (struct ofp_bundle_add_msg *)(*buf);
+        add_msg->bundle_id =  htonl(msg->bundle_id);
+        add_msg->flags     =  htons(msg->flags);
+        memset(add_msg->pad,0,sizeof(add_msg->pad));
 
         if(message_length > 0) {
-            message = (*buf) + sizeof(struct ofp_bundle_append);
-            memcpy(message, msg->message, message_length);
+            memcpy(&(add_msg->message), msg->message, message_length);
         }
 
         /* TODO Add support for packing properties. */
@@ -1156,8 +1154,8 @@ ofl_msg_pack(struct ofl_msg_header *msg, uint32_t xid, uint8_t **buf, size_t *bu
             error = ofl_msg_pack_bundle_control((struct ofl_msg_bundle_control*)msg, buf, buf_len);
             break;
 
-        case OFPT_BUNDLE_APPEND:
-            error = ofl_msg_pack_bundle_append((struct ofl_msg_bundle_append*)msg, buf, buf_len);
+        case OFPT_BUNDLE_ADD_MESSAGE:
+            error = ofl_msg_pack_bundle_add_msg((struct ofl_msg_bundle_add_msg*)msg, buf, buf_len);
             break;
 
         default: {

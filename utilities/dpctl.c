@@ -293,14 +293,13 @@ dpctl_send(struct vconn *vconn, struct ofl_msg_header *msg) {
     }
 
     if(bundle_id != (uint32_t)-1) {
-        struct ofl_msg_bundle_append append =
-            {{.type = OFPT_BUNDLE_APPEND}};
+        struct ofl_msg_bundle_add_msg add_msg =
+            {{.type = OFPT_BUNDLE_ADD_MESSAGE},
+	     .bundle_id = bundle_id,
+	     .flags = bundle_flags,
+	     .message = (struct ofp_header *) buf};
 
-        append.message = buf;
-        append.bundle_id = bundle_id;
-        append.flags = bundle_flags;
-
-        error = ofl_msg_pack((struct ofl_msg_header *) &append, XID, &buf, &buf_size, &dpctl_exp);
+        error = ofl_msg_pack((struct ofl_msg_header *) &add_msg, XID, &buf, &buf_size, &dpctl_exp);
         if (error) {
               ofp_fatal(0, "Error wrapping request into bundle.");
         }
@@ -907,16 +906,19 @@ get_async(struct vconn *vconn, int argc UNUSED, char *argv[] UNUSED){
 static void
 bundle_control(struct vconn *vconn, int argc UNUSED, char *argv[] UNUSED) {
     struct ofl_msg_bundle_control req =
-            {{.type = OFPT_BUNDLE_CONTROL}};
+            {{.type = OFPT_BUNDLE_CONTROL},
+	     .bundle_id = 0,
+	     .type = 0,
+	     .flags = 0};
 
     if (strcmp(argv[0], "open") == 0) {
-        req.type = OFPBT_OPEN_REQUEST;
+        req.type = OFPBCT_OPEN_REQUEST;
     } else if (strcmp(argv[0], "close") == 0) {
-        req.type = OFPBT_CLOSE_REQUEST;
+        req.type = OFPBCT_CLOSE_REQUEST;
     } else if (strcmp(argv[0], "commit") == 0) {
-        req.type = OFPBT_COMMIT_REQUEST;
+        req.type = OFPBCT_COMMIT_REQUEST;
     } else if (strcmp(argv[0], "discard") == 0) {
-        req.type = OFPBT_DISCARD_REQUEST;
+        req.type = OFPBCT_DISCARD_REQUEST;
     } else {
         ofp_fatal(0, "Error parsing bundle subcommand: %s.", argv[0]);
     }

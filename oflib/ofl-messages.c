@@ -296,8 +296,8 @@ ofl_msg_free(struct ofl_msg_header *msg, struct ofl_exp *exp) {
         case OFPT_BUNDLE_CONTROL: {
             break;
         }
-        case OFPT_BUNDLE_APPEND: {
-            free(((struct ofl_msg_bundle_append *)msg)->message);
+        case OFPT_BUNDLE_ADD_MESSAGE: {
+            free(((struct ofl_msg_bundle_add_msg *)msg)->message);
             break;
         }
     }

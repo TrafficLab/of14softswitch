@@ -87,8 +87,8 @@ bundle_handle_control(struct datapath *dp,
                       const struct sender *sender);
 
 ofl_err
-bundle_handle_append(struct bundle_table *table,
-                     struct ofl_msg_bundle_append *append,
-                     const struct sender *sender);
+bundle_handle_add_msg(struct bundle_table *table,
+                      struct ofl_msg_bundle_add_msg *add_msg,
+                      const struct sender *sender);
 
 #endif /* BUNDLE_H */
