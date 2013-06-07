@@ -305,9 +305,6 @@ pipeline_handle_table_mod(struct pipeline *pl,
     for (ti = ti_start; ti < ti_stop; ti++) {
 	struct ofl_table_desc *table_desc = pl->tables[ti]->desc;
 
-        /* Update config flag. */
-        table_desc->config = msg->config;
-
 	/* Update properties. */
 	for(mpi = 0; mpi < msg->table_mod_prop_num; mpi++) {
             if(msg->props[mpi]->type == OFPTMPT_VACANCY) {
@@ -315,13 +312,18 @@ pipeline_handle_table_mod(struct pipeline *pl,
 		    if(table_desc->properties[tpi]->type == OFPTMPT_VACANCY) {
                         struct ofl_table_mod_prop_vacancy *prop_vaco = (struct ofl_table_mod_prop_vacancy *) msg->props[mpi];
                         struct ofl_table_mod_prop_vacancy *prop_vacd = (struct ofl_table_mod_prop_vacancy *) table_desc->properties[tpi];
+			if(prop_vaco->vacancy_down > prop_vaco->vacancy_up)
+			    return ofl_error(OFPET_TABLE_FEATURES_FAILED, OFPTFFC_BAD_ARGUMENT);
 			prop_vacd->vacancy_down = prop_vaco->vacancy_down;
 			prop_vacd->vacancy_up = prop_vaco->vacancy_up;
 			prop_vacd->down_set = ((FLOW_TABLE_MAX_ENTRIES - pl->tables[ti]->stats->active_count) * 100 / FLOW_TABLE_MAX_ENTRIES) >= prop_vacd->vacancy_up;
 		    }
 		}
 	    }
-	}
+        }
+
+        /* Update config flag. */
+        table_desc->config = msg->config;
     }
 
     ofl_msg_free((struct ofl_msg_header *)msg, pl->dp->exp);
