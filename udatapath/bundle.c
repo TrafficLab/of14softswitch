@@ -152,7 +152,6 @@ bundle_open(struct bundle_table *table,
     entry = bundle_table_entry_find(table, bundle_id);
     if (entry != NULL) {
         error = ofl_error(OFPET_BUNDLE_FAILED, OFPBFC_BUNDLE_EXIST);
-        bundle_table_entry_destroy(entry);
     } else {
         entry = bundle_table_entry_create(bundle_id, flags);
         list_push_back(&table->bundle_table_entries, &entry->node);
@@ -175,10 +174,8 @@ bundle_close(struct bundle_table *table,
     } else {
         if (entry->flags != flags) {
             error = ofl_error(OFPET_BUNDLE_FAILED, OFPBFC_BAD_FLAGS);
-            bundle_table_entry_destroy(entry);
         } else if (entry->closed) {
             error = ofl_error(OFPET_BUNDLE_FAILED, OFPBFC_BUNDLE_CLOSED);
-            bundle_table_entry_destroy(entry);
         } else {
             /* TODO check bundled messages (e.g. syntax / parameter check
              * and perform dry run of execution) to gain more confidence
@@ -202,11 +199,7 @@ bundle_discard(struct bundle_table *table,
 
     entry = bundle_table_entry_find(table, bundle_id);
     if (entry != NULL) {
-        if (entry->flags != flags) {
-            error = ofl_error(OFPET_BUNDLE_FAILED, OFPBFC_BAD_FLAGS);
-        } else {
-            error = 0;
-        }
+	/* Spec says we should always succeed, so don't fail on bad flags. */
         bundle_table_entry_destroy(entry);
     } else {
         error = ofl_error(OFPET_BUNDLE_FAILED, OFPBFC_BAD_ID);
@@ -229,7 +222,6 @@ bundle_add_msg(struct bundle_table *table, struct ofl_msg_bundle_add_msg *add_ms
             error = ofl_error(OFPET_BUNDLE_FAILED, OFPBFC_BAD_FLAGS);
         } else if (entry->closed) {
             error = ofl_error(OFPET_BUNDLE_FAILED, OFPBFC_BUNDLE_CLOSED);
-            bundle_table_entry_destroy(entry);
         }
     } else {
         entry = bundle_table_entry_create(add_msg->bundle_id, add_msg->flags);
@@ -305,10 +297,10 @@ bundle_commit(struct datapath *dp,
                  * (not required currently as variables used to save/restore
                  * state are re-used) */
             }
-        }
 
-        /* Whether or not commit succeeded: free entry for bundle ID */
-        bundle_table_entry_destroy(entry);
+            /* Whether or not commit succeeded: free entry for bundle ID */
+            bundle_table_entry_destroy(entry);
+        }
     }
 
     return last_error;
