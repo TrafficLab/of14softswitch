@@ -699,7 +699,7 @@ ofl_msg_unpack_bundle_control(struct ofp_header *src, size_t *len, struct ofl_ms
 }
 
 static ofl_err
-ofl_msg_unpack_bundle_add_msg(struct ofp_header *src, size_t *len, struct ofl_msg_header **msg) {
+ofl_msg_unpack_bundle_add_msg(struct ofp_header *src, size_t *len, struct ofl_msg_header **msg, struct ofl_exp *exp) {
     struct ofp_bundle_add_msg *sm;
     struct ofl_msg_bundle_add_msg *dm;
     size_t message_length;
@@ -722,6 +722,23 @@ ofl_msg_unpack_bundle_add_msg(struct ofp_header *src, size_t *len, struct ofl_ms
     if (src->xid != sm->message.xid) {
         OFL_LOG_WARN(LOG_MODULE, "Received BUNDLE_ADD_MESSAGE message has invalid XID (inner %zu, outer %zu).", sm->message.xid, src->xid);
         return ofl_error(OFPET_BUNDLE_FAILED, OFPBFC_MSG_BAD_XID);
+    }
+
+    {
+        struct ofl_msg_header *unpack_msg;
+	ofl_err error;
+	error = ofl_msg_unpack((uint8_t *) &(sm->message), message_length, &unpack_msg, NULL/*xid*/, exp);
+
+	if (error) {
+	    return error;
+	}
+        if (OFL_LOG_IS_DBG_ENABLED(LOG_MODULE)) {
+            char *str;
+                str = ofl_msg_to_string(unpack_msg, exp);
+            OFL_LOG_DBG(LOG_MODULE, "bundle received: %s", str);
+            free(str);
+        }
+	ofl_msg_free(unpack_msg, exp);
     }
 
     dm = (struct ofl_msg_bundle_add_msg *)malloc(sizeof(struct ofl_msg_bundle_add_msg));
@@ -1741,7 +1758,7 @@ ofl_msg_unpack(uint8_t *buf, size_t buf_len, struct ofl_msg_header **msg, uint32
             break;
 
         case OFPT_BUNDLE_ADD_MESSAGE:
-            error = ofl_msg_unpack_bundle_add_msg(oh, &len, msg);
+            error = ofl_msg_unpack_bundle_add_msg(oh, &len, msg, exp);
             break;
 
         default: {
