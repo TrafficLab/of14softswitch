@@ -719,6 +719,10 @@ ofl_msg_unpack_bundle_add_msg(struct ofp_header *src, size_t *len, struct ofl_ms
         return ofl_error(OFPET_BUNDLE_FAILED, OFPBFC_MSG_BAD_LEN);
     }
     *len -= message_length;
+    if (src->xid != sm->message.xid) {
+        OFL_LOG_WARN(LOG_MODULE, "Received BUNDLE_ADD_MESSAGE message has invalid XID (inner %zu, outer %zu).", sm->message.xid, src->xid);
+        return ofl_error(OFPET_BUNDLE_FAILED, OFPBFC_MSG_BAD_XID);
+    }
 
     dm = (struct ofl_msg_bundle_add_msg *)malloc(sizeof(struct ofl_msg_bundle_add_msg));
     dm->bundle_id = ntohl(sm->bundle_id);
