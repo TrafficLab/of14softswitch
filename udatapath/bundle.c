@@ -298,6 +298,26 @@ bundle_commit(struct datapath *dp,
                  * state are re-used) */
             }
 
+	    /* We need to generate the error ourselves. The spec say that
+	     * the error need to refer to the offending message in the budle.
+	     * If we just return the error code, the error message would refer
+	     * to the commit message. */
+            if (last_error) {
+                struct sender orig_sender = {.remote = sender->remote,
+					     .conn_id = sender->conn_id,
+					     .xid = xid};
+
+		struct ofl_msg_error orig_err =
+                            {{.type = OFPT_ERROR},
+                             .type = ofl_error_type(last_error),
+                             .code = ofl_error_code(last_error),
+                             .data_length = ntohs(bundle_msg->message->length),
+                             .data        = (uint8_t *)bundle_msg->message};
+		dp_send_message(dp, (struct ofl_msg_header *)&orig_err, &orig_sender);
+		/* Clear the error ? */
+		last_error = ofl_error(OFPET_BUNDLE_FAILED, OFPBFC_UNKNOWN);
+	    }
+
             /* Whether or not commit succeeded: free entry for bundle ID */
             bundle_table_entry_destroy(entry);
         }
