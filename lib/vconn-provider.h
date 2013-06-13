@@ -58,6 +58,7 @@ struct vconn {
     bool reconnectable;
     struct ofpstat ofps_rcvd;
     struct ofpstat ofps_sent;
+    void (*spurious_handler)(struct ofpbuf *spurious);
 };
 
 void vconn_init(struct vconn *, struct vconn_class *, int connect_status,

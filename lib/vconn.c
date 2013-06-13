@@ -297,6 +297,14 @@ vconn_is_reconnectable(const struct vconn *vconn)
     return vconn->reconnectable;
 }
 
+/* Set the spurious packet handler on a vconn. */
+void
+vconn_set_spurious_handler(struct vconn *vconn,
+			   void (*spurious_handler)(struct ofpbuf *spurious))
+{
+    vconn->spurious_handler = spurious_handler;
+}
+
 static void
 vcs_connecting(struct vconn *vconn) 
 {
@@ -678,9 +686,13 @@ vconn_recv_xid(struct vconn *vconn, uint32_t xid, struct ofpbuf **replyp)
             return 0;
         }
 
-        VLOG_DBG_RL(LOG_MODULE, &rl, "%s: received reply with xid %08"PRIx32" != expected "
+	if (vconn->spurious_handler != NULL) {
+            vconn->spurious_handler(reply);
+	} else {
+            VLOG_DBG_RL(LOG_MODULE, &rl, "%s: received reply with xid %08"PRIx32" != expected "
                     "%08"PRIx32, vconn->name, recv_xid, xid);
-        ofpbuf_delete(reply);
+            ofpbuf_delete(reply);
+	}
     }
 }
 
@@ -845,6 +857,7 @@ vconn_init(struct vconn *vconn, struct vconn_class *class, int connect_status,
     vconn->reconnectable = reconnectable;
     memset(&vconn->ofps_rcvd, 0, sizeof(vconn->ofps_rcvd));
     memset(&vconn->ofps_sent, 0, sizeof(vconn->ofps_sent));
+    vconn->spurious_handler = NULL;
 }
 
 void

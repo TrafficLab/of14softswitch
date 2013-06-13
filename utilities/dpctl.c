@@ -205,6 +205,33 @@ static struct ofl_exp dpctl_exp =
 
 
 static void
+show_error_handler(struct ofpbuf *spurious)
+{
+    uint8_t type;
+    int error;
+
+    type = ((struct ofp_header*) spurious->data)->type;
+    if (type == OFPT_ERROR) {
+        struct ofl_msg_header *error_msg;
+        uint32_t error_xid;
+	char *str;
+
+        error = ofl_msg_unpack(spurious->data, spurious->size, &error_msg, &error_xid, &dpctl_exp);
+
+	if (!error) {
+	    str = ofl_msg_to_string(error_msg, &dpctl_exp);
+	    printf("\nERROR (xid=0x%X):\n%s\n\n", error_xid, str);
+	    free(str);
+	    spurious->base = NULL;
+	    spurious->data = NULL;
+	    ofl_msg_free(error_msg, &dpctl_exp);
+	}
+    }
+
+    ofpbuf_delete(spurious);
+}
+
+static void
 dpctl_transact(struct vconn *vconn, struct ofl_msg_header *req,
 	       struct ofl_msg_header **repl, uint32_t *repl_xid_p) {
     struct ofpbuf *ofpbufreq, *ofpbufrepl;
@@ -929,6 +956,9 @@ bundle_control(struct vconn *vconn, int argc UNUSED, char *argv[] UNUSED) {
 
     req.bundle_id = bundle_id;
     req.flags = bundle_flags;
+
+    /* Dump error messages with different XID */
+    vconn_set_spurious_handler(vconn, &show_error_handler);
 
     dpctl_transact_and_print(vconn, (struct ofl_msg_header *)&req, NULL);
 }
