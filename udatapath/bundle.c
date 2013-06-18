@@ -314,8 +314,8 @@ bundle_commit(struct datapath *dp,
                              .data_length = ntohs(bundle_msg->message->length),
                              .data        = (uint8_t *)bundle_msg->message};
 		dp_send_message(dp, (struct ofl_msg_header *)&orig_err, &orig_sender);
-		/* Clear the error ? */
-		last_error = ofl_error(OFPET_BUNDLE_FAILED, OFPBFC_UNKNOWN);
+		/* Trigger second error message. */
+		last_error = ofl_error(OFPET_BUNDLE_FAILED, OFPBFC_MSG_FAILED);
 	    }
 
             /* Whether or not commit succeeded: free entry for bundle ID */

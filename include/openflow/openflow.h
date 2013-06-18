@@ -1800,8 +1800,9 @@ enum ofp_bundle_failed_code {
     OFPBFC_MSG_UNSUP = 10,   /* Unsupported message in this bundle. */
     OFPBFC_MSG_CONFLICT = 11,  /* Unsupported message combination in this bundle. */
     OFPBFC_MSG_TOO_MANY = 12, /* Can’t handle this many messages in bundle. */
-    OFPBFC_TIMEOUT = 13,      /* Bundle is taking too long. */
-    OFPBFC_BUNDLE_IN_PROGRESS = 14, /* Bundle is locking the resource. */
+    OFPBFC_MSG_FAILED = 13,   /* One message in bundle failed. */
+    OFPBFC_TIMEOUT = 14,      /* Bundle is taking too long. */
+    OFPBFC_BUNDLE_IN_PROGRESS = 15, /* Bundle is locking the resource. */
 };
 
 /* OFPET_EXPERIMENTER: Error message (datapath -> controller). */

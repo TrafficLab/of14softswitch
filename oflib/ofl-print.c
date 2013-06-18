@@ -490,10 +490,11 @@ ofl_error_code_print(FILE *stream, uint16_t type, uint16_t code) {
                 case (OFPBFC_BAD_TYPE) :     { fprintf(stream, "BAD_TYPE"); return; }
                 case (OFPBFC_BAD_FLAGS) :    { fprintf(stream, "BAD_FLAGS"); return; }
                 case (OFPBFC_MSG_BAD_LEN) :  { fprintf(stream, "MSG_BAD_LEN"); return; }
+                case (OFPBFC_MSG_BAD_XID) :  { fprintf(stream, "MSG_BAD_XID"); return; }
                 case (OFPBFC_MSG_UNSUP) :    { fprintf(stream, "MSG_UNSUP"); return; }
                 case (OFPBFC_MSG_CONFLICT) : { fprintf(stream, "MSG_CONFLICT"); return; }
                 case (OFPBFC_MSG_TOO_MANY) : { fprintf(stream, "MSG_TOO_MANY"); return; }
-                case (OFPBFC_MSG_BAD_XID) :  { fprintf(stream, "MSG_BAD_XID"); return; }
+                case (OFPBFC_MSG_FAILED) : { fprintf(stream, "MSG_FAILED"); return; }
                 case (OFPBFC_TIMEOUT) :      { fprintf(stream, "TIMEOUT"); return; }
                 case (OFPBFC_BUNDLE_IN_PROGRESS) : { fprintf(stream, "BUNDLE_IN_PROGRESS"); return; }
             }
