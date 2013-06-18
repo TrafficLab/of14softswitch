@@ -202,11 +202,8 @@ bundle_discard(struct bundle_table *table,
 
     entry = bundle_table_entry_find(table, bundle_id);
     if (entry != NULL) {
-        if (entry->flags != flags) {
-            error = ofl_error(OFPET_BUNDLE_FAILED, OFPBFC_BAD_FLAGS);
-        } else {
-            error = 0;
-        }
+	/* Spec says we should always succeed, so don't fail on bad flags. */
+        error = 0;
         bundle_table_entry_destroy(entry);
     } else {
         error = ofl_error(OFPET_BUNDLE_FAILED, OFPBFC_BAD_ID);
@@ -227,6 +224,7 @@ bundle_add_msg(struct bundle_table *table, struct ofl_msg_bundle_add_msg *add_ms
     if (entry != NULL) {
         if (entry->flags != add_msg->flags) {
             error = ofl_error(OFPET_BUNDLE_FAILED, OFPBFC_BAD_FLAGS);
+            bundle_table_entry_destroy(entry);
         } else if (entry->closed) {
             error = ofl_error(OFPET_BUNDLE_FAILED, OFPBFC_BUNDLE_CLOSED);
             bundle_table_entry_destroy(entry);
@@ -236,8 +234,10 @@ bundle_add_msg(struct bundle_table *table, struct ofl_msg_bundle_add_msg *add_ms
         list_push_back(&table->bundle_table_entries, &entry->node);
     }
 
-    new_message = bundle_message_create(add_msg);
-    list_push_back(&entry->bundle_message_list, &new_message->node);
+    if (!error) {
+        new_message = bundle_message_create(add_msg);
+        list_push_back(&entry->bundle_message_list, &new_message->node);
+    }
 
     return error;
 }
