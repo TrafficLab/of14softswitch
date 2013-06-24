@@ -72,6 +72,12 @@ extern uint32_t wildcarded[];
 extern struct ofl_instruction_header instructions[];
 
 extern struct ofl_action_header actions[];
+
+/* modified by dingwanfu_new */
+/* evict switch for test, shouled be configed by command line in */
+extern uint32_t g_evict_flags;
+#define OFPTMPT_EVICTION_FLAGS OFPTMPEF_IMPORTANCE
+
 /* Handles a flow mod message. */
 ofl_err
 flow_table_flow_mod(struct flow_table *table, struct ofl_msg_flow_mod *mod, bool *match_kept, bool *insts_kept);

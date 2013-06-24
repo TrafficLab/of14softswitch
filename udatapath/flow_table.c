@@ -210,8 +210,8 @@ flow_table_add(struct flow_table *table, struct ofl_msg_flow_mod *mod, bool chec
         /* Check if authorise table to evict flows. */
         if (table->desc->config & OFPTC_EVICTION) {
             for(pi = 0; pi < table->desc->properties_num; pi++) {
-                struct ofp_table_mod_prop_eviction *prop_evi;
-                prop_evi = (struct ofp_table_mod_prop_eviction *) table->desc->properties[pi];
+                struct ofl_table_mod_prop_eviction *prop_evi;
+                prop_evi = (struct ofl_table_mod_prop_eviction *) table->desc->properties[pi];
                 if(prop_evi->type == OFPTMPT_EVICTION) {
                     if (prop_evi->flags & OFPTMPEF_IMPORTANCE){
                         return flow_table_eviction_importance(table,  mod, match_kept, insts_kept);
@@ -513,8 +513,8 @@ flow_table_create_mod_prop(struct ofl_table_mod_prop_header **prop, enum ofp_tab
 
 /* modified by dingwanfu_new */
         case OFPTMPT_EVICTION:{
-            struct ofp_table_mod_prop_eviction *evict_desc;
-            evict_desc = xmalloc(sizeof(struct ofp_table_mod_prop_eviction));
+            struct ofl_table_mod_prop_eviction *evict_desc;
+            evict_desc = xmalloc(sizeof(struct ofl_table_mod_prop_eviction));
             evict_desc->type = type;
             evict_desc->flags = g_evict_flags;   /* global configed by command line */
             (*prop) = (struct ofl_table_mod_prop_header *)evict_desc;

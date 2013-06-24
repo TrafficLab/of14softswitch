@@ -269,18 +269,11 @@ struct ofl_table_mod_prop_vacancy {
     bool down_set;           /* Internal state. */
 };
 
-
-/* modified by dingwanfu_new */
-enum ofp_table_mod_prop_eviction_flag {
-    OFPTMPEF_OTHER                    = 1 << 0,        /* Using other factors. */
-    OFPTMPEF_IMPORTANCE         = 1 << 1,        /* Using flow entry importance. */
-    OFPTMPEF_LIFETIME		  = 1 << 2,        /* Using flow entry lifetime. */
+/* OFPTMPT_EVICTION prop - evice entries when table is full */
+struct ofl_table_mod_prop_eviction {
+    uint16_t type; /* OFPTMPT_EVICTION. */
+    uint32_t flags;      /* Bitmap of OFPTMPEF_* flags */
 };
-
-/* modified by dingwanfu_new */
-/* evict switch for test, shouled be configed by command line in */
-extern uint32_t g_evict_flags;
-#define OFPTMPT_EVICTION_FLAGS OFPTMPEF_IMPORTANCE
 
 /* Common header for all meter bands */
 struct ofl_meter_band_header {

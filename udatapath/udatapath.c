@@ -50,6 +50,7 @@
 #include "daemon.h"
 #include "datapath.h"
 #include "fault.h"
+#include "flow_table.h"
 #include "openflow/openflow.h"
 #include "poll-loop.h"
 #include "queue.h"

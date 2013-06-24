@@ -220,11 +220,10 @@ ofl_structs_table_mod_prop_pack(struct ofl_table_mod_prop_header *src, struct of
             return sizeof(struct ofp_table_mod_prop_vacancy);
         }
         case OFPTMPT_EVICTION:{  /* modified by dingwanfu_new */
-            struct ofp_table_mod_prop_eviction *sd = (struct ofp_table_mod_prop_eviction *)src;
+            struct ofl_table_mod_prop_eviction *sd = (struct ofl_table_mod_prop_eviction *)src;
             struct ofp_table_mod_prop_eviction *dp = (struct ofp_table_mod_prop_eviction *)dst;
-            dp->type = sd->type;
-            dp->length = sd->length;
-            dp->flags = sd->flags;
+            dp->length = htons(sizeof(struct ofp_table_mod_prop_eviction));
+            dp->flags = htonl(sd->flags);
             return sizeof(struct ofp_table_mod_prop_eviction);            
         }
         default:

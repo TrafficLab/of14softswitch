@@ -654,6 +654,12 @@ struct ofp_table_mod_prop_vacancy {
 };
 OFP_ASSERT(sizeof(struct ofp_table_mod_prop_vacancy) == 8);
 
+/* modified by dingwanfu_new */
+enum ofp_table_mod_prop_eviction_flag {
+    OFPTMPEF_OTHER          = 1 << 0,        /* Using other factors. */
+    OFPTMPEF_IMPORTANCE     = 1 << 1,        /* Using flow entry importance. */
+    OFPTMPEF_LIFETIME	    = 1 << 2,        /* Using flow entry lifetime. */
+};
 
 /* modified by dingwanfu_new */
 /* Eviction table mod property. 
