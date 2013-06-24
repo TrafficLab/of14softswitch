@@ -75,6 +75,12 @@ static void usage(void) NO_RETURN;
 
 static struct datapath *dp;
 
+/* modified by dingwanfu_new */
+uint32_t g_evict_flags = OFPTMPT_EVICTION_FLAGS;   /* the flags of OFPTMPT_EVICTION, defined in ofp_table_mod_prop_eviction_flag
+                             configed by command line, the command is: -e flags
+                             2 for OFPTMPEF_IMPORTANCE, and 4 for OFPTMPEF_LIFETIME */
+
+
 static char *port_list;
 static char *local_port = "tap:";
 
@@ -235,6 +241,7 @@ parse_options(struct datapath *dp, int argc, char *argv[])
         VCONN_SSL_LONG_OPTIONS
         {"bootstrap-ca-cert", required_argument, 0, OPT_BOOTSTRAP_CA_CERT},
 #endif
+        {"evict", required_argument, 0, 'e'},  /* config eviction flags */ /* modified by dingwanfu_new */
         {0, 0, 0, 0},
     };
     char *short_options = long_options_to_short_options(long_options);
@@ -331,6 +338,10 @@ parse_options(struct datapath *dp, int argc, char *argv[])
             vconn_ssl_set_ca_cert_file(optarg, true);
             break;
 #endif
+
+        case 'e':     /* config eviction flags */
+            g_evict_flags = strtol(optarg, NULL, 10);
+            break;
 
         case '?':
             exit(EXIT_FAILURE);

@@ -1108,6 +1108,16 @@ ofl_structs_table_mod_prop_unpack(struct ofp_table_mod_prop_header *src, size_t 
 			*dst = tp;
 			break;
 		}
+        case OFPTMPT_EVICTION:{  /* modified by dingwanfu_new */
+			struct ofp_table_mod_prop_eviction *p = (struct ofp_table_mod_prop_eviction *)malloc(sizeof(struct ofp_table_mod_prop_eviction));
+			struct ofp_table_mod_prop_eviction *s = (struct ofp_table_mod_prop_eviction *)src;
+			p->type = ntohs(s->type);
+			p->length = ntohs(s->length);
+			p->flags = ntohl(s->flags);
+			tp = (struct ofl_table_mod_prop_header *)p;
+			*dst = tp;
+			break;
+		}
 	}
 	*len -= ntohs(src->length);
 	return 0;

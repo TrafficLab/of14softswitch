@@ -612,6 +612,12 @@ ofl_structs_table_mod_prop_print(FILE *stream, struct ofl_table_mod_prop_header*
                   d->vacancy_down, d->vacancy_up, d->vacancy);         
             break;
         }
+        case(OFPTMPT_EVICTION):{  /* modified by dingwanfu_new */
+            struct ofp_table_mod_prop_eviction *d = (struct ofp_table_mod_prop_eviction *)s;
+            fprintf(stream, ", evict_length=\"%u\", evict_flags=\"%u\"}",
+                  d->length, d->flags);         
+            break;
+        }
     }
 }
 

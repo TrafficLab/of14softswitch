@@ -632,6 +632,7 @@ enum ofp_table_config {
 /* Table Mod property types.
  */
 enum ofp_table_mod_prop_type {
+    OFPTMPT_EVICTION               = 0x2,    /* Eviction property */ /* modified by dingwanfu_new */
     OFPTMPT_VACANCY                = 0x3,    /* Vacancy property. */
 };
 
@@ -652,6 +653,18 @@ struct ofp_table_mod_prop_vacancy {
     uint8_t pad[1];          /* Align to 64 bits. */
 };
 OFP_ASSERT(sizeof(struct ofp_table_mod_prop_vacancy) == 8);
+
+
+/* modified by dingwanfu_new */
+/* Eviction table mod property. 
+ * Mostyly used in OFPMP_TABLE_DESC replies. */
+struct ofp_table_mod_prop_eviction{
+    uint16_t        type;       /* OFPTMPT_EVICTION. */
+    uint16_t        length;     /* Length in bytes of this property. */
+    uint32_t        flags;      /* Bitmap of OFPTMPEF_* flags */
+};
+OFP_ASSERT(sizeof(struct ofp_table_mod_prop_eviction) == 8);
+
 
 /* Configure/Modify behavior of a flow table */
 struct ofp_table_mod {

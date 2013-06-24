@@ -712,6 +712,7 @@ void
 ofl_table_mod_prop_type_print(FILE *stream, uint16_t type) {
     switch (type) {
         case OFPTMPT_VACANCY:        {    fprintf(stream, "vacancy"); return; }
+        case OFPTMPT_EVICTION:       {    fprintf(stream, "eviction"); return; }
         default: {                   fprintf(stream, "?(%u)", type); return; }
     }              
 }        

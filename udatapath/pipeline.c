@@ -449,11 +449,18 @@ pipeline_handle_stats_request_table_desc_request(struct pipeline *pl,
         desc[i] = pl->tables[j]->desc;
 	/* Update vacancy. */
 	for(pi = 0; pi < desc[i]->properties_num; pi++) {
+        /* modified by dingwanfu_new */
+        if (desc[i]->config & OFPTC_VACANCY_EVENTS) {
 	    prop_vac = (struct ofl_table_mod_prop_vacancy *) desc[i]->properties[pi];
 	    if(prop_vac->type == OFPTMPT_VACANCY) {
 	        prop_vac->vacancy = (FLOW_TABLE_MAX_ENTRIES - pl->tables[j]->stats->active_count) * 100 / FLOW_TABLE_MAX_ENTRIES;
 	    }
 	  }
+        else if (desc[i]->config & OFPTC_EVICTION)
+        {
+            ;  /* do nothing here, just send the orginal desc, including OFPTMPT_EVICTION */
+        }
+	}
         j++;
     }
     {

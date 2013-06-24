@@ -45,7 +45,7 @@
 #define N_INSTRUCTIONS 6
 #define N_ACTIONS 16
 #define N_WILDCARDED 16
-#define TABLE_DESC_NUM 1
+#define TABLE_DESC_NUM 2  /* modified by dingwanfu_new */
 /****************************************************************************
  * Implementation of a flow table. The current implementation stores flow
  * entries in priority and then insertion order.
