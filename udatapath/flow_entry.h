@@ -74,6 +74,10 @@ struct packet;
 bool
 flow_entry_matches(struct flow_entry *entry, struct ofl_msg_flow_mod *mod, bool strict, bool check_cookie);
 
+/* Returns true if the flow entry is the table miss. */
+bool
+flow_entry_is_table_miss(struct flow_entry *entry);
+
 /* Returns true if the flow entry overlaps with the match in the flow mod message. */
 bool
 flow_entry_overlaps(struct flow_entry *entry, struct ofl_msg_flow_mod *mod);

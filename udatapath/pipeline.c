@@ -173,7 +173,7 @@ pipeline_process_packet(struct pipeline *pl, struct packet *pkt) {
                /* Cookie field is set 0xffffffffffffffff
                 because we cannot associate it to any
                 particular flow */
-                action_set_execute(pkt->action_set, pkt, 0xffffffffffffffff);
+                action_set_execute(pkt->action_set, pkt, 0xffffffffffffffff, OFPR_ACTION_SET);
                 packet_destroy(pkt);
                 return;
             }
@@ -515,7 +515,7 @@ execute_entry(struct pipeline *pl, struct flow_entry *entry,
             }
             case OFPIT_APPLY_ACTIONS: {
                 struct ofl_instruction_actions *ia = (struct ofl_instruction_actions *)inst;
-                dp_execute_action_list((*pkt), ia->actions_num, ia->actions, entry->stats->cookie);
+                dp_execute_action_list((*pkt), ia->actions_num, ia->actions, entry->stats->cookie, (flow_entry_is_table_miss(entry) ? OFPR_TABLE_MISS : OFPR_APPLY_ACTION) );
                 break;
             }
             case OFPIT_CLEAR_ACTIONS: {
