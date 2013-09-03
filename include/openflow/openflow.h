@@ -2057,7 +2057,8 @@ enum ofp_bad_request_code {
     OFPBRC_BAD_PACKET = 12,      /* Invalid packet in packet-out. */
     OFPBRC_MULTIPART_BUFFER_OVERFLOW = 13, /* ofp_multipart_request
                                               overflowed the assigned buffer. */
-
+    OFPBRC_MULTIPART_REQUEST_TIMEOUT = 14, /* Timeout during multipart request. */
+    OFPBRC_MULTIPART_REPLY_TIMEOUT = 15, /* Timeout during multipart reply. */
 };
 
 /* ofp_error_msg ’code’ values for OFPET_BAD_ACTION. ’data’ contains at least

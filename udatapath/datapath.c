@@ -74,6 +74,7 @@ static struct vlog_rate_limit rl = VLOG_RATE_LIMIT_INIT(60, 60);
 
 static struct remote *remote_create(struct datapath *dp, struct rconn *rconn, struct rconn *rconn_aux);
 static void remote_run(struct datapath *, struct remote *);
+static void remote_timeout(struct datapath *, struct remote *);
 static void remote_rconn_run(struct datapath *, struct remote *, uint8_t);
 static void remote_wait(struct remote *);
 static void remote_destroy(struct remote *);
@@ -217,6 +218,10 @@ dp_run(struct datapath *dp) {
         dp->last_timeout = now;
         meter_table_add_tokens(dp->meters);
         pipeline_timeout(dp->pipeline);
+        /* Timeout remotes. */
+        LIST_FOR_EACH_SAFE (r, rn, struct remote, node, &dp->remotes) {
+            remote_timeout(dp, r);
+        }
     }
 
     poll_timer_wait(1000);
@@ -297,6 +302,33 @@ remote_run(struct datapath *dp, struct remote *r)
         return;
 
     remote_rconn_run(dp, r, PTIN_CONNECTION);
+}
+
+static void
+remote_timeout(struct datapath *dp, struct remote *r)
+{
+    if(r->mp_req_msg != NULL) {
+        if(time_now() - r->mp_req_lasttime > 2) {
+	    /* Send error message. */
+            struct ofl_msg_error msg =
+                    {{.type = OFPT_ERROR},
+                     .type = OFPET_BAD_REQUEST,
+                     .code = OFPBRC_MULTIPART_REQUEST_TIMEOUT,
+                     .data_length = 0,
+                     .data        = (char *) r->mp_req_msg};
+	    struct sender fake_sender =
+	            { .remote = r,
+		      .conn_id = MAIN_CONNECTION,
+		      .xid = r->mp_req_xid};
+
+            dp_send_message(dp, (struct ofl_msg_header *)&msg, &fake_sender);
+
+	    /* Cleanup. */
+	    ofl_msg_free((struct ofl_msg_header *) r->mp_req_msg, NULL);
+	    r->mp_req_msg = NULL;
+	    r->mp_req_xid = 0;  /* Currently not needed. Jean II. */
+	}
+    }
 }
 
 static void
@@ -389,6 +421,9 @@ remote_destroy(struct remote *r)
             rconn_destroy(r->rconn_aux);
         }
         rconn_destroy(r->rconn);
+	if(r->mp_req_msg != NULL) {
+	  ofl_msg_free((struct ofl_msg_header *) r->mp_req_msg, NULL);
+	}
         free(r);
     }
 }
@@ -403,6 +438,8 @@ remote_create(struct datapath *dp, struct rconn *rconn, struct rconn *rconn_aux)
     remote->rconn_aux = rconn_aux;
     remote->cb_dump = NULL;
     remote->n_txq = 0;
+    remote->mp_req_msg = NULL;
+    remote->mp_req_xid = 0;  /* Currently not needed. Jean II. */
     remote->role = OFPCR_ROLE_EQUAL;
     /* Set the remote configuration to receive any asynchronous message*/
     for(i = 0; i < 2; i++){
