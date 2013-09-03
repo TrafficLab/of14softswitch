@@ -236,6 +236,52 @@ pipeline_handle_flow_mod(struct pipeline *pl, struct ofl_msg_flow_mod *msg,
         }
     }
 
+    /* Validate match for table 61 for Longuest Prefix Match. */
+    if ((msg->table_id == 61) && (msg->command == OFPFC_ADD)) {
+        struct ofl_match *match = (struct ofl_match *) msg->match;
+        size_t match_size = match->header.length;
+	/* Examine all match fields. */
+        if (match_size) {
+            struct ofl_match_tlv *oxm;
+            HMAP_FOR_EACH(oxm, struct ofl_match_tlv, hmap_node, &match->match_fields){                             
+                /* Wildcarded destination IPv4 address. */
+                if (oxm->header == OXM_OF_IPV4_DST_W) {
+		    /* Extract subnet mask. */
+		    uint32_t mask = oxm->value[4] << 24 | oxm->value[5] << 16 | oxm->value[6] << 8 | oxm->value[7];
+		    bool found_one = false;
+		    int num_zero = 32;
+		    int i;
+		    /* Validate that mask is contiguous. */
+		    for(i = 0; i < 32; i++) {
+		        int low_bit = mask & 0x1;
+			if(low_bit) {
+			    if(!found_one) {
+			        found_one = true;
+			        num_zero = i;
+			    }
+			} else {
+			    if(found_one) {
+			        /* There is a hole in the mask. */
+			        return ofl_error(OFPET_BAD_MATCH, OFPBMC_BAD_NW_ADDR_MASK);
+			    }
+			}
+			mask >>= 1;
+		    }
+		    VLOG_DBG(LOG_MODULE, "Mask validation : prio = %d, num_zero = %d.", msg->priority, num_zero);
+		    /* Priority must be equal to length of the mask. */
+		    if(msg->priority != (32 - num_zero)) {
+		        return ofl_error(OFPET_FLOW_MOD_FAILED, OFPFMFC_BAD_PRIORITY);
+		    }
+		} else if (oxm->header == OXM_OF_IPV4_DST) {
+		    /* Exact match, priority must be 32 */
+		    if(msg->priority != 32) {
+		        return ofl_error(OFPET_FLOW_MOD_FAILED, OFPFMFC_BAD_PRIORITY);
+		    }
+		}
+	    }
+	}
+    }
+
     if (msg->table_id == 0xff) {
         if (msg->command == OFPFC_DELETE || msg->command == OFPFC_DELETE_STRICT) {
             size_t i;

@@ -2137,6 +2137,7 @@ enum ofp_flow_mod_failed_code {
                                  idle/hard timeout. */
     OFPFMFC_BAD_COMMAND = 6,  /* Unsupported or unknown command. */
     OFPFMFC_BAD_FLAGS = 7,    /* Unsupported or unknown flags. */
+    OFPFMFC_BAD_PRIORITY = 8,   /* Unsupported priority value. */
 };
 
 /* ofp_error_msg ’code’ values for OFPET_GROUP_MOD_FAILED. ’data’ contains
