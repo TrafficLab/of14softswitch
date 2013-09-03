@@ -90,6 +90,9 @@ enum ofp_type {
     OFPT_SET_ASYNC = 28, /* Controller/switch message */
     /* Meters and rate limiters configuration messages. */
     OFPT_METER_MOD = 29, /* Controller/switch message */
+    
+    /*modified by dingwanfu*/
+    OFPT_ROLE_STATUS =30, /* Async message */
 };
 
 /* OFPT_HELLO.  This message has an empty body, but implementations must
@@ -1826,6 +1829,44 @@ struct ofp_error_msg {
 };
 OFP_ASSERT(sizeof(struct ofp_error_msg) == 12);
 
+/*modified by dingwanfu*/
+/* Common header for Role Properties */
+struct ofp_role_prop_header {
+	uint16_t type; /* One of OFPRPT_*. */
+	uint16_t length; /* Length  in bytes of the properity. */
+};
+OFP_ASSERT(sizeof(struct ofp_role_prop_header) ==4);
+
+/*modified by dingwanfu*/
+/* Experimenter role property */
+struct ofp_role_prop_expermenter {
+	uint16_t type;
+	uint16_t length;
+	uint32_t experimenter;
+	uint32_t exp_type;
+	/* Followed by :
+	  * 	-Exactly (length -12) bytes containing the experimenter data, then
+	  *	-Exactly (length + 7)/8*8 - (length) (between 0 - 7) bytes of all-zero bytes */
+
+	uint32_t experimenter_data[0];
+};
+OFP_ASSERT(sizeof(struct ofp_role_prop_expermenter) ==12);
+
+/*modified by dingwanfu*/
+/* Role status event message. */
+struct ofp_role_status {
+        struct ofp_header header;  /* Type OFPT_ROLE_REQUEST/OFPT_ROLE_REPLY. */
+	uint32_t role;              /* One of OFPCR_ROLE_*. */
+        uint8_t reason;             /* One of OFPCR_*. */
+	uint8_t pad[3];             /* Align to 64 bits. */
+	uint64_t generation_id;    /* Master Election Generation Id */
+
+    /* Role Property list */
+	struct ofp_role_prop_header properties[0];
+};
+OFP_ASSERT(sizeof(struct ofp_role_status) == 24);
+
+
 /* Values for ’type’ in ofp_error_message. These values are immutable: they
 * will not change in future versions of the protocol (although new values may
 * be added). */
@@ -2071,6 +2112,21 @@ enum ofp_bad_property_code {
     OFPBPC_BAD_EXP_TYPE = 6,     /* Unknown exp_type for experimenter_id. */
     OFPBPC_BAD_EXP_VALUE = 7,    /* Unknown value for experimenter_id */
     OFPBPC_EPERM = 8,            /* Permissions error. */
+};
+
+/*modified by dingwanfu*/
+/* What changed about controller role */
+enum ofp_controller_role_reason {
+	OFPCRR_MASTER_REQUEST = 0, /* Another controller asked to be master. */
+	OFPCRR_CONFIG = 1,          /* Configuration changed on the switch. */
+	OFPCRR_EXPERIMENTER = 2,   /* Experimenter data changed. */
+};
+
+
+/*modified by dingwanfu*/
+/* Role property types. */
+enum ofp_role_prop_type {
+    OFPCRT_EXPERIMENTER = 0xFFFF, /* Experimenter property. */
 };
 
 /* OFPET_EXPERIMENTER: Error message (datapath -> controller). */

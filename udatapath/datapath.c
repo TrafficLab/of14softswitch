@@ -231,12 +231,40 @@ dp_run(struct datapath *dp) {
     }
 }
 
+/*modified by dingwanfu for EXT-276*/
+/* send role_status (OFPCRR_EXPERIMENTER) information to remote controllers when master is done*/
+static int 
+send_role_status_to_remote(struct datapath* dp)
+{
+	struct remote* r;
+	
+	LIST_FOR_EACH (r, struct remote, node, &dp->remotes) {
+					if (r->role != OFPCR_ROLE_MASTER) {
+	
+						/* Send ROLE_STATUS (OFPCRR_EXPERIMENTER) message to other  controllers */
+						struct ofl_msg_role_status status =
+								{{.type = OFPT_ROLE_STATUS},
+									.role = r->role,
+									.reason = OFPCRR_EXPERIMENTER,
+									.generation_id = dp->generation_id};
+						struct sender rsender = {
+							.remote = r,
+							.xid = 0};
+						dp_send_message(dp, (struct ofl_msg_header *)&status, &rsender);
+					}
+				}
+
+}
+
 static void
 remote_run(struct datapath *dp, struct remote *r)
 {
     remote_rconn_run(dp, r, MAIN_CONNECTION);
 
     if (!rconn_is_alive(r->rconn)) {
+        /*modified by dingwanfu for EXT-276*/
+        if (r->role == OFPCR_ROLE_MASTER)
+                     send_role_status_to_remote(dp);
         remote_destroy(r);
         return;
     }
@@ -623,6 +651,21 @@ dp_handle_role_request(struct datapath *dp, struct ofl_msg_role_request *msg,
             LIST_FOR_EACH (r, struct remote, node, &dp->remotes) {
                 if (r->role == OFPCR_ROLE_MASTER) {
                     r->role = OFPCR_ROLE_SLAVE;
+
+			/*modified by dingwanfu*/
+			/* Send ROLE_STATUS message to old master(s) */
+			if (r != sender->remote){ /* Do not send message to the request controller */
+				struct ofl_msg_role_status status =
+						{{.type = OFPT_ROLE_STATUS},
+							.role = OFPCR_ROLE_SLAVE,
+							.reason = OFPCRR_MASTER_REQUEST,
+							.generation_id = msg->generation_id};
+				struct sender rsender = {
+					.remote = r,
+					.xid = 0};
+				dp_send_message(dp, (struct ofl_msg_header *)&status, &rsender);
+			        }
+					
                 }
             }
             sender->remote->role = OFPCR_ROLE_MASTER;
