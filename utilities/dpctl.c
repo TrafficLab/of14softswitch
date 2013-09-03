@@ -452,6 +452,24 @@ port_desc(struct vconn *vconn, int argc UNUSED, char *argv[] UNUSED) {
 }
 
 static void
+queue_desc(struct vconn *vconn, int argc UNUSED, char *argv[] UNUSED) {
+    struct ofl_msg_multipart_request_queue req =
+            {{{.type = OFPT_MULTIPART_REQUEST},
+              .type = OFPMP_QUEUE_DESC, .flags = 0x0000},
+             .port_no = OFPP_ANY,
+             .queue_id = OFPQ_ALL};
+
+    if (argc > 0 && parse_port(argv[0], &req.port_no)) {
+        ofp_fatal(0, "Error parsing port: %s.", argv[0]);
+    }
+    if (argc > 1 && parse_queue(argv[1], &req.queue_id)) {
+        ofp_fatal(0, "Error parsing queue: %s.", argv[1]);
+    }
+
+    dpctl_transact_and_print(vconn, (struct ofl_msg_header *)&req, NULL);
+}
+
+static void
 stats_flow(struct vconn *vconn, int argc, char *argv[]) {
     struct ofl_msg_multipart_request_flow req =
             {{{.type = OFPT_MULTIPART_REQUEST},
@@ -529,7 +547,7 @@ static void
 stats_queue(struct vconn *vconn, int argc, char *argv[]) {
     struct ofl_msg_multipart_request_queue req =
             {{{.type = OFPT_MULTIPART_REQUEST},
-              .type = OFPMP_QUEUE, .flags = 0x0000},
+              .type = OFPMP_QUEUE_STATS, .flags = 0x0000},
              .port_no = OFPP_ANY,
              .queue_id = OFPQ_ALL};
 
@@ -762,6 +780,7 @@ static void
 port_mod(struct vconn *vconn, int argc UNUSED, char *argv[]) {
     struct ofl_msg_port_mod msg =
             {{.type = OFPT_PORT_MOD},
+             .type = OFPPMPT_ETHERNET,
              .port_no = OFPP_ANY,
              .config = 0x00000000,
              .mask = 0x00000000,
@@ -787,23 +806,6 @@ table_mod(struct vconn *vconn, int argc UNUSED, char *argv[]) {
 
     dpctl_send_and_print(vconn, (struct ofl_msg_header *)&msg);
 }
-
-
-
-static void
-queue_get_config(struct vconn *vconn, int argc UNUSED, char *argv[]) {
-    struct ofl_msg_queue_get_config_request msg =
-            {{.type = OFPT_QUEUE_GET_CONFIG_REQUEST},
-             .port = OFPP_ALL};
-
-    if (parse_port(argv[0], &msg.port)) {
-        ofp_fatal(0, "Error parsing queue_get_config port: %s.", argv[0]);
-    }
-
-    dpctl_transact_and_print(vconn, (struct ofl_msg_header *)&msg, NULL);
-}
-
-
 
 static void
 set_desc(struct vconn *vconn, int argc UNUSED, char *argv[]) {
@@ -845,7 +847,7 @@ queue_mod(struct vconn *vconn, int argc UNUSED, char *argv[]) {
 
     p = xmalloc(sizeof(struct ofl_queue_prop_min_rate));
     pq->properties[0] = (struct ofl_queue_prop_header *)p;
-    p->header.type = OFPQT_MIN_RATE;
+    p->header.type = OFPQDPT_MIN_RATE;
 
     if (parse16(argv[2], NULL,0, UINT16_MAX, &p->rate)) {
         ofp_fatal(0, "Error parsing queue_mod bw: %s.", argv[2]);
@@ -914,6 +916,7 @@ static struct command all_commands[] = {
     {"stats-meter", 0, 1, stats_meter},
     {"meter-config", 0, 1, meter_config},
     {"port-desc", 0, 0, port_desc},
+    {"queue-desc", 0, 2, queue_desc},
     {"set-config", 1, 1, set_config},
     {"flow-mod", 1, 8/*+1 for each inst type*/, flow_mod },
     {"group-mod", 1, UINT8_MAX, group_mod },
@@ -921,7 +924,6 @@ static struct command all_commands[] = {
     {"get-async",0,0, get_async},
     {"port-mod", 1, 1, port_mod },
     {"table-mod", 1, 1, table_mod },
-    {"queue-get-config", 1, 1, queue_get_config},
     {"set-desc", 1, 1, set_desc},
 
     {"queue-mod", 3, 3, queue_mod},
@@ -1081,7 +1083,6 @@ usage(void)
             "  SWITCH meter-mod ARG [BANDARG ...]     send meter_mod message\n"
             "  SWITCH port-mod ARG                    send port_mod message\n"
             "  SWITCH table-mod ARG                   send table_mod message\n"
-            "  SWITCH queue-get-config PORT           send queue_get_config message\n"
             "\n"
             "OpenFlow extensions\n"
             "  SWITCH set-desc DESC                   sets the DP description\n"

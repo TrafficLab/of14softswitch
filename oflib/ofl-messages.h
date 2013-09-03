@@ -237,8 +237,22 @@ struct ofl_msg_port_mod {
                                         ofp_port struct. */
     uint32_t   config;    /* Bitmap of OFPPC_* flags. */
     uint32_t   mask;      /* Bitmap of OFPPC_* flags to be changed. */
+    uint16_t   type;      /* OFPPMPT_*. */
+
+    /* OFPPMPT_ETHERNET message. */
     uint32_t   advertise; /* Bitmap of OFPPF_*. Zero all bits to prevent
                             any action taking place. */
+
+    /* OFPPMPT_OPTICAL message. */
+    uint32_t configure;   
+    uint32_t freq_lmda;
+    int32_t  fl_offset;
+    uint32_t grid_span;
+    uint32_t tx_pwr;
+
+    /* OFFPMT_EXPERIMENTER message. */
+    uint32_t experimenter;
+    uint32_t exp_type;
 };
 
 struct ofl_msg_table_mod {
@@ -301,7 +315,7 @@ struct ofl_msg_multipart_request_port {
 };
 
 struct ofl_msg_multipart_request_queue {
-    struct ofl_msg_multipart_request_header   header; /* OFPMP_QUEUE */
+    struct ofl_msg_multipart_request_header   header; /* OFPMP_QUEUE_STATS */
     uint32_t   port_no; /* All ports if OFPP_ANY. */
     uint32_t   queue_id; /* All queues if OFPQ_ALL. */
 };
@@ -383,8 +397,8 @@ struct ofl_msg_multipart_reply_port {
     struct ofl_port_stats **stats;
 };
 
-struct ofl_msg_multipart_reply_queue {
-    struct ofl_msg_multipart_reply_header   header; /* OFPMP_QUEUE */
+struct ofl_msg_multipart_reply_queue_stats {
+    struct ofl_msg_multipart_reply_header   header; /* OFPMP_QUEUE_STATS */
 
     size_t                   stats_num;
     struct ofl_queue_stats **stats;
@@ -440,6 +454,13 @@ struct ofl_msg_multipart_reply_port_desc {
     struct ofl_port **stats;
 };
 
+struct ofl_msg_multipart_reply_queue_desc {
+    struct ofl_msg_multipart_reply_header   header; /* OFPMP_QUEUE_DESC */
+
+    size_t                  queues_num;
+    struct ofl_packet_queue **queues;
+};
+
 struct ofl_msg_multipart_reply_experimenter {
     struct ofl_msg_multipart_reply_header   header; /* OFPMP_EXPERIMENTER */
 
@@ -452,27 +473,6 @@ struct ofl_msg_multipart_reply_experimenter {
 /*******************
  * Barrier messages
  *******************/
-
-struct ofl_msg_queue_get_config_request {
-    struct ofl_msg_header   header; /* OFPT_QUEUE_GET_CONFIG_REQUEST */
-
-    uint32_t   port; /* Port to be queried. Should refer
-                       to a valid physical port (i.e. < OFPP_MAX) */
-};
-
-/************************
- * Queue config messages
- ************************/
-
-struct ofl_msg_queue_get_config_reply {
-    struct ofl_msg_header header;   /* OFPT_QUEUE_GET_CONFIG_REPLY */
-    uint32_t   port;
-
-    size_t                    queues_num;
-    struct ofl_packet_queue **queues; /* List of configured queues. */
-};
-
-
 
 /****************************************************************************
  * Functions for (un)packing message structures
@@ -565,8 +565,8 @@ ofl_msg_merge_multipart_reply_port(struct ofl_msg_multipart_reply_port *orig,
 /* Merges two flow stats reply messages. Returns true if the merged message was
  * the last in a series of multi-messages. */
 bool
-ofl_msg_merge_multipart_reply_queue(struct ofl_msg_multipart_reply_queue *orig,
-                               struct ofl_msg_multipart_reply_queue *merge);
+ofl_msg_merge_multipart_reply_queue_stats(struct ofl_msg_multipart_reply_queue_stats *orig,
+                               struct ofl_msg_multipart_reply_queue_stats *merge);
 
 
 

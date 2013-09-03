@@ -32,7 +32,7 @@
  * experimental OpenFlow version.
  */
  
-#define OFP_VERSION   0x04
+#define OFP_VERSION   0x05
 #define OFP_MAX_TABLE_NAME_LEN 32
 #define OFP_MAX_PORT_NAME_LEN  16
 #define OFP_TCP_PORT  6633
@@ -81,9 +81,6 @@ enum ofp_type {
     /* Barrier messages. */
     OFPT_BARRIER_REQUEST = 20, /* Controller/switch message */
     OFPT_BARRIER_REPLY = 21,   /* Controller/switch message */
-    /* Queue Configuration messages. */
-    OFPT_QUEUE_GET_CONFIG_REQUEST = 22, /* Controller/switch message */
-    OFPT_QUEUE_GET_CONFIG_REPLY = 23,   /* Controller/switch message */
     /* Controller role change request messages. */
     OFPT_ROLE_REQUEST = 24, /* Controller/switch message */
     OFPT_ROLE_REPLY = 25,   /* Controller/switch message */
@@ -105,26 +102,96 @@ struct ofp_hello {
 
 /******** Common Structures **********************/
 
+/* Port description property types.
+ */
+enum ofp_port_desc_prop_type {
+	OFPPDPT_ETHERNET          = 0,      /* Ethernet property. */
+	OFPPDPT_OPTICAL           = 1,      /* Optical property. */
+	OFPPDPT_EXPERIMENTER      = 0xFFFF, /* Experimenter property. */
+};
+
+/* Common header for all port description properties. */
+struct ofp_port_desc_prop_header {
+	uint16_t         type;    /* One of OFPPDPT_*. */
+	uint16_t         length;  /* Length in bytes of this property. */
+};
+OFP_ASSERT(sizeof(struct ofp_port_desc_prop_header) == 4);
+
+/* Ethernet port description property. */
+struct ofp_port_desc_prop_ethernet {
+	uint16_t         type;    /* OFPPDPT_ETHERNET. */
+	uint16_t         length;  /* Length in bytes of this property. */
+	uint8_t          pad[4];  /* Align to 64 bits. */
+	/* Bitmaps of OFPPF_* that describe features.  All bits zeroed if
+	 * unsupported or unavailable. */
+	uint32_t curr;          /* Current features. */
+	uint32_t advertised;    /* Features being advertised by the port. */
+	uint32_t supported;     /* Features supported by the port. */
+	uint32_t peer;          /* Features advertised by peer. */
+
+	uint32_t curr_speed;    /* Current port bitrate in kbps. */
+	uint32_t max_speed;     /* Max port bitrate in kbps */
+};
+OFP_ASSERT(sizeof(struct ofp_port_desc_prop_ethernet) == 32);
+
+/* Features of optical ports available in switch. */
+enum ofp_optical_port_features {
+	OFPOPF_RX_TUNE   = 1 << 0,  /* Receiver is tunable */
+	OFPOPF_TX_TUNE   = 1 << 1,  /* Transmit is tunable */
+	OFPOPF_TX_PWR    = 1 << 2,  /* Power is configurable */
+	OFPOPF_USE_FREQ  = 1 << 3,  /* Use Frequency, not wavelength */
+};
+
+/* Optical port description property. */
+struct ofp_port_desc_prop_optical {
+	uint16_t         type;    /* OFPPDPT_3OPTICAL. */
+	uint16_t         length;  /* Length in bytes of this property. */
+	uint8_t          pad[4];  /* Align to 64 bits. */
+
+	uint32_t supported;     /* Features supported by the port. */
+	uint32_t tx_min_freq_lmda;   /* Minimum TX Frequency/Wavelength */
+	uint32_t tx_max_freq_lmda;   /* Maximum TX Frequency/Wavelength */
+	uint32_t tx_grid_freq_lmda;  /* TX Grid Spacing Frequency/Wavelength */
+	uint32_t rx_min_freq_lmda;   /* Minimum RX Frequency/Wavelength */
+	uint32_t rx_max_freq_lmda;   /* Maximum RX Frequency/Wavelength */
+	uint32_t rx_grid_freq_lmda;  /* RX Grid Spacing Frequency/Wavelength */
+	uint16_t tx_pwr_min;         /* Minimum TX power */
+	uint16_t tx_pwr_max;         /* Maximum TX power */
+};
+OFP_ASSERT(sizeof(struct ofp_port_desc_prop_optical) == 40);
+
+/* Experimenter port description property. */
+struct ofp_port_desc_prop_experimenter {
+	uint16_t         type;    /* OFPPDPT_EXPERIMENTER. */
+	uint16_t         length;  /* Length in bytes of this property. */
+	uint32_t         experimenter;  /* Experimenter ID which takes the same
+	                                   form as in struct
+	                                   ofp_experimenter_header. */
+	uint32_t         exp_type;      /* Experimenter defined. */
+	/* Followed by:
+	 *   - Exactly (length - 12) bytes containing the experimenter data, then
+	 *   - Exactly (length + 7)/8*8 - (length) (between 0 and 7)
+	 *     bytes of all-zero bytes */
+	uint32_t         experimenter_data[0];
+};
+OFP_ASSERT(sizeof(struct ofp_port_desc_prop_experimenter) == 12);
+
 
 /* Description of a port */
 struct ofp_port {
 	uint32_t port_no;
-	uint8_t pad[4];
+	uint16_t length;
+	uint8_t pad[2];
 	uint8_t hw_addr[OFP_ETH_ALEN];
 	uint8_t pad2[2];                  /* Align to 64 bits. */
 	char name[OFP_MAX_PORT_NAME_LEN]; /* Null-terminated */
 	uint32_t config;                  /* Bitmap of OFPPC_* flags. */
 	uint32_t state;                   /* Bitmap of OFPPS_* flags. */
-	/* Bitmaps of OFPPF_* that describe features. All bits zeroed if
-	* unsupported or unavailable. */
-	uint32_t curr;                    /* Current features. */
-	uint32_t advertised;              /* Features being advertised by the port. */
-	uint32_t supported;               /* Features supported by the port. */
-	uint32_t peer;                    /* Features advertised by peer. */
-	uint32_t curr_speed;              /* Current port bitrate in kbps. */
-	uint32_t max_speed;               /* Max port bitrate in kbps */
+
+	/* Port description property list - 0 or more properties */
+	struct ofp_port_desc_prop_header properties[0];
 };
-OFP_ASSERT(sizeof(struct ofp_port) == 64);
+OFP_ASSERT(sizeof(struct ofp_port) == 40);
 
 /* Flags to indicate behavior of the physical port. These flags are
 * used in ofp_port to describe the current configuration. They are
@@ -190,13 +257,11 @@ enum ofp_port_features {
     OFPPF_PAUSE_ASYM = 1 << 15  /* Asymmetric pause. */
 };
 
-/* Common description for a queue. */
-struct ofp_queue_prop_header {
-	uint16_t property;  /* One of OFPQT_. */
-	uint16_t len;       /* Length of property, including this header. */
-	uint8_t pad[4];     /* 64-bit alignemnt. */
+struct ofp_queue_desc_prop_header {
+	uint16_t         type;    /* One of OFPQDPT_*. */
+	uint16_t         length;  /* Length in bytes of this property. */
 };
-OFP_ASSERT(sizeof(struct ofp_queue_prop_header) == 8);
+OFP_ASSERT(sizeof(struct ofp_queue_desc_prop_header) == 4);
 
 /* Full description for a queue. */
 struct ofp_packet_queue {
@@ -204,7 +269,7 @@ struct ofp_packet_queue {
 	uint32_t port;                              /* Port this queue is attached to. */
 	uint16_t len;                               /* Length in bytes of this queue desc. */
 	uint8_t pad[6];                             /* 64-bit alignment. */
-	struct ofp_queue_prop_header properties[0]; /* List of properties. */
+	struct ofp_queue_desc_prop_header properties[0]; /* List of properties. */
 };
 OFP_ASSERT(sizeof(struct ofp_packet_queue) == 16);
 
@@ -215,37 +280,46 @@ OFP_ASSERT(sizeof(struct ofp_packet_queue) == 16);
 #define OFPQ_MIN_RATE_UNCFG      0xffff
 
 
-enum ofp_queue_properties {
-    OFPQT_MIN_RATE = 1,         /* Minimum datarate guaranteed. */
-    OFPQT_MAX_RATE = 2,         /* Maximum datarate. */
-    OFPQT_EXPERIMENTER = 0xffff /* Experimenter defined property. */
+enum ofp_queue_desc_prop_type {
+    OFPQDPT_MIN_RATE = 1,         /* Minimum datarate guaranteed. */
+    OFPQDPT_MAX_RATE = 2,         /* Maximum datarate. */
+    OFPQDPT_EXPERIMENTER = 0xffff /* Experimenter defined property. */
 };
 
 /* Min-Rate queue property description. */
-struct ofp_queue_prop_min_rate {
-	struct ofp_queue_prop_header prop_header; /* prop: OFPQT_MIN, len: 16. */
-	uint16_t rate;                            /* In 1/10 of a percent; >1000 -> disabled. */
-	uint8_t pad[6];                           /* 64-bit alignment */
+struct ofp_queue_desc_prop_min_rate {
+    uint16_t         type;                  /* OFPQDPT_MIN_RATE. */
+    uint16_t         length;                /* Length is 8. */
+	uint16_t rate;                          /* In 1/10 of a percent; >1000 -> disabled. */
+	uint8_t pad[2];                         /* 64-bit alignment */
 };
-OFP_ASSERT(sizeof(struct ofp_queue_prop_min_rate) == 16);
+OFP_ASSERT(sizeof(struct ofp_queue_desc_prop_min_rate) == 8);
 
 /* Max-Rate queue property description. */
-struct ofp_queue_prop_max_rate {
-	struct ofp_queue_prop_header prop_header; /* prop: OFPQT_MAX, len: 16. */
+struct ofp_queue_desc_prop_max_rate {
+    uint16_t         type;                  /* OFPQDPT_MAX_RATE. */
+    uint16_t         length;                /* Length is 8. */
 	uint16_t rate;                            /* In 1/10 of a percent; >1000 -> disabled. */
-	uint8_t pad[6];                           /* 64-bit alignment */
+	uint8_t pad[2];                           /* 64-bit alignment */
 };
-OFP_ASSERT(sizeof(struct ofp_queue_prop_max_rate) == 16);
+OFP_ASSERT(sizeof(struct ofp_queue_desc_prop_max_rate) == 8);
 
 /* Experimenter queue property description. */
-struct ofp_queue_prop_experimenter {
-	struct ofp_queue_prop_header prop_header; /* prop: OFPQT_EXPERIMENTER, len: 16. */
-	uint32_t experimenter;                    /* Experimenter ID which takes the same
-                                                 form as in struct ofp_experimenter_header. */
-	uint8_t pad[4];                           /* 64-bit alignment */
-	uint8_t data[0];                          /* Experimenter defined data. */
+struct ofp_queue_desc_prop_experimenter {
+    uint16_t         type;                  /* OFPQDPT_EXPERIMENTER. */
+    uint16_t         length;                /* Length in bytes of this property. */
+	uint32_t experimenter;			  /* Experimenter ID which takes the same
+                                                   *  form as in struct
+						   *  ofp_experimenter_header.
+						   */
+	uint32_t exp_type;			  /* Experimenter defined. */
+	/* Followed by:
+	 *   - Exactly (length - 12) bytes containing the experimenter data, then
+	 *   - Exactly (length + 7)/8*8 - (length) (between 0 and 7)
+	 *     bytes of all-zero bytes */
+	uint32_t experimenter_data[0];            /* Experimenter defined data. */
 };
-OFP_ASSERT(sizeof(struct ofp_queue_prop_experimenter) == 16);
+OFP_ASSERT(sizeof(struct ofp_queue_desc_prop_experimenter) == 12);
 
 /* Fields to match against flows */
 struct ofp_match {
@@ -354,8 +428,7 @@ enum ofp_ipv6exthdr_flags {
 /* Header for OXM experimenter match fields. */
 struct ofp_oxm_experimenter_header {
 	uint32_t oxm_header;   /* oxm_class = OFPXMC_EXPERIMENTER */
-	uint32_t experimenter; /* Experimenter ID which takes the same
-                              form as in struct ofp_experimenter_header. */
+	uint32_t experimenter; /* Experimenter ID */
 };
 OFP_ASSERT(sizeof(struct ofp_oxm_experimenter_header) == 8);
 
@@ -373,18 +446,27 @@ enum ofp_instruction_type {
     OFPIT_EXPERIMENTER = 0xFFFF /* Experimenter instruction */
 };
 
-/* Generic ofp_instruction structure */
-struct ofp_instruction {
-    uint16_t type;                /* Instruction type */
-    uint16_t len;                 /* Length of this struct in bytes. */
-    uint8_t pad[4];               /* Align to 64-bits */
+/* Instruction header that is common to all instructions. The length includes
+ * the header and any padding used to make the instruction 64-bit aligned.
+ * NB: The length of an instruction *must* always be a multiple of eight. */
+struct ofp_instruction_header {
+    uint16_t type;  /* One of OFPIT_*. */
+    uint16_t len;   /* Length of the struct in bytes. */
 };
-OFP_ASSERT(sizeof(struct ofp_instruction) == 8);
+OFP_ASSERT(sizeof(struct ofp_instruction_header) == 4);
+
+/* Generic ofp_instruction structure */
+struct ofp_instruction_id {
+    uint16_t type;                /* One of OFPIT_*. */
+    uint16_t len;                 /* Length is 4 or experimenter defined. */
+    uint8_t exp_data[0];          /* Optional experimenter id + data. */
+};
+OFP_ASSERT(sizeof(struct ofp_instruction_id) == 4);
 
 /* Instruction structure for OFPIT_GOTO_TABLE */
 struct ofp_instruction_goto_table {
 	uint16_t type;    /* OFPIT_GOTO_TABLE */
-	uint16_t len;     /* Length of this struct in bytes. */
+	uint16_t len;     /* Length is 8. */
 	uint8_t table_id; /* Set next table in the lookup pipeline */
 	uint8_t pad[3];   /* Pad to 64 bits. */
 };
@@ -393,7 +475,7 @@ OFP_ASSERT(sizeof(struct ofp_instruction_goto_table) == 8);
 /* Instruction structure for OFPIT_WRITE_METADATA */
 struct ofp_instruction_write_metadata {
 	uint16_t type;          /* OFPIT_WRITE_METADATA */
-	uint16_t len;           /* Length of this struct in bytes. */
+	uint16_t len;           /* Length is 24. */
 	uint8_t pad[4];         /* Align to 64-bits */
 	uint64_t metadata;      /* Metadata value to write */
 	uint64_t metadata_mask; /* Metadata write bitmask */
@@ -409,14 +491,20 @@ struct ofp_action_header {
                     header. This is the length of action,
                     including any padding to make it
                     64-bit aligned. */
-	uint8_t pad[4];
 };
-OFP_ASSERT(sizeof(struct ofp_action_header) == 8);
+OFP_ASSERT(sizeof(struct ofp_action_header) == 4);
+
+struct ofp_action_id {
+    uint16_t type;                       /* One of OFPAT_*. */
+    uint16_t len;                        /* Length is 4 or experimenter defined. */
+    uint8_t exp_data[0];                 /* Optional experimenter id + data. */
+};
+OFP_ASSERT(sizeof(struct ofp_action_id) == 4);
 
 /* Instruction structure for OFPIT_WRITE/APPLY/CLEAR_ACTIONS */
 struct ofp_instruction_actions {
 	uint16_t type;                       /* One of OFPIT_*_ACTIONS */
-	uint16_t len;                        /* Length of this struct in bytes. */
+	uint16_t len;                        /* Length is padded to 64 bits. */
 	uint8_t pad[4];                      /* Align to 64-bits */
 	struct ofp_action_header actions[0]; /* Actions associated with
                                             OFPIT_WRITE_ACTIONS and
@@ -432,6 +520,14 @@ struct ofp_instruction_meter {
 };
 OFP_ASSERT(sizeof(struct ofp_instruction_meter) == 8);
 
+/* Instruction structure for experimental instructions */
+struct ofp_instruction_experimenter_header {
+    uint16_t type;		        /* OFPIT_EXPERIMENTER */
+    uint16_t len;               /* Length is padded to 64 bits. */
+    uint32_t experimenter;      /* Experimenter ID */
+    /* Experimenter-defined arbitrary additional data. */
+};
+OFP_ASSERT(sizeof(struct ofp_instruction_experimenter_header) == 8);
 
 enum ofp_action_type {
     OFPAT_OUTPUT = 0,        /* Output to switch port. */
@@ -479,6 +575,15 @@ enum ofp_controller_max_len {
                                 applied and the whole packet is to be
                                 sent to the controller. */
 };
+
+/* Action structure for OFPAT_COPY_TTL_OUT, OFPAT_COPY_TTL_IN,
+ * OFPAT_DEC_MPLS_TTL,  OFPAT_DEC_NW_TTL, OFPAT_POP_VLAN and OFPAT_POP_PBB. */
+struct ofp_action_generic {
+	uint16_t type;     /* OFPAT_GROUP. */
+	uint16_t len;      /* Length is 8. */
+	uint8_t pad[4];    /* Pad to 64 bits. */
+};
+OFP_ASSERT(sizeof(struct ofp_action_generic) == 8);
 
 /* Action structure for OFPAT_GROUP. */
 struct ofp_action_group {
@@ -550,9 +655,7 @@ OFP_ASSERT(sizeof(struct ofp_action_set_field) == 8);
 struct ofp_action_experimenter_header {
 	uint16_t type;         /* OFPAT_EXPERIMENTER. */
 	uint16_t len;          /* Length is a multiple of 8. */
-	uint32_t experimenter; /* Experimenter ID which takes the same
-                              form as in struct
-                              ofp_experimenter_header. */
+	uint32_t experimenter; /* Experimenter ID */
 };
 OFP_ASSERT(sizeof(struct ofp_action_experimenter_header) == 8);
 
@@ -617,13 +720,42 @@ enum ofp_table {
 };
 
 /* Configure/Modify behavior of a flow table */
+enum ofp_table_mod_prop_type {
+	OFPTMPT_EXPERIMENTER	= 0xffff, /* Experimenter property. */
+};
+
+/* Common header for all Table Mod Properties */
+struct ofp_table_mod_prop_header {
+	uint16_t type;		/* One of OFPTMPT_*. */
+	uint16_t length;	/* Length in bytes of this property. */
+};
+OFP_ASSERT(sizeof(struct ofp_table_mod_prop_header) == 4);
+
 struct ofp_table_mod {
 	struct ofp_header header;
-	uint8_t table_id; /* ID of the table, OFPTT_ALL indicates all tables */
-	uint8_t pad[3];   /* Pad to 32 bits */
-	uint32_t config;  /* Bitmap of OFPTC_* flags */
+	uint8_t table_id;	/* ID of the table, OFPTT_ALL indicates all tables */
+	uint8_t pad[3];		/* Pad to 32 bits */
+	uint32_t config;	/* Bitmap of OFPTC_* flags */
+
+	struct ofp_table_mod_prop_header properties[0];
 };
 OFP_ASSERT(sizeof(struct ofp_table_mod) == 16);
+
+/* Experimenter table mod property. */
+struct ofp_table_mod_prop_experimenter {
+	uint16_t type;		/* One of the OFPTMPT_EXPERIMENTER. */
+	uint16_t length;	/* Length in bytes of this property. */
+	uint32_t experimenter;	/* Experimenter ID which takes the same
+				 * form as in struct
+				 * ofp_experimenter_header. */
+	uint32_t exp_type;	/* Experimenter defined. */
+	/* Followed by:
+	 *  - Exactly (length - 12) bytes containing the experimenter data, then
+	 *  - Exactly (length + 7)/8* - (length) (between 0 and 7)
+	 *  bytes of the all-zero bytes */
+	uint32_t experimenter_data[0];
+};
+OFP_ASSERT(sizeof(struct ofp_table_mod_prop_experimenter) == 12);
 
 enum ofp_table_config {
     OFPTC_TABLE_MISS_CONTROLLER = 0,    /* Send to controller. */
@@ -667,7 +799,7 @@ struct ofp_flow_mod {
 	uint16_t flags;         /* One of OFPFF_*. */
 	uint8_t pad[2];
 	struct ofp_match match; /* Fields to match. Variable size. */
-    //struct ofp_instruction instructions[0]; /* Instruction set */
+    //struct ofp_instruction_header instructions[0]; /* Instruction set */
 };
 OFP_ASSERT(sizeof(struct ofp_flow_mod) == 56);
 
@@ -751,6 +883,55 @@ enum ofp_group_type {
     OFPGT_FF = 3,       /* Fast failover group. */
 };
 
+/* Port mod property types.
+ */
+enum ofp_port_mod_prop_type {
+	OFPPMPT_ETHERNET = 0,		/* Ethernet property. */
+	OFPPMPT_OPTICAL = 1,		/* Optical property. */
+	OFPPMPT_EXPERIMENTER = 0xFFFF,  /* Experimenter property. */
+};
+
+/* Common header for all port mod properties. */
+struct ofp_port_mod_prop_header {
+	uint16_t type;    /* One of OFPPMPT_*. */
+	uint16_t length;  /* Length in bytes of this property. */
+};
+OFP_ASSERT(sizeof(struct ofp_port_mod_prop_header) == 4);
+
+struct ofp_port_mod_prop_ethernet {
+	uint16_t type;       /* OFPPMPT_ETHERNET. */
+	uint16_t length;     /* Length in bytes of this property. */
+	uint32_t advertise;            /* Bitmap of OFPPF_*. Zero all bits to prevent
+                                      any action taking place. */
+};
+OFP_ASSERT(sizeof(struct ofp_port_mod_prop_ethernet) == 8);
+
+struct ofp_port_mod_prop_optical {
+	uint16_t type;       /* OFPPMPT_OPTICAL. */
+	uint16_t length;     /* Length in bytes of this property. */
+	uint32_t configure;  /* Bitmap of OFPOPF_*. */
+	uint32_t freq_lmda;  /* The "center" frequency */
+	int32_t  fl_offset;  /* signed frequency offset */
+	uint32_t grid_span;  /* The size of the grid for this port */
+	uint32_t tx_pwr;     /* tx power setting */
+};
+OFP_ASSERT(sizeof(struct ofp_port_mod_prop_optical) == 24);
+
+struct ofp_port_mod_prop_experimenter {
+	uint16_t type;
+	uint16_t length;
+	uint32_t experimenter;  /* Experimenter ID which take the same
+				   form as in struct
+				   ofp_experimenter_header. */
+	uint32_t exp_type;	/* Experimenter Defined. */
+	/* Followed by:
+	 *  - Exactly (length - 12) bytes containing the experimenter data, then
+	 *  - Exactly (length + 7)/8*8 - (length) (between 0 and 7)
+	 *    byte of all-zero- bytes */
+	uint32_t experimenter_data[0];
+};
+OFP_ASSERT(sizeof(struct ofp_port_mod_prop_experimenter) == 12);
+
 
 /* Modify behavior of the physical port */
 struct ofp_port_mod {
@@ -765,11 +946,11 @@ struct ofp_port_mod {
 	uint8_t pad2[2];               /* Pad to 64 bits. */
 	uint32_t config;               /* Bitmap of OFPPC_* flags. */
 	uint32_t mask;                 /* Bitmap of OFPPC_* flags to be changed. */
-	uint32_t advertise;            /* Bitmap of OFPPF_*. Zero all bits to prevent
-                                      any action taking place. */
-	uint8_t pad3[4];               /* Pad to 64 bits. */
+
+	/* Port mod property list - 0 or more properties. */
+	struct ofp_port_mod_prop_header properties[0];
 };
-OFP_ASSERT(sizeof(struct ofp_port_mod) == 40);
+OFP_ASSERT(sizeof(struct ofp_port_mod) == 32);
 
 /* Common header for all meter bands */
 struct ofp_meter_band_header {
@@ -831,7 +1012,7 @@ enum ofp_meter_band_type {
 /* OFPMBT_DROP band - drop packets */
 struct ofp_meter_band_drop {
     uint16_t type; /* OFPMBT_DROP. */
-    uint16_t len;  /* Length in bytes of this band. */
+    uint16_t len;  /* Length is 16. */
     uint32_t rate; /* Rate for dropping packets. */
     uint32_t burst_size; /* Size of bursts. */
     uint8_t pad[4];
@@ -841,7 +1022,7 @@ OFP_ASSERT(sizeof(struct ofp_meter_band_drop) == 16);
 /* OFPMBT_DSCP_REMARK band - Remark DSCP in the IP header */
 struct ofp_meter_band_dscp_remark {
     uint16_t type; /* OFPMBT_DSCP_REMARK. */
-    uint16_t len;  /* Length in bytes of this band. */
+    uint16_t len;  /* Length is 16. */
     uint32_t rate; /* Rate for remarking packets. */
     uint32_t burst_size; /* Size of bursts. */
     uint8_t prec_level; /* Number of precendence level to substract. */
@@ -855,9 +1036,7 @@ struct ofp_meter_band_experimenter {
     uint16_t len;  /* Length in bytes of this band. */
     uint32_t rate; /* Rate for this band. */
     uint32_t burst_size; /* Size of bursts. */
-    uint32_t experimenter; /* Experimenter ID which takes the same
-                            form as in struct
-                            ofp_experimenter_header. */
+    uint32_t experimenter; /* Experimenter ID */
 };
 OFP_ASSERT(sizeof(struct ofp_meter_band_experimenter) == 16);
 
@@ -870,6 +1049,15 @@ struct ofp_multipart_request {
 	uint8_t body[0]; /* Body of the request. */
 };
 OFP_ASSERT(sizeof(struct ofp_multipart_request) == 16);
+
+/* Body for ofp_multipart_request/reply of type OFPMP_EXPERIMENTER. */
+struct ofp_experimenter_multipart_header {
+    uint32_t experimenter;    /* Experimenter ID which takes the same form
+                                 as in struct ofp_experimenter_header. */
+    uint32_t exp_type;        /* Experimenter defined. */
+    /* Experimenter-defined arbitrary additional data. */
+};
+OFP_ASSERT(sizeof(struct ofp_experimenter_multipart_header) == 8);
 
 enum ofp_multipart_request_flags {
     OFPMPF_REQ_MORE = 1 << 0 /* More requests to follow. */
@@ -912,7 +1100,7 @@ enum ofp_multipart_types {
     /* Queue statistics for a port
     * The request body is struct ofp_queue_stats_request.
     * The reply body is an array of struct ofp_queue_stats */
-    OFPMP_QUEUE = 5,
+    OFPMP_QUEUE_STATS = 5,
     /* Group counter statistics.
     * The request body is struct ofp_group_stats_request.
     * The reply is an array of struct ofp_group_stats. */
@@ -948,9 +1136,17 @@ enum ofp_multipart_types {
     * The request body is empty.
     * The reply body is an array of struct ofp_port. */
     OFPMP_PORT_DESC = 13,
+    /* Table description.
+     * The request body is empty.
+     * The reply body is an array of struct ofp_table_desc. */
+    OFPMP_TABLE_DESC = 14,
+    /* Queue description.
+     * The request body is struct ofp_queue_desc_request.
+     * The reply body is an array of ofp_queue_desc. */
+    OFPMP_QUEUE_DESC = 15,
     /* Experimenter extension.
     * The request and reply bodies begin with
-    * struct ofp_experimenter_stats_header.
+    * struct ofp_experimenter_multipart_header.
     * The request and reply bodies are otherwise experimenter-defined. */
     OFPMP_EXPERIMENTER = 0xffff
 };
@@ -1005,7 +1201,7 @@ struct ofp_flow_stats {
 	uint64_t packet_count;  /* Number of packets in flow. */
 	uint64_t byte_count;    /* Number of bytes in flow. */
 	struct ofp_match match; /* Description of fields. Variable size. */
-    //struct ofp_instruction instructions[0]; /* Instruction set. */
+    //struct ofp_instruction_header instructions[0]; /* Instruction set. */
 };
 OFP_ASSERT(sizeof(struct ofp_flow_stats) == 56);
 
@@ -1067,7 +1263,7 @@ struct ofp_table_features {
     char name[OFP_MAX_TABLE_NAME_LEN];
     uint64_t metadata_match; /* Bits of metadata table can match. */
     uint64_t metadata_write; /* Bits of metadata table can write. */
-    uint32_t config;         /* Bitmap of OFPTC_* values */
+    uint32_t capabilities;   /* Bitmap of OFPTC_* values */
     uint32_t max_entries;    /* Max number of entries supported. */
     /* Table Feature Property list */
     struct ofp_table_feature_prop_header properties[0];
@@ -1109,7 +1305,7 @@ struct ofp_table_feature_prop_instructions {
     - Exactly (length + 7)/8*8 - (length) (between 0 and 7)
     *
     bytes of all-zero bytes */
-    struct ofp_instruction instruction_ids[0]; /* List of instructions */
+    struct ofp_instruction_id instruction_ids[0]; /* List of instructions */
 };
 OFP_ASSERT(sizeof(struct ofp_table_feature_prop_instructions) == 4);
 
@@ -1144,7 +1340,7 @@ struct ofp_table_feature_prop_actions {
     - Exactly (length + 7)/8*8 - (length) (between 0 and 7)
     *
     bytes of all-zero bytes */
-    struct ofp_action_header action_ids[0];/* List of actions */
+    struct ofp_action_id action_ids[0];     /* List of actions */
 };
 OFP_ASSERT(sizeof(struct ofp_table_feature_prop_actions) == 4);
 
@@ -1180,52 +1376,174 @@ struct ofp_port_stats_request {
 };
 OFP_ASSERT(sizeof(struct ofp_port_stats_request) == 8);
 
+/* Port stats property types.
+ */
+enum ofp_port_stats_prop_type {
+    OFPPSPT_ETHERNET        = 0,      /* Ethernet property. */
+    OFPPSPT_OPTICAL         = 1,      /* Optical property. */
+    OFPPSPT_EXPERIMENTER    = 0xffff, /* Experimenter property. */
+};
+
+/* Common header for all port stats properties. */
+struct ofp_port_stats_prop_header {
+    uint16_t type;      /* One of OFPPSPT_*. */
+    uint16_t length;    /* Length in bytes of this property. */
+};
+OFP_ASSERT(sizeof(struct ofp_port_stats_prop_header) == 4);
+
+
 /* Body of reply to OFPMP_PORT_STATS request. If a counter is unsupported, set
 * the field to all ones. */
 struct ofp_port_stats {
-	uint32_t port_no;
-	uint8_t pad[4];        /* Align to 64-bits. */
-	uint64_t rx_packets;   /* Number of received packets. */
-	uint64_t tx_packets;   /* Number of transmitted packets. */
-	uint64_t rx_bytes;     /* Number of received bytes. */
-	uint64_t tx_bytes;     /* Number of transmitted bytes. */
-	uint64_t rx_dropped;   /* Number of packets dropped by RX. */
-	uint64_t tx_dropped;   /* Number of packets dropped by TX. */
-	uint64_t rx_errors;    /* Number of receive errors. This is a super-set
+    uint16_t length;       /* Length of this entry. */
+    uint8_t pad[2];        /* Align to 64-bits. */
+    uint32_t port_no;
+    uint32_t duration_sec; /* Time port has been alive in seconds. */
+    uint32_t duration_nsec; /* Time port has been alive in nanoseconds beyond
+                               duration_sec. */
+    uint64_t rx_packets;   /* Number of received packets. */
+    uint64_t tx_packets;   /* Number of transmitted packets. */
+    uint64_t rx_bytes;     /* Number of received bytes. */
+    uint64_t tx_bytes;     /* Number of transmitted bytes. */
+    uint64_t rx_dropped;   /* Number of packets dropped by RX. */
+    uint64_t tx_dropped;   /* Number of packets dropped by TX. */
+    uint64_t rx_errors;    /* Number of receive errors. This is a super-set
                               of more specific receive errors and should be
                               greater than or equal to the sum of all
-                              rx_*_err values. */
-	uint64_t tx_errors;    /* Number of transmit errors. This is a super-set
+                              rx_*_err in properties. */
+    uint64_t tx_errors;    /* Number of transmit errors. This is a super-set
                               of more specific transmit errors and should be
                               greater than or equal to the sum of all
                               tx_*_err values (none currently defined.) */
+    struct ofp_port_stats_prop_header properties[0]; /* List of properties. */
+};
+OFP_ASSERT(sizeof(struct ofp_port_stats) == 80);
+
+/* Ethernet ports starts property. */
+struct ofp_port_stats_prop_ethernet {
+    uint16_t type;      /* OFPPSPT_ETHERNET. */
+    uint16_t length;    /* Length in bytes of this property. */
+    uint8_t pad[4];     /* Align for 64 bits. */
+    
 	uint64_t rx_frame_err; /* Number of frame alignment errors. */
 	uint64_t rx_over_err;  /* Number of packets with RX overrun. */
 	uint64_t rx_crc_err;   /* Number of CRC errors. */
 	uint64_t collisions;   /* Number of collisions. */
-	uint32_t duration_sec; /* Time port has been alive in seconds. */
-	uint32_t duration_nsec; /* Time port has been alive in nanoseconds beyond
-                              duration_sec. */
 };
-OFP_ASSERT(sizeof(struct ofp_port_stats) == 112);
+OFP_ASSERT(sizeof(struct ofp_port_stats_prop_ethernet) == 40);
 
+/* Optical port stats property */
+struct ofp_port_stats_prop_optical {
+    uint16_t type;          /* OFPPSPT_OPTICAL */
+    uint16_t length;        /* Length in bytes of this property */
+    uint8_t  pad[4];        /* Align to 64-bits */
+
+    uint32_t flags;         /* Features to be enabled by the port. */
+    uint32_t tx_freq_lmda;  /* Current TX Frequency/Wavelength */
+    uint32_t tx_offset;     /* TX Offset */
+    uint32_t tx_grid_span;  /* TX Grid Spacing */
+    uint32_t rx_freq_lmda;  /* Current RX Frequency/Wavelength */
+    uint32_t rx_offset;     /* RX Offset */
+    uint32_t rx_grid_span;  /* RX Grid Spacing */
+    uint16_t tx_pwr;        /* Current TX power */
+    uint16_t rx_pwr;        /* Current RX power */
+    uint16_t bias_current;  /* TX Bias Current */
+    uint16_t temperature;   /* TX Laser Temperature */
+};
+OFP_ASSERT(sizeof(struct ofp_port_stats_prop_optical) == 44);
+
+/* Flags is one of the OFPOSF_.* below */
+enum ofp_port_stats_optical_flags {
+    OFPOSF_RX_TUNE  = 1 << 0,   /* Receiver tune info valid */
+    OFPOSF_TX_TUNE  = 1 << 1,   /* Transmit tune info valid */
+    OFPOSF_TX_PWR   = 1 << 2,   /* TX power is valid */
+    OFPOSF_RX_PWR   = 1 << 3,   /* RX power is valid */
+    OFPOSF_TX_BIAS  = 1 << 4,   /* Transmit bias is valid */
+    OFPOSF_TX_TEMP  = 1 << 5,   /* TX temp is valid */
+};
+
+struct ofp_port_stats_prop_experimenter {
+   	uint16_t type;         /* OFPPSPT_EXPERIMENTER. */
+	uint16_t length;       /* Length in bytes of this property. */
+	uint32_t experimenter; /* Experimenter ID which takes the same
+					        * form as in struct
+					        * ofp_experimenter_header. */
+	uint32_t exp_type;     /* Experimenter defined. */
+	/* Followed by:
+	 *   - Exactly (length - 12) bytes containing the experimenter data, then
+	 *   - Exactly (length + 7)/8*8 - (length) (between 0 and 7)
+	 *     bytes of all-zero bytes */
+	uint32_t         experimenter_data[0];
+};
+OFP_ASSERT(sizeof(struct ofp_port_stats_prop_experimenter) == 12);
+
+enum ofp_queue_stats_prop_type {
+	OFPQSPT_EXPERIMENTER	= 0xffff, /* Experimenter defined property. */
+};
+
+/* Common header for all queue properties. */
+struct ofp_queue_stats_prop_header {
+	uint16_t type;	   /* One of OFPQSPT_*. */
+	uint16_t length;   /* Length in bytes of this property. */
+};
+OFP_ASSERT(sizeof(struct ofp_queue_stats_prop_header) == 4);
+
+/* Experimenter queue property description. */
+struct ofp_queue_stats_prop_experimenter {
+	uint16_t         type;    /* OFPQSPT_EXPERIMENTER. */
+	uint16_t         length;  /* Length in bytes of this property. */
+	uint32_t         experimenter;  /* Experimenter ID which takes the same
+					 * form as in struct
+					 * ofp_experimenter_header. */
+	uint32_t         exp_type;      /* Experimenter defined. */
+	/* Followed by:
+	 *   - Exactly (length - 12) bytes containing the experimenter data, then
+	 *   - Exactly (length + 7)/8*8 - (length) (between 0 and 7)
+	 *     bytes of all-zero bytes */
+	uint32_t         experimenter_data[0];
+};
+OFP_ASSERT(sizeof(struct ofp_queue_stats_prop_experimenter) == 12);
+
+/* Body for ofp_multipart_request of type OFPMP_QUEUE_DESC. */
+struct ofp_queue_desc_request {
+	uint32_t port_no;        /* All ports if OFPP_ANY. */
+	uint32_t queue_id;       /* All queues if OFPQ_ALL. */
+};
+OFP_ASSERT(sizeof(struct ofp_queue_desc_request) == 8);
+
+/* Body of reply to OFPMP_QUEUE_DESC request. */
+struct ofp_queue_desc {
+	uint32_t port_no;      /* Port this queue is attached to. */
+	uint32_t queue_id;     /* id for the specific queue. */
+	uint16_t len;          /* Length in bytes of this queue desc. */
+	uint8_t pad[6];        /* 64-bit alignment. */
+
+	struct ofp_queue_desc_prop_header properties[0]; /* List of properties. */
+};
+OFP_ASSERT(sizeof(struct ofp_queue_desc) == 16);
+
+/* Body for ofp_multipart_request of type OFPMP_QUEUE_STATS. */
 struct ofp_queue_stats_request {
 	uint32_t port_no;  /* All ports if OFPP_ANY. */
 	uint32_t queue_id; /* All queues if OFPQ_ALL. */
 };
 OFP_ASSERT(sizeof(struct ofp_queue_stats_request) == 8);
 
+/* Body of reply to OFPMP_QUEUE_STATS request. */
 struct ofp_queue_stats {
-	uint32_t port_no;
-	uint32_t queue_id;   /* Queue i.d */
-	uint64_t tx_bytes;   /* Number of transmitted bytes. */
-	uint64_t tx_packets; /* Number of transmitted packets. */
-	uint64_t tx_errors;  /* Number of packets dropped due to overrun. */
-	uint32_t duration_sec; /* Time queue has been alive in seconds. */
-    uint32_t duration_nsec; /* Time queue has been alive in nanoseconds beyond
+    uint16_t length;        /* Length of this entry. */
+    uint8_t pad[6];         /* Align to 64 bits. */
+	uint32_t port_no;       /* Port the queue is attached to. */
+	uint32_t queue_id;      /* Queue i.d */
+	uint64_t tx_bytes;      /* Number of transmitted bytes. */
+	uint64_t tx_packets;    /* Number of transmitted packets. */
+	uint64_t tx_errors;     /* Number of packets dropped due to overrun. */
+	uint32_t duration_sec;  /* Time queue has been alive in seconds. */
+	uint32_t duration_nsec; /* Time queue has been alive in nanoseconds beyond
                                 duration_sec. */
+	struct ofp_queue_stats_prop_header properties[0]; /* List of properties. */
 };
-OFP_ASSERT(sizeof(struct ofp_queue_stats) == 40);
+OFP_ASSERT(sizeof(struct ofp_queue_stats) == 48);
 
 /* Body of OFPMP_GROUP request. */
 struct ofp_group_stats_request {
@@ -1337,36 +1655,6 @@ struct ofp_meter_features {
 };
 OFP_ASSERT(sizeof(struct ofp_meter_features) == 16);
 
-
-/* Body for ofp_multipart_request/reply of type OFPMP_EXPERIMENTER. */
-struct ofp_experimenter_stats_header {
-	uint32_t experimenter; /* Experimenter ID which takes the same form
-                              as in struct ofp_experimenter_header. */
-	uint32_t exp_type;     /* Experimenter defined. */
-	/* Experimenter-defined arbitrary additional data. */
-};
-OFP_ASSERT(sizeof(struct ofp_experimenter_stats_header) == 8);
-
-/* Query for port queue configuration. */
-struct ofp_queue_get_config_request {
-	struct ofp_header header;
-	uint32_t port; /* Port to be queried. Should refer
-                    to a valid physical port (i.e. < OFPP_MAX),
-                    or OFPP_ANY to request all configured
-                    queues.*/
-	uint8_t pad[4];
-};
-OFP_ASSERT(sizeof(struct ofp_queue_get_config_request) == 16);
-
-/* Queue configuration for a given port. */
-struct ofp_queue_get_config_reply {
-	struct ofp_header header;
-	uint32_t port;
-	uint8_t pad[4];
-	struct ofp_packet_queue queues[0]; /* List of configured queues. */
-};
-OFP_ASSERT(sizeof(struct ofp_queue_get_config_reply) == 16);
-
 /* Send packet (controller -> datapath). */
 struct ofp_packet_out {
 	struct ofp_header header;
@@ -1399,14 +1687,57 @@ enum ofp_controller_role {
     OFPCR_ROLE_SLAVE = 3,    /* Read-only access. */
 };
 
+/* Async Config property types.
+ * Low order bit cleared indicates a property for the slave role.
+ * Low order bit set indicates a property for the master/equal role.
+ */
+enum ofp_async_config_prop_type {
+    OFPACPT_PACKET_IN_SLAVE     = 0, /* Packet-in mask for slave. */
+    OFPACPT_PACKET_IN_MASTER    = 1, /* Packet-in mask for master. */
+    OFPACPT_PORT_STATUS_SLAVE   = 2, /* Port-status mask for slave. */
+    OFPACPT_PORT_STATUS_MASTER  = 3, /* Port-status mask for master. */
+    OFPACPT_FLOW_REMOVED_SLAVE  = 4, /* Flow removed mask for slave. */
+    OFPACPT_FLOW_REMOVED_MASTER = 5, /* Flow removed mask for master. */
+    OFPACPT_EXPERIMENTER_SLAVE  = 0xFFFE, /* Experimenter for slave. */
+    OFPACPT_EXPERIMENTER_MASTER = 0xFFFF, /* Experimenter for master. */
+};
+
+/* Common header for all async config Properties */
+struct ofp_async_config_prop_header {
+    uint16_t        type;       /* One of OFPACPT_*. */
+    uint16_t        length;     /* Length in bytes of this property. */
+};
+OFP_ASSERT(sizeof(struct ofp_async_config_prop_header) == 4);
+
+/* Various reason based properties */
+struct ofp_async_config_prop_reasons {
+    uint16_t        type;       /* One of OFPACPT_PACKET_IN_*,
+                                   OFPACPT_PORT_STATUS_*,
+                                   OFPACPT_FLOW_REMOVED_*. */
+    uint16_t        length;     /* Length in bytes of this property. */
+    uint32_t        mask;       /* Bitmasks of reason values. */
+};
+OFP_ASSERT(sizeof(struct ofp_async_config_prop_reasons) == 8);
+
+/* Experimenter async config property */
+struct ofp_async_config_prop_experimenter {
+    uint16_t        type;
+    uint16_t        length;
+    uint32_t        experimenter;
+    uint32_t        exp_type;
+
+    uint32_t        experimenter_data[0];
+};
+OFP_ASSERT(sizeof(struct ofp_async_config_prop_experimenter) == 12);
+
 /* Asynchronous message configuration. */
 struct ofp_async_config {
     struct ofp_header header; /* OFPT_GET_ASYNC_REPLY or OFPT_SET_ASYNC. */
-    uint32_t packet_in_mask[2]; /* Bitmasks of OFPR_* values. */
-    uint32_t port_status_mask[2]; /* Bitmasks of OFPPR_* values. */
-    uint32_t flow_removed_mask[2];/* Bitmasks of OFPRR_* values. */
+
+    /* Async config Property list - 0 or more */
+    struct ofp_async_config_prop_header properties[0];
 };
-OFP_ASSERT(sizeof(struct ofp_async_config) == 32);
+OFP_ASSERT(sizeof(struct ofp_async_config) == 8);
 
 
 
@@ -1476,7 +1807,7 @@ struct ofp_port_status {
 	uint8_t pad[7]; /* Align to 64-bits. */
 	struct ofp_port desc;
 };
-OFP_ASSERT(sizeof(struct ofp_port_status) == 80);
+OFP_ASSERT(sizeof(struct ofp_port_status) == 56);
 
 /* What changed about the physical port */
 enum ofp_port_reason {
@@ -1513,6 +1844,8 @@ enum ofp_error_type {
     OFPET_ROLE_REQUEST_FAILED = 11,  /* Controller Role request failed. */
     OFPET_METER_MOD_FAILED = 12,     /* Error in meter. */
     OFPET_TABLE_FEATURES_FAILED = 13, /* Setting table features failed. */
+    OFPET_BAD_PROPERTY = 14,         /* Some property is invalid. */
+
     OFPET_EXPERIMENTER = 0xffff      /* Experimenter error messages. */
 };
 
@@ -1725,32 +2058,51 @@ enum ofp_meter_mod_failed_code {
 enum ofp_table_features_failed_code {
     OFPTFFC_BAD_TABLE = 0,    /* Specified table does not exist. */
     OFPTFFC_BAD_METADATA = 1, /* Invalid metadata mask. */
-    OFPTFFC_BAD_TYPE = 2,     /* Unknown property type. */
-    OFPTFFC_BAD_LEN = 3,      /* Length problem in properties. */
-    OFPTFFC_BAD_ARGUMENT = 4, /* Unsupported property value. */
     OFPTFFC_EPERM = 5,        /* Permissions error. */
+};
+
+enum ofp_bad_property_code {
+    OFPBPC_BAD_TYPE = 0,         /* Unknown property type. */
+    OFPBPC_BAD_LEN = 1,          /* Length problem in property. */
+    OFPBPC_BAD_VALUE = 2,        /* Unsupported property value. */
+    OFPBPC_TOO_MANY = 3,         /* Can't handle this many properties. */
+    OFPBPC_DUP_TYPE = 4,         /* A property type was duplicated. */
+    OFPBPC_BAD_EXPERIMENTER = 5, /* Unknown experimenter id. */
+    OFPBPC_BAD_EXP_TYPE = 6,     /* Unknown exp_type for experimenter_id. */
+    OFPBPC_BAD_EXP_VALUE = 7,    /* Unknown value for experimenter_id */
+    OFPBPC_EPERM = 8,            /* Permissions error. */
 };
 
 /* OFPET_EXPERIMENTER: Error message (datapath -> controller). */
 struct ofp_error_experimenter_msg {
 	struct ofp_header header;
 	uint16_t type;         /* OFPET_EXPERIMENTER. */
-	uint16_t exp_type;     /* Experimenter defined. */
-	uint32_t experimenter; /* Experimenter ID which takes the same form
-                              as in struct ofp_experimenter_header. */
+	uint16_t exp_code;     /* Experimenter defined. */
+	uint32_t experimenter; /* Experimenter ID */
 	uint8_t data[0];       /* Variable-length data. Interpreted based
-                              on the type and code. No padding. */
+                              on the type and experimenter. No padding. */
 };
 OFP_ASSERT(sizeof(struct ofp_error_experimenter_msg) == 16);
 
-/* Experimenter extension. */
-struct ofp_experimenter_header {
+/* Typical Experimenter extension. */
+struct ofp_experimenter_structure {
+    uint32_t experimenter;      /* Experimenter ID:
+                                 * - MSB 0: low-order bytes are IEEE OUI.
+                                 * - MSB != 0: defined by ONF. */
+    uint32_t exp_type;          /* Experimenter defined. */
+    uint8_t  experimenter_data[0];
+};
+OFP_ASSERT(sizeof(struct ofp_experimenter_structure) == 8);
+
+/* Experimenter extension message. */
+struct ofp_experimenter_msg {
 	struct ofp_header header; /* Type OFPT_EXPERIMENTER. */
 	uint32_t experimenter;    /* Experimenter ID:
                                * - MSB 0: low-order bytes are IEEE OUI.
                                * - MSB != 0: defined by ONF. */
 	uint32_t exp_type;        /* Experimenter defined. */
 	/* Experimenter-defined arbitrary additional data. */
+    uint8_t  experimenter_data[0];
 };
-OFP_ASSERT(sizeof(struct ofp_experimenter_header) == 16);
+OFP_ASSERT(sizeof(struct ofp_experimenter_msg) == 16);
 #endif /* openflow/openflow.h */

@@ -177,7 +177,7 @@ void
 update_instruction_length(struct ofpbuf *buffer, size_t oia_offset)
 {
     struct ofp_header *oh = ofpbuf_at_assert(buffer, 0, sizeof *oh);
-    struct ofp_instruction *ih = ofpbuf_at_assert(buffer, oia_offset,
+    struct ofp_instruction_header *ih = ofpbuf_at_assert(buffer, oia_offset,
 						  sizeof *ih);
     ih->len = htons(buffer->size - oia_offset);
 }
@@ -286,7 +286,9 @@ make_packet_out(const struct ofpbuf *packet, uint32_t buffer_id,
                 uint32_t in_port,
                 const struct ofp_action_header *actions, size_t n_actions)
 {
-    size_t actions_len = n_actions * sizeof *actions;
+    /* This is broken because actions have variable size.
+     * All callers are using a single OFPAT_OUTPUT. Jean II */
+    size_t actions_len = n_actions * (sizeof (struct ofp_action_output));
     struct ofp_packet_out *opo;
     size_t size = sizeof *opo + actions_len + (packet ? packet->size : 0);
     struct ofpbuf *out = ofpbuf_new(size);
@@ -407,9 +409,9 @@ check_ofp_message(const struct ofp_header *msg, uint8_t type, size_t size)
  * 'array_elt_size' blocks in 'msg' past the first 'min_size' bytes, when
  * successful. */
 int
-check_ofp_instruction_array(const struct ofp_instruction *inst, uint8_t type,
-			    size_t min_size, size_t array_elt_size,
-			    size_t *n_array_elts)
+check_ofp_instruction_array(const struct ofp_instruction_header *inst,
+                            uint8_t type, size_t min_size,
+                            size_t array_elt_size, size_t *n_array_elts)
 {
     size_t got_size;
 

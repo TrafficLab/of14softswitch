@@ -365,6 +365,7 @@ new_port(struct datapath *dp, struct sw_port *port, uint32_t port_no,
     port->dp = dp;
 
     port->conf = xmalloc(sizeof(struct ofl_port));
+    port->conf->type = OFPPDPT_ETHERNET;
     port->conf->port_no    = port_no;
     memcpy(port->conf->hw_addr, netdev_get_etheraddr(netdev), ETH_ADDR_LEN);
     port->conf->name       = strcpy(xmalloc(strlen(netdev_name) + 1), netdev_name);
@@ -401,6 +402,7 @@ new_port(struct datapath *dp, struct sw_port *port, uint32_t port_no,
 
     port->stats = xmalloc(sizeof(struct ofl_port_stats));
     port->stats->port_no = port_no;
+    port->stats->type         = 0;
     port->stats->rx_packets   = 0;
     port->stats->tx_packets   = 0;
     port->stats->rx_bytes     = 0;
@@ -718,7 +720,6 @@ dp_ports_handle_stats_request_port(struct datapath *dp,
             reply.stats[i] = port->stats;
             i++;
         }
-
     } else {
         port = dp_ports_lookup(dp, msg->port_no);
 
@@ -775,14 +776,87 @@ dp_ports_queue_update(struct sw_queue *queue) {
 }
 
 ofl_err
+dp_ports_handle_queue_desc_request(struct datapath *dp,
+                                  struct ofl_msg_multipart_request_queue * msg,
+                                  const struct sender *sender UNUSED){
+    struct sw_port *p;
+
+    struct ofl_msg_multipart_reply_queue_desc reply =
+            {{{.type = OFPT_MULTIPART_REPLY},
+              .type = OFPMP_QUEUE_DESC, .flags = 0x0000},
+             .queues_num   = 0,
+             .queues       = NULL};
+
+    if (msg->port_no == OFPP_ANY) {
+        size_t i, idx = 0, num = 0;
+
+        LIST_FOR_EACH(p, struct sw_port, node, &dp->port_list) {
+            num += p->num_queues;
+        }
+
+        reply.queues_num = num;
+        reply.queues     = xmalloc(sizeof(struct ofl_packet_queue *) * num);
+
+        LIST_FOR_EACH(p, struct sw_port, node, &dp->port_list) {
+            for (i=0; i<p->max_queues; i++) {
+                if (p->queues[i].port != NULL) {
+                    reply.queues[idx] = p->queues[i].props;
+                    idx++;
+                }
+             }
+         }
+    } else {
+        p = dp_ports_lookup(dp, msg->port_no);
+
+        if (p == NULL || (p->stats->port_no != msg->port_no)) {
+            return ofl_error(OFPET_QUEUE_OP_FAILED, OFPQOFC_BAD_PORT);
+        } else {
+            if(msg->queue_id == OFPQ_ALL) {
+
+                size_t i, idx = 0;
+
+                reply.queues_num = p->num_queues;
+                reply.queues     = xmalloc(sizeof(struct ofl_packet_queue *) * p->num_queues);
+
+                for (i=0; i<p->max_queues; i++) {
+                    if (p->queues[i].port != NULL) {
+                        reply.queues[idx] = p->queues[i].props;
+                        idx++;
+                    }
+                }
+            } else {
+	        if((msg->queue_id < p->max_queues)
+		   && (p->queues[msg->queue_id].port != NULL)) {
+		    reply.queues_num = 1;
+		    reply.queues     = xmalloc(sizeof(struct ofl_packet_queue *));
+		    reply.queues[0] = p->queues[msg->queue_id].props;
+		} else {
+		    return ofl_error(OFPET_QUEUE_OP_FAILED, OFPQOFC_BAD_QUEUE);
+		}
+           }
+        }
+    }
+
+    dp_send_message(dp, (struct ofl_msg_header *)&reply, sender);
+
+    free(reply.queues);
+    ofl_msg_free((struct ofl_msg_header *)msg, dp->exp);
+    return 0;
+
+
+    return 0;
+}
+
+
+ofl_err
 dp_ports_handle_stats_request_queue(struct datapath *dp,
                                   struct ofl_msg_multipart_request_queue *msg,
                                   const struct sender *sender) {
     struct sw_port *port;
 
-    struct ofl_msg_multipart_reply_queue reply =
+    struct ofl_msg_multipart_reply_queue_stats reply =
             {{{.type = OFPT_MULTIPART_REPLY},
-              .type = OFPMP_QUEUE, .flags = 0x0000},
+              .type = OFPMP_QUEUE_STATS, .flags = 0x0000},
              .stats_num   = 0,
              .stats       = NULL};
 
@@ -862,65 +936,6 @@ dp_ports_handle_stats_request_queue(struct datapath *dp,
     return 0;
 }
 
-ofl_err
-dp_ports_handle_queue_get_config_request(struct datapath *dp,
-                              struct ofl_msg_queue_get_config_request *msg,
-                                                const struct sender *sender) {
-    struct sw_port *p;
-
-    struct ofl_msg_queue_get_config_reply reply =
-            {{.type = OFPT_QUEUE_GET_CONFIG_REPLY},
-             .queues = NULL};
-
-    if (msg->port == OFPP_ANY) {
-        size_t i, idx = 0, num = 0;
-
-        LIST_FOR_EACH(p, struct sw_port, node, &dp->port_list) {
-            num += p->num_queues;
-        }
-
-        reply.port       = OFPP_ANY;
-        reply.queues_num = num;
-        reply.queues     = xmalloc(sizeof(struct ofl_packet_queue *) * num);
-
-        LIST_FOR_EACH(p, struct sw_port, node, &dp->port_list) {
-            for (i=0; i<p->max_queues; i++) {
-                if (p->queues[i].port != NULL) {
-                    reply.queues[idx] = p->queues[i].props;
-                    idx++;
-                }
-             }
-         }
-    } else {
-        p = dp_ports_lookup(dp, msg->port);
-
-        if (p == NULL || (p->stats->port_no != msg->port)) {
-            free(reply.queues);
-            ofl_msg_free((struct ofl_msg_header *)msg, dp->exp);
-            return ofl_error(OFPET_QUEUE_OP_FAILED, OFPQOFC_BAD_PORT);
-        } else {
-            size_t i, idx = 0;
-
-            reply.port       = msg->port;
-            reply.queues_num = p->num_queues;
-            reply.queues     = xmalloc(sizeof(struct ofl_packet_queue *) * p->num_queues);
-
-            for (i=0; i<p->max_queues; i++) {
-                if (p->queues[i].port != NULL) {
-                    reply.queues[idx] = p->queues[i].props;
-                    idx++;
-                }
-            }
-        }
-    }
-
-    dp_send_message(dp, (struct ofl_msg_header *)&reply, sender);
-
-    free(reply.queues);
-    ofl_msg_free((struct ofl_msg_header *)msg, dp->exp);
-    return 0;
-}
-
 /*
  * Queue handling
  */
@@ -944,6 +959,8 @@ new_queue(struct sw_port * port, struct sw_queue * queue,
     queue->stats->tx_errors = 0;
     queue->stats->duration_sec = 0;
     queue->stats->duration_nsec = 0;
+    queue->stats->properties_num = 0;
+    queue->stats->properties = NULL;
 
     /* class_id is the internal mapping to class. It is the offset
      * in the array of queues for each port. Note that class_id is
@@ -953,11 +970,12 @@ new_queue(struct sw_port * port, struct sw_queue * queue,
     queue->class_id = class_id;
 
     queue->props = xmalloc(sizeof(struct ofl_packet_queue));
+    queue->props->port_no = port->stats->port_no;
     queue->props->queue_id = queue_id;
     queue->props->properties = xmalloc(sizeof(struct ofl_queue_prop_header *));
     queue->props->properties_num = 1;
     queue->props->properties[0] = xmalloc(sizeof(struct ofl_queue_prop_min_rate));
-    ((struct ofl_queue_prop_min_rate *)(queue->props->properties[0]))->header.type = OFPQT_MIN_RATE;
+    ((struct ofl_queue_prop_min_rate *)(queue->props->properties[0]))->header.type = OFPQDPT_MIN_RATE;
     ((struct ofl_queue_prop_min_rate *)(queue->props->properties[0]))->rate = mr->rate;
 
     port->num_queues++;

@@ -57,7 +57,7 @@ ofl_utils_count_ofp_table_features_properties(void *data, size_t data_len, size_
         prop = (struct ofp_table_feature_prop_header *) d;
         if (data_len < ntohs(prop->length) || ntohs(prop->length) < sizeof(struct ofp_table_feature_prop_header) ){
              OFL_LOG_WARN(LOG_MODULE, "Received property has invalid length (prop->length=%d, data_len=%d).", ntohs(prop->length), (int) data_len);
-             return ofl_error(OFPET_TABLE_FEATURES_FAILED, OFPTFFC_BAD_LEN);
+             return ofl_error(OFPET_BAD_PROPERTY, OFPBPC_BAD_LEN); 
         }
         data_len -= ROUND_UP(ntohs(prop->length), 8);
         d += ROUND_UP(ntohs(prop->length), 8);
@@ -76,8 +76,8 @@ ofl_utils_count_ofp_table_features(void *data, size_t data_len, size_t *count){
     while (data_len >= sizeof(struct ofp_table_features)){
         feature = (struct ofp_table_features *) d;
         if (data_len < ntohs(feature->length) || ntohs(feature->length) < sizeof(struct ofp_table_features) ){
-             OFL_LOG_WARN(LOG_MODULE, "Received feature has invalid length (feat->length=%d, data_len=%d).", ntohs(feature->length), (int) data_len);
-             return ofl_error(OFPET_TABLE_FEATURES_FAILED, OFPTFFC_BAD_LEN);
+             OFL_LOG_WARN(LOG_MODULE, "Received feature has invalid length (feat->length=%d, data_len=%d).");
+             return ofl_error(OFPET_BAD_PROPERTY, OFPBPC_BAD_LEN); 
         }
         data_len -= ntohs(feature->length);
         d += ntohs(feature->length);
@@ -90,23 +90,21 @@ ofl_utils_count_ofp_table_features(void *data, size_t data_len, size_t *count){
 
 ofl_err
 ofl_utils_count_ofp_instructions(void *data, size_t data_len, size_t *count) {
-    struct ofp_instruction *inst;
+    struct ofp_instruction_header *inst;
     uint8_t *d;
 
     d = (uint8_t *)data;
     *count = 0;
     /* this is needed so that buckets are handled correctly */
-    while (data_len >= sizeof(struct ofp_instruction)- 4) {
-        inst = (struct ofp_instruction *)d;
-        if (data_len < ntohs(inst->len) || ntohs(inst->len) < sizeof(struct ofp_instruction) - 4) {
+    while (data_len >= sizeof(struct ofp_instruction_header)) {
+        inst = (struct ofp_instruction_header *)d;
+        if (data_len < ntohs(inst->len) || ntohs(inst->len) < sizeof(struct ofp_instruction_header)) {
             OFL_LOG_WARN(LOG_MODULE, "Received instruction has invalid length.");
-            return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
-
+            return ofl_error(OFPET_BAD_INSTRUCTION, OFPBIC_BAD_LEN);
         }
         data_len -= ntohs(inst->len);
         d += ntohs(inst->len);
         (*count)++;
-
     }
 
     return 0;
@@ -162,7 +160,63 @@ ofl_utils_count_ofp_meter_bands(void *data, size_t data_len, size_t *count) {
 
 ofl_err
 ofl_utils_count_ofp_ports(void *data UNUSED, size_t data_len, size_t *count) {
-    *count = data_len / sizeof(struct ofp_port);
+    struct ofp_port *op;
+    size_t bytes_read = 0;
+    size_t op_length;
+
+    *count = 0;
+
+    op = (struct ofp_port *)data;
+    while (bytes_read < data_len) {
+        /* not enough bytes left to fit a port */
+        if ((data_len - bytes_read) < sizeof(struct ofp_port)) {
+            return ofl_error(OFPET_BAD_PROPERTY, OFPBPC_BAD_LEN);
+        }
+
+        op_length = ntohs(op->length);
+        op = (struct ofp_port *)((uint8_t *)op + op_length);
+        bytes_read += op_length;
+
+        /* length fields are wrong */
+        if (op_length == 0 ||
+            (op_length < sizeof(struct ofp_port))) {
+            return ofl_error(OFPET_BAD_PROPERTY, OFPBPC_BAD_LEN);
+        }
+
+        (*count)++;
+    }
+
+    return 0;
+}
+
+ofl_err
+ofl_utils_count_ofp_queue_descs(void *data UNUSED, size_t data_len, size_t *count) {
+    struct ofp_queue_desc *oqd;
+    size_t bytes_read = 0;
+    size_t oqd_length;
+
+    *count = 0;
+
+    oqd = (struct ofp_queue_desc *)data;
+    while (bytes_read < data_len) {
+        /* not enough bytes left to fit a port */
+        if ((data_len - bytes_read) < sizeof(struct ofp_queue_desc)) {
+            return ofl_error(OFPET_BAD_PROPERTY, OFPBPC_BAD_LEN);
+        }
+
+        oqd_length = ntohs(oqd->len);
+        oqd = (struct ofp_queue_desc *)((uint8_t *)oqd + oqd_length);
+        bytes_read += oqd_length;
+
+        /* length fields are wrong */
+        if (oqd_length == 0 ||
+            (oqd_length < sizeof(struct ofp_queue_desc))) {
+            return ofl_error(OFPET_BAD_PROPERTY, OFPBPC_BAD_LEN);
+        }
+
+        (*count)++;
+    }
+
     return 0;
 }
 
@@ -251,13 +305,65 @@ ofl_utils_count_ofp_bucket_counters(void *data UNUSED, size_t data_len, size_t *
 
 ofl_err
 ofl_utils_count_ofp_port_stats(void *data UNUSED, size_t data_len, size_t *count) {
-    *count = data_len / sizeof(struct ofp_port_stats);
+    struct ofp_port_stats *stat;
+    uint8_t *d;
+
+    d = (uint8_t *)data;
+    *count = 0;    
+
+    while (data_len >= sizeof(struct ofp_port_stats)) {
+        stat = (struct ofp_port_stats *)d;
+
+        if (data_len < ntohs(stat->length)) {
+            OFL_LOG_WARN(LOG_MODULE, "Received port stat has invalid length.");
+            return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
+        }
+        data_len -= ntohs(stat->length);
+        d += ntohs(stat->length);
+        (*count)++;
+    }
+
     return 0;
 }
 
 ofl_err
-ofl_utils_count_ofp_queue_stats(void *data UNUSED, size_t data_len, size_t *count) {
-    *count = data_len / sizeof(struct ofp_queue_stats);
+ofl_utils_count_ofp_queue_stats_props(void *data, size_t data_len, size_t *count){
+
+    struct ofp_queue_stats_prop_header *prop;
+    uint8_t *d;
+    
+    d = (uint8_t*) data;
+    *count = 0;    
+    while (data_len >= sizeof(struct ofp_queue_stats_prop_header)){
+        prop = (struct ofp_queue_stats_prop_header *) d;
+        if (data_len < ntohs(prop->length) || ntohs(prop->length) < sizeof(struct ofp_queue_stats_prop_header) ){
+             OFL_LOG_WARN(LOG_MODULE, "Received queue stats property has invalid length (prop->length=%d, data_len=%d).", ntohs(prop->length), (int) data_len);
+             return ofl_error(OFPET_BAD_PROPERTY, OFPBPC_BAD_LEN); 
+        }
+        data_len -= ROUND_UP(ntohs(prop->length), 8);
+        d += ROUND_UP(ntohs(prop->length), 8);  
+        (*count)++;
+    } 
+    return 0; 
+}
+
+ofl_err
+ofl_utils_count_ofp_queue_stats(void *data, size_t data_len, size_t *count) {
+    struct ofp_queue_stats *queue_stats;
+    uint8_t *d;
+    
+    d = (uint8_t*) data;
+    *count = 0;
+    while (data_len >= sizeof(struct ofp_queue_stats)){
+        queue_stats = (struct ofp_queue_stats *) d;
+        if (data_len < ntohs(queue_stats->length) || ntohs(queue_stats->length) < sizeof(struct ofp_queue_stats) ){
+             OFL_LOG_WARN(LOG_MODULE, "Received queue stats has invalid length (feat->length=%d, data_len=%d).", ntohs(queue_stats->length), (int) data_len);
+             return ofl_error(OFPET_BAD_PROPERTY, OFPBPC_BAD_LEN); 
+        }
+        data_len -= ntohs(queue_stats->length);
+        d += ntohs(queue_stats->length);  
+        (*count)++;
+    } 
     return 0;
 }
 
@@ -286,21 +392,21 @@ ofl_utils_count_ofp_group_desc_stats(void *data UNUSED, size_t data_len, size_t 
 
 ofl_err
 ofl_utils_count_ofp_queue_props(void *data, size_t data_len, size_t *count) {
-    struct ofp_queue_prop_header *prop;
+    struct ofp_queue_desc_prop_header *prop;
     uint8_t *d;
 
     d = (uint8_t *)data;
     (*count) = 0;
 
-    while (data_len >= sizeof(struct ofp_queue_prop_header)) {
-        prop = (struct ofp_queue_prop_header *)d;
+    while (data_len >= sizeof(struct ofp_queue_desc_prop_header)) {
+        prop = (struct ofp_queue_desc_prop_header *)d;
 
-        if (data_len < ntohs(prop->len) || ntohs(prop->len) < sizeof(struct ofp_queue_prop_header)) {
+        if (data_len < ntohs(prop->length) || ntohs(prop->length) < sizeof(struct ofp_queue_desc_prop_header)) {
             OFL_LOG_WARN(LOG_MODULE, "Received queue prop has invalid length.");
             return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
         }
-        data_len -= ntohs(prop->len);
-        d += ntohs(prop->len);
+        data_len -= ntohs(prop->length);
+        d += ntohs(prop->length);
         (*count)++;
     }
 

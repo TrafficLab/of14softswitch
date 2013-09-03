@@ -219,8 +219,6 @@ BUILD_ASSERT_DECL(VLAN_ETH_HEADER_LEN == sizeof(struct vlan_eth_header));
 #define IP_TYPE_UDP   17
 #define IP_TYPE_SCTP 132
 
-
-
 #define IP_VERSION 4
 
 #define IP_DONT_FRAGMENT  0x4000 /* Don't fragment. */

@@ -52,7 +52,6 @@ struct ofl_action_header {
     uint16_t len; /* Total length */
 };
 
-
 struct ofl_action_output {
     struct ofl_action_header   header; /* OFPAT_OUTPUT. */
 

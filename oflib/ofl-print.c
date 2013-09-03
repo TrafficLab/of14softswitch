@@ -314,7 +314,8 @@ ofl_queue_prop_type_to_string(uint16_t type) {
 void
 ofl_queue_prop_type_print(FILE *stream, uint16_t type) {
     switch (type) {
-        case (OFPQT_MIN_RATE): { fprintf(stream, "minrate"); return; }
+        case (OFPQDPT_MIN_RATE): { fprintf(stream, "minrate"); return; }
+        case (OFPQDPT_MAX_RATE): { fprintf(stream, "maxrate"); return; }
         default: {               fprintf(stream, "?(%u)", type); return; }
     }
 }
@@ -547,8 +548,6 @@ ofl_message_type_print(FILE *stream, uint16_t type) {
         case OFPT_MULTIPART_REPLY: {              fprintf(stream, "stat_repl"); return; }
         case OFPT_BARRIER_REQUEST: {          fprintf(stream, "barr_req"); return; }
         case OFPT_BARRIER_REPLY: {            fprintf(stream, "barr_repl"); return; }
-        case OFPT_QUEUE_GET_CONFIG_REQUEST: { fprintf(stream, "q_cnf_req"); return; }
-        case OFPT_QUEUE_GET_CONFIG_REPLY:   { fprintf(stream, "q_cnf_repl"); return; }
 		case OFPT_GET_ASYNC_REQUEST:        { fprintf(stream, "get_async_req"); return;}
 		case OFPT_GET_ASYNC_REPLY:          { fprintf(stream, "get_async_rep"); return;}
 		case OFPT_SET_ASYNC:                { fprintf(stream, "set_async"); return;}
@@ -785,7 +784,7 @@ ofl_stats_type_print(FILE *stream, uint16_t type) {
         case (OFPMP_TABLE):         { fprintf(stream, "table"); return; }
         case (OFPMP_TABLE_FEATURES):{ fprintf(stream, "table-features"); return; }
         case (OFPMP_PORT_STATS):    { fprintf(stream, "port"); return; }
-        case (OFPMP_QUEUE):         { fprintf(stream, "queue"); return; }
+        case (OFPMP_QUEUE_STATS):   { fprintf(stream, "queue"); return; }
         case (OFPMP_GROUP):         { fprintf(stream, "grp"); return; }
         case (OFPMP_GROUP_FEATURES):{ fprintf(stream, "grp_features"); return; }
         case (OFPMP_GROUP_DESC):    { fprintf(stream, "gdesc"); return; }
@@ -793,6 +792,7 @@ ofl_stats_type_print(FILE *stream, uint16_t type) {
         case (OFPMP_METER_CONFIG):  { fprintf(stream, "mconf"); return; }
         case (OFPMP_METER_FEATURES):{ fprintf(stream, "mfeat"); return; }
         case (OFPMP_PORT_DESC):     { fprintf(stream, "port-desc"); return; }   
+        case (OFPMP_QUEUE_DESC):    { fprintf(stream, "queue-desc"); return; }   
         case (OFPMP_EXPERIMENTER):  { fprintf(stream, "exp"); return; }
         default: {                    fprintf(stream, "?(%u)", type); return; }
     }

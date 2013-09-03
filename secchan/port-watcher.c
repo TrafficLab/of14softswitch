@@ -48,8 +48,9 @@
 #include "shash.h"
 #include "svec.h"
 #include "timeval.h"
-#include "xtoxll.h"
+//#include "xtoxll.h"
 #include "vlog.h"
+#include "oflib/ofl-structs.h"
 
 #define LOG_MODULE VLM_port_watcher
 
@@ -84,18 +85,14 @@ struct port_watcher {
 static int
 opp_differs(const struct ofp_port *a, const struct ofp_port *b)
 {
-    BUILD_ASSERT_DECL(sizeof *a == 64); /* Trips when we add or remove fields. */
+    /* EXT-262-TODO: Add property checks here? */
+    BUILD_ASSERT_DECL(sizeof *a == 40); /* Trips when we add or remove fields. */
     return ((a->port_no != b->port_no)
             + (memcmp(a->hw_addr, b->hw_addr, sizeof a->hw_addr) != 0)
             + (memcmp(a->name, b->name, sizeof a->name) != 0)
             + (a->config != b->config)
             + (a->state != b->state)
-            + (a->curr != b->curr)
-            + (a->advertised != b->advertised)
-            + (a->supported != b->supported)
-            + (a->peer != b->peer)
-            + (a->curr_speed != b->curr_speed)
-            + (a->max_speed != b->max_speed));
+            + (a->length != b->length));
 }
 
 static void
@@ -200,15 +197,18 @@ update_phy_port(struct port_watcher *pw, struct ofp_port *opp,
         }
         if (!old || opp_differs(opp, old)) {
         */
-            struct ofp_port new = *opp;
-            sanitize_opp(&new);
-            call_port_changed_callbacks(pw, port_no, old, &new);
+            struct ofp_port *new = calloc(1, ntohs(opp->length));
+            memcpy(new, opp, ntohs(opp->length));
+            sanitize_opp(new);
+            call_port_changed_callbacks(pw, port_no, old, new);
+/*
             if (old) {
                 *old = new;
             } else {
-                port_array_set(&pw->ports, port_no, xmemdup(&new, sizeof new));
-            }
+*/
+                port_array_set(&pw->ports, port_no, new);
         /*
+            }
         }
         */
     }
@@ -254,14 +254,24 @@ port_watcher_local_packet_cb(struct relay *r, void *pw_)
             bool seen[PORT_ARRAY_SIZE];
             struct ofp_port *p;
             unsigned int port_no;
-            size_t n_ports, i;
+            size_t i;
+            struct ofp_port *opp;
             p = (struct ofp_port*) repl->body;
             /* Update each port included in the message.*/
             memset(seen, false, sizeof seen);
-            n_ports = ((msg->size - offsetof(struct ofp_multipart_reply, body))
-                       / sizeof *p);
-            for (i = 0; i < n_ports; i++) {
-                struct ofp_port *opp = &p[i];
+            opp = p;
+            for (i = 0; ; i++) {
+
+                if (ntohs(opp->length == 0)) {
+                    break; /* error in length */
+                }
+
+                opp = (struct ofp_port *)(ntohs(opp->length) + (uint8_t *)opp);
+
+                if (ntohs(repl->header.length) >= ((uint8_t *)opp - (uint8_t *)repl)) {
+                    break; /* done reading */
+                }
+
                 if (ntohl(opp->port_no) > PORT_ARRAY_SIZE - 1) {
                     if (ntohl(opp->port_no) <= OFPP_MAX) {
                         VLOG_WARN(LOG_MODULE, "Port ID %u over limit", ntohl(opp->port_no));
@@ -500,8 +510,24 @@ log_port_status(uint32_t port_no,
             }
         } else {
             struct ds ds = DS_EMPTY_INITIALIZER;
-            uint32_t curr = ntohl(new->curr);
-            uint32_t supported = ntohl(new->supported);
+            size_t newp_len;
+            struct ofl_port *newp;
+            uint32_t curr;
+            uint32_t supported;
+
+            newp_len = ntohs(new->length);
+            if (!ofl_structs_port_unpack(new, &newp_len, &newp)) {
+                VLOG_ERR(LOG_MODULE, "Port %d could not be read", port_no);
+                return;
+            }
+
+            if (newp == NULL) {
+                VLOG_ERR(LOG_MODULE, "Port %d could not be read", port_no);
+                return;
+            }
+
+            curr = newp->curr;
+            supported = newp->supported;
             ds_put_format(&ds, "\"%s\", "ETH_ADDR_FMT, new->name,
                           ETH_ADDR_ARGS(new->hw_addr));
             if (curr) {
@@ -512,6 +538,7 @@ log_port_status(uint32_t port_no,
             }
             VLOG_DBG(LOG_MODULE, "Port %d %s: %s",
                      port_no, old ? "changed" : "added", ds_cstr(&ds));
+            free(newp);
             ds_destroy(&ds);
         }
     }
@@ -568,6 +595,7 @@ port_watcher_set_flags(struct port_watcher *pw, uint32_t port_no,
     struct ofp_port old;
     struct ofp_port *p;
     struct ofp_port_mod *opm;
+    struct ofp_port_mod_prop_ethernet *eth;
     struct ofp_port_status *ops;
     struct ofpbuf *b;
 
@@ -588,12 +616,17 @@ port_watcher_set_flags(struct port_watcher *pw, uint32_t port_no,
     call_port_changed_callbacks(pw, port_no, &old, p);
 
     /* Change the flags in the datapath. */
-    opm = make_openflow(sizeof *opm, OFPT_PORT_MOD, &b);
+    opm = make_openflow(sizeof *opm + sizeof *eth, OFPT_PORT_MOD, &b);
+
+    eth = (struct ofp_port_mod_prop_ethernet *) opm->properties;
+    eth->type = htons(OFPPMPT_ETHERNET);
+    eth->length = htons(sizeof *eth);
+    eth->advertise = htonl(0);
+
     opm->port_no = p->port_no;
     memcpy(opm->hw_addr, p->hw_addr, OFP_ETH_ALEN);
     opm->config = p->config;
     opm->mask = htonl(c_mask);
-    opm->advertise = htonl(0);
     rconn_send(pw->local_rconn, b, NULL);
 
     /* Notify the controller that the flags changed. */

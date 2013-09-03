@@ -96,9 +96,9 @@ struct ofpbuf *make_unbuffered_packet_out(const struct ofpbuf *packet,
 struct ofpbuf *make_echo_request(void);
 struct ofpbuf *make_echo_reply(const struct ofp_header *rq);
 int check_ofp_message(const struct ofp_header *, uint8_t type, size_t size);
-int check_ofp_instruction_array(const struct ofp_instruction *, uint8_t type,
-				size_t size, size_t array_elt_size,
-				size_t *n_array_elts);
+int check_ofp_instruction_array(const struct ofp_instruction_header *,
+                                uint8_t type, size_t size,
+                                size_t array_elt_size, size_t *n_array_elts);
 int check_ofp_message_array(const struct ofp_header *, uint8_t type,
                             size_t size, size_t array_elt_size,
                             size_t *n_array_elts);

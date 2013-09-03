@@ -167,12 +167,6 @@ dp_ports_handle_stats_request_queue(struct datapath *dp,
                                   struct ofl_msg_multipart_request_queue *msg,
                                   const struct sender *sender);
 
-/* Handles a queue get config request message. */
-ofl_err
-dp_ports_handle_queue_get_config_request(struct datapath *dp,
-                              struct ofl_msg_queue_get_config_request *msg,
-                                                const struct sender *sender);
-
 /* Handles a queue modify (OpenFlow experimenter) message. */
 ofl_err
 dp_ports_handle_queue_modify(struct datapath *dp, struct ofl_exp_openflow_msg_queue *msg,
@@ -182,6 +176,11 @@ dp_ports_handle_queue_modify(struct datapath *dp, struct ofl_exp_openflow_msg_qu
 ofl_err
 dp_ports_handle_queue_delete(struct datapath *dp, struct ofl_exp_openflow_msg_queue *msg,
         const struct sender *sender);
+
+ofl_err
+dp_ports_handle_queue_desc_request(struct datapath *dp,
+                                  struct ofl_msg_multipart_request_queue * msg,
+                                  const struct sender *sender UNUSED);
 
 
 #endif /* DP_PORTS_H */

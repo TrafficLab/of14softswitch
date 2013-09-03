@@ -229,9 +229,20 @@ ofl_msg_print_port_mod(struct ofl_msg_port_mod *msg, FILE *stream) {
 
     fprintf(stream, "{port=\"");
     ofl_port_print(stream, msg->port_no);
-    fprintf(stream, "\", hwaddr=\""ETH_ADDR_FMT"\", config=\"0x%08"PRIx32"\", "
+    if (msg->type == OFPPMPT_ETHERNET) {
+        fprintf(stream, "\", hwaddr=\""ETH_ADDR_FMT"\", config=\"0x%08"PRIx32"\", "
                           "mask=\"0x%"PRIx32"\", adv=\"0x%"PRIx32"\"}",
                   ETH_ADDR_ARGS(msg->hw_addr), msg->config, msg->mask, msg->advertise);
+    } else if (msg->type == OFPPMPT_OPTICAL) {
+        fprintf(stream, "\", hwaddr=\""ETH_ADDR_FMT"\", config=\"0x%08"PRIx32"\", "
+                          "mask=\"0x%"PRIx32"\", configure=\"0x%"PRIx32"\", "
+                          "freq=\"0x%"PRIx32"\", offset=\"0x%"PRIx32"\", "
+                          "grid_span=\"0x%"PRIx32"\", tx_pwr=\"0x%"PRIx32"\""
+                          "}",
+                  ETH_ADDR_ARGS(msg->hw_addr), msg->config, msg->mask,
+                  msg->configure, msg->freq_lmda, msg->fl_offset, msg->grid_span,
+                  msg->tx_pwr);
+    }
 }
 
 static void
@@ -336,7 +347,7 @@ ofl_msg_print_multipart_request(struct ofl_msg_multipart_request_header *msg, FI
             ofl_msg_print_stats_request_port((struct ofl_msg_multipart_request_port *)msg, stream);
             break;
         }
-        case OFPMP_QUEUE: {
+        case OFPMP_QUEUE_STATS: {
             ofl_msg_print_stats_request_queue((struct ofl_msg_multipart_request_queue *)msg, stream);
             break;
         }
@@ -359,6 +370,10 @@ ofl_msg_print_multipart_request(struct ofl_msg_multipart_request_header *msg, FI
             break;
         }    
         case OFPMP_PORT_DESC:{
+            break;
+        }
+        case OFPMP_QUEUE_DESC:{
+            ofl_msg_print_stats_request_queue((struct ofl_msg_multipart_request_queue *)msg, stream);
             break;
         }
         case OFPMP_EXPERIMENTER: {
@@ -423,7 +438,7 @@ ofl_msg_print_stats_reply_port(struct ofl_msg_multipart_reply_port *msg, FILE *s
 }
 
 static void
-ofl_msg_print_stats_reply_queue(struct ofl_msg_multipart_reply_queue *msg, FILE *stream) {
+ofl_msg_print_stats_reply_queue(struct ofl_msg_multipart_reply_queue_stats *msg, FILE *stream) {
     size_t i;
 
     fprintf(stream, ", stats=[");
@@ -567,6 +582,18 @@ ofl_msg_print_port_desc_reply(struct ofl_msg_multipart_reply_port_desc *msg, FIL
 }
 
 static void
+ofl_msg_print_queue_desc_reply(struct ofl_msg_multipart_reply_queue_desc *msg, FILE *stream) {
+    size_t i;
+    
+    for (i=0; i<msg->queues_num; i++) {
+        ofl_structs_queue_desc_print(stream, msg->queues[i]);
+        if (i < msg->queues_num - 1) { fprintf(stream, ", "); }
+    }
+
+    fprintf(stream, "}");
+}
+
+static void
 ofl_msg_print_multipart_reply(struct ofl_msg_multipart_reply_header *msg, FILE *stream, struct ofl_exp *exp) {
     if (msg->type == OFPMP_EXPERIMENTER) {
         if (exp != NULL && exp->stats != NULL && exp->stats->reply_to_string != NULL) {
@@ -608,8 +635,8 @@ ofl_msg_print_multipart_reply(struct ofl_msg_multipart_reply_header *msg, FILE *
             ofl_msg_print_stats_reply_port((struct ofl_msg_multipart_reply_port *)msg, stream);
             break;
         }
-        case OFPMP_QUEUE: {
-            ofl_msg_print_stats_reply_queue((struct ofl_msg_multipart_reply_queue *)msg, stream);
+        case OFPMP_QUEUE_STATS: {
+            ofl_msg_print_stats_reply_queue((struct ofl_msg_multipart_reply_queue_stats *)msg, stream);
             break;
         }
         case (OFPMP_GROUP): {
@@ -640,6 +667,10 @@ ofl_msg_print_multipart_reply(struct ofl_msg_multipart_reply_header *msg, FILE *
             ofl_msg_print_port_desc_reply((struct ofl_msg_multipart_reply_port_desc*)msg, stream);
             break;
         }
+        case OFPMP_QUEUE_DESC:{
+            ofl_msg_print_queue_desc_reply((struct ofl_msg_multipart_reply_queue_desc*)msg, stream);
+            break;
+        }
         case OFPMP_EXPERIMENTER: {
             ofl_msg_print_stats_reply_experimenter((struct ofl_msg_multipart_reply_experimenter *)msg, stream);
             break;
@@ -647,29 +678,6 @@ ofl_msg_print_multipart_reply(struct ofl_msg_multipart_reply_header *msg, FILE *
     }
 
     fprintf(stream, "}");
-}
-
-static void
-ofl_msg_print_queue_get_config_request(struct ofl_msg_queue_get_config_request *msg, FILE *stream) {
-    fprintf(stream, "{port=\"");
-    ofl_port_print(stream, msg->port);
-    fprintf(stream, "\"}");
-}
-
-static void
-ofl_msg_print_queue_get_config_reply(struct ofl_msg_queue_get_config_reply *msg, FILE *stream) {
-    size_t i;
-
-    fprintf(stream, "{port=\"");
-    ofl_port_print(stream, msg->port);
-    fprintf(stream, "\" queues=[");
-
-    for (i=0; i<msg->queues_num; i++) {
-        ofl_structs_queue_print(stream, msg->queues[i]);
-        if (i < msg->queues_num - 1) { fprintf(stream, ", "); }
-    }
-
-    fprintf(stream, "]}");
 }
 
 static void 
@@ -751,9 +759,6 @@ ofl_msg_print(FILE *stream, struct ofl_msg_header *msg, struct ofl_exp *exp) {
         case OFPT_ROLE_REPLY:{
             ofl_msg_print_role_msg((struct ofl_msg_role_request*)msg, stream);        
         }
-        /* Queue Configuration messages. */
-        case OFPT_QUEUE_GET_CONFIG_REQUEST: { ofl_msg_print_queue_get_config_request((struct ofl_msg_queue_get_config_request *)msg, stream); return; }
-        case OFPT_QUEUE_GET_CONFIG_REPLY: { ofl_msg_print_queue_get_config_reply((struct ofl_msg_queue_get_config_reply *)msg, stream); return; }
 		
 		/* Asynchronous message configuration. */
 		case OFPT_GET_ASYNC_REQUEST:{return;}

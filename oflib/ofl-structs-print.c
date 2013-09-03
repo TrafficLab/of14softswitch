@@ -68,7 +68,8 @@ void
 ofl_structs_port_print(FILE *stream, struct ofl_port *port) {
     fprintf(stream, "{no=\"");
     ofl_port_print(stream, port->port_no);
-    fprintf(stream, "\", hw_addr=\""ETH_ADDR_FMT"\", name=\"%s\", "
+    if (port->type == OFPPDPT_ETHERNET) {
+        fprintf(stream, "\", hw_addr=\""ETH_ADDR_FMT"\", name=\"%s\", "
                           "config=\"0x%"PRIx32"\", state=\"0x%"PRIx32"\", curr=\"0x%"PRIx32"\", "
                           "adv=\"0x%"PRIx32"\", supp=\"0x%"PRIx32"\", peer=\"0x%"PRIx32"\", "
                           "curr_spd=\"%ukbps\", max_spd=\"%ukbps\"}",
@@ -76,6 +77,25 @@ ofl_structs_port_print(FILE *stream, struct ofl_port *port) {
                   port->config, port->state, port->curr,
                   port->advertised, port->supported, port->peer,
                   port->curr_speed, port->max_speed);
+    } else if (port->type == OFPPDPT_OPTICAL) {
+        fprintf(stream, "\", hw_addr=\""ETH_ADDR_FMT"\", name=\"%s\", "
+                          "config=\"0x%"PRIx32"\", state=\"0x%"PRIx32"\", "
+                          "tx_min_freq=\"%u\", tx_max_freq=\"%u\", "
+                          "tx_grid_freq=\"%u\", rx_min_freq=\"%u\", "
+                          "rx_max_freq=\"%u\", rx_grid_freq=\"%u\", "
+                          "tx_pwr_min=\"%u\", tx_pwr_max=\"%u\""
+                          "}",
+                  ETH_ADDR_ARGS(port->hw_addr), port->name,
+                  port->config, port->state, 
+                  port->opt_props.tx_min_freq_lmda,
+                  port->opt_props.tx_max_freq_lmda,
+                  port->opt_props.tx_grid_freq_lmda,
+                  port->opt_props.rx_min_freq_lmda,
+                  port->opt_props.rx_max_freq_lmda,
+                  port->opt_props.rx_grid_freq_lmda,
+                  port->opt_props.tx_pwr_min,
+                  port->opt_props.tx_pwr_max);
+    }
 }
 
 char *
@@ -489,6 +509,8 @@ ofl_structs_queue_print(FILE *stream, struct ofl_packet_queue *q) {
 
     fprintf(stream, "{q=\"");
     ofl_queue_print(stream, q->queue_id);
+    fprintf(stream, "\", port=\"");
+    ofl_port_print(stream, q->port_no);
     fprintf(stream, "\", props=[");
 
     for (i=0; i<q->properties_num; i++) {
@@ -514,10 +536,22 @@ ofl_structs_queue_prop_print(FILE *stream, struct ofl_queue_prop_header *p) {
     ofl_queue_prop_type_print(stream, p->type);
 
     switch(p->type) {
-        case (OFPQT_MIN_RATE): {
+        case (OFPQDPT_MIN_RATE): {
             struct ofl_queue_prop_min_rate *pm = (struct ofl_queue_prop_min_rate *)p;
 
             fprintf(stream, "{rate=\"%u\"}", pm->rate);
+            break;
+        }
+        case (OFPQDPT_MAX_RATE): {
+            struct ofl_queue_prop_max_rate *pm = (struct ofl_queue_prop_max_rate *)p;
+
+            fprintf(stream, "{rate=\"%u\"}", pm->rate);
+            break;
+        }
+        case (OFPQDPT_EXPERIMENTER): {
+            struct ofl_queue_prop_experimenter *pm = (struct ofl_queue_prop_experimenter *)p;
+
+            fprintf(stream, "{exp=\"%u\"}", pm->experimenter);
             break;
         }
         
@@ -850,9 +884,9 @@ ofl_structs_table_features_print(FILE *stream, struct ofl_table_features *s){
     fprintf(stream, "{table=\"");
     ofl_table_print(stream, s->table_id);  
     fprintf(stream, "\", name=\"%s\", "
-                          "metadata_match=\"%"PRIx64"\", metadata_write=\"%"PRIx64"\", config=\"%"PRIu32"\"," 
+                          "metadata_match=\"%"PRIx64"\", metadata_write=\"%"PRIx64"\", capabilities=\"%"PRIu32"\"," 
                           "max_entries=\"%"PRIu32"\"",
-                  s->name, s->metadata_match, s->metadata_write, s->config, s->max_entries);      
+                  s->name, s->metadata_match, s->metadata_write, s->capabilities, s->max_entries);      
     for(i =0; i < s->properties_num; i++){
         ofl_structs_table_properties_print(stream, s->properties[i]);    
     }    
@@ -873,7 +907,8 @@ ofl_structs_port_stats_print(FILE *stream, struct ofl_port_stats *s) {
 
     fprintf(stream, "{port=\"");
     ofl_port_print(stream, s->port_no);
-    fprintf(stream, "\", rx_pkt=\"%"PRIu64"\", tx_pkt=\"%"PRIu64"\", "
+    if (s->type == OFPPSPT_ETHERNET) {
+        fprintf(stream, "\", rx_pkt=\"%"PRIu64"\", tx_pkt=\"%"PRIu64"\", "
                           "rx_bytes=\"%"PRIu64"\", tx_bytes=\"%"PRIu64"\", "
                           "rx_drops=\"%"PRIu64"\", tx_drops=\"%"PRIu64"\", "
                           "rx_errs=\"%"PRIu64"\", tx_errs=\"%"PRIu64"\", "
@@ -885,6 +920,25 @@ ofl_structs_port_stats_print(FILE *stream, struct ofl_port_stats *s) {
                   s->rx_errors, s->tx_errors,
                   s->rx_frame_err, s->rx_over_err,
                   s->rx_crc_err, s->collisions);
+    } else if (s->type == OFPPSPT_OPTICAL) {
+        fprintf(stream, "\", rx_pkt=\"%"PRIu64"\", tx_pkt=\"%"PRIu64"\", "
+                          "rx_bytes=\"%"PRIu64"\", tx_bytes=\"%"PRIu64"\", "
+                          "rx_drops=\"%"PRIu64"\", tx_drops=\"%"PRIu64"\", "
+                          "rx_errs=\"%"PRIu64"\", tx_errs=\"%"PRIu64"\", "
+                          "tx_freq_lmda=\"%"PRIu32"\", tx_offset=\"%"PRIu32"\", "
+                          "tx_grid_span=\"%"PRIu32"\", rx_freq_lmda=\"%"PRIu32"\", "
+                          "rx_offset=\"%"PRIu32"\", rx_grid_span=\"%"PRIu32"\", "
+                          "tx_pwr=\"%"PRIu32"\", rx_pwr=\"%"PRIu32"\", "
+                          "bias_current=\"%"PRIu32"\", temperature=\"%"PRIu32"\""
+                          "}",
+                  s->rx_packets, s->tx_packets,
+                  s->rx_bytes, s->tx_bytes,
+                  s->rx_dropped, s->tx_dropped,
+                  s->rx_errors, s->tx_errors,
+                  s->tx_freq_lmda, s->tx_offset, s->tx_grid_span,
+                  s->rx_freq_lmda, s->rx_offset, s->rx_grid_span,
+                  s->tx_pwr, s->rx_pwr, s->bias_current, s->temperature);
+    }
 };
 
 char *
@@ -907,6 +961,11 @@ ofl_structs_queue_stats_print(FILE *stream, struct ofl_queue_stats *s) {
     fprintf(stream, "\", tx_bytes=\"%"PRIu64"\", "
                           "tx_pkt=\"%"PRIu64"\", tx_err=\"%"PRIu64"\"}",
                   s->tx_bytes, s->tx_packets, s->tx_errors);
+};
+
+void
+ofl_structs_queue_desc_print(FILE *stream, struct ofl_packet_queue *s) {
+    ofl_structs_queue_print(stream, s);
 };
 
 char *

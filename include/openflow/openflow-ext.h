@@ -99,33 +99,33 @@ OFP_ASSERT(sizeof(struct openflow_ext_set_dp_desc) == 272);
 #if 0
 
 #define OPENFLOW_QUEUE_PROP_STRINGS_DEF {                        \
-    "No property specified"     /* OFPQT_NONE */                 \
-    "Minimum Rate",             /* OFPQT_MIN */                  \
+    "No property specified"     /* OFPQDPT_NONE */                 \
+    "Minimum Rate",             /* OFPQDPT_MIN */                  \
     "Maximum Rate",             /* OFQ_PROP_MAX_RATE */          \
     "Buffer alloc weight",      /* OFQ_PROP_BUF_ALLOC */         \
     "Scheduling weight"         /* OFQ_PROP_SCHED_WEIGHT */      \
 }
 extern char *openflow_queue_prop_strings[];
 
-#define ofq_prop_string(val) (((val) < OFPQT_EXT_COUNT) && ((val) >= 0) ? \
+#define ofq_prop_string(val) (((val) < OFPQDPT_EXT_COUNT) && ((val) >= 0) ? \
     openflow_queue_prop_strings[val] : "Unknown property value")
 
 
 /* Buffer alloc weight queue property description */
-struct ofp_queue_prop_buf_alloc {
-    struct ofp_queue_prop_header prop_header; /* prop: OFPQT_MIN, len: 16 */
+struct ofp_queue_desc_prop_buf_alloc {
+    struct ofp_queue_desc_prop_header prop_header; /* prop: OFPQDPT_MIN, len: 16 */
     uint16_t alloc_val;       /* 0 disabled; 1 min; 0xffff max */
     uint8_t pad[6];           /* 64-bit alignment */
 };
-OFP_ASSERT(sizeof(struct ofp_queue_prop_buf_alloc) == 16);
+OFP_ASSERT(sizeof(struct ofp_queue_desc_prop_buf_alloc) == 16);
 
 /* Max-Rate queue property description */
-struct ofp_queue_prop_sched_weight {
-    struct ofp_queue_prop_header prop_header; /* prop: OFPQT_MIN, len: 16 */
+struct ofp_queue_desc_prop_sched_weight {
+    struct ofp_queue_desc_prop_header prop_header; /* prop: OFPQDPT_MIN, len: 16 */
     uint16_t weight;   /* discipline specific; 0 disabled; 1 min; 0xffff max */
     uint8_t pad[6];    /* 64-bit alignment */
 };
-OFP_ASSERT(sizeof(struct ofp_queue_prop_sched_weight) == 16);
+OFP_ASSERT(sizeof(struct ofp_queue_desc_prop_sched_weight) == 16);
 
 #endif
 

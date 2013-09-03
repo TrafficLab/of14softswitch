@@ -258,7 +258,6 @@ flow_table_timeout(struct flow_table *table) {
 
 static void 
 flow_table_create_property(struct ofl_table_feature_prop_header **prop, enum ofp_table_feature_prop_type type){
-
     switch(type){
         case OFPTFPT_INSTRUCTIONS:
         case OFPTFPT_INSTRUCTIONS_MISS:{
@@ -328,13 +327,17 @@ flow_table_create_property(struct ofl_table_feature_prop_header **prop, enum ofp
             break;        
         }        
     }
+
+    (*prop)->type = type;
+    (*prop)->length = ofl_structs_table_features_properties_ofp_len(*prop, NULL);
 }
 
 static int
 flow_table_features(struct ofl_table_features *features){
 
     int type, j;
-    features->properties = (struct ofl_table_feature_prop_header **) xmalloc(sizeof(struct ofl_table_feature_prop_header *) * TABLE_FEATURES_NUM);
+    features->properties_num = TABLE_FEATURES_NUM;
+    features->properties = (struct ofl_table_feature_prop_header **) xmalloc(sizeof(struct ofl_table_feature_prop_header *) * features->properties_num);
     j = 0;
     for(type = OFPTFPT_INSTRUCTIONS; type <= OFPTFPT_APPLY_SETFIELD_MISS; type++){ 
         //features->properties[j] = xmalloc(sizeof(struct ofl_table_feature_prop_header));
@@ -375,7 +378,7 @@ flow_table_create(struct datapath *dp, uint8_t table_id) {
     table->features->name          = ds_cstr(&string);
     table->features->metadata_match = 0xffffffffffffffff; 
     table->features->metadata_write = 0xffffffffffffffff;
-    table->features->config        = OFPTC_TABLE_MISS_CONTROLLER;
+    table->features->capabilities  = OFPTC_TABLE_MISS_CONTROLLER;
     table->features->max_entries   = FLOW_TABLE_MAX_ENTRIES;
     table->features->properties_num = flow_table_features(table->features);
 
