@@ -146,6 +146,9 @@ ofl_port_status_reason_to_string(uint8_t reason);
 void
 ofl_port_status_reason_print(FILE *stream, uint8_t reason);
 
+void
+ofl_table_status_reason_print(FILE *stream, uint8_t reason);
+
 char *
 ofl_flow_mod_command_to_string(uint8_t command);
 
@@ -157,6 +160,9 @@ ofl_group_mod_command_to_string(uint16_t command);
 
 void
 ofl_group_mod_command_print(FILE *stream, uint16_t command);
+
+void
+ofl_table_mod_prop_type_print(FILE *stream, uint16_t type);
 
 char *
 ofl_meter_mod_command_to_string(uint16_t command);

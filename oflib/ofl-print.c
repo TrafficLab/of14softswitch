@@ -554,6 +554,7 @@ ofl_message_type_print(FILE *stream, uint16_t type) {
 		case OFPT_METER_MOD:				{ fprintf(stream, "meter_mod"); return;}  
 		case OFPT_ROLE_REQUEST:             { fprintf(stream, "role_request"); return;}
 		case OFPT_ROLE_REPLY:               { fprintf(stream, "role_reply"); return;}
+		case OFPT_TABLE_STATUS:		{ fprintf(stream, "table_status"); return;}
 		default: {                            fprintf(stream, "?(%u)", type); return; }
     }
 }
@@ -652,6 +653,15 @@ ofl_port_status_reason_print(FILE *stream, uint8_t reason) {
     }
 }
 
+void
+ofl_table_status_reason_print(FILE *stream, uint8_t reason) {
+    switch (reason) {
+        case (OFPTR_VACANCY_DOWN): { fprintf(stream, "vacancy-down"); return; }
+        case (OFPTR_VACANCY_UP):   { fprintf(stream, "vacancy-up"); return; }
+        default: {             fprintf(stream, "?(%u)", reason); return; }
+    }
+}
+
 
 
 char *
@@ -699,6 +709,15 @@ ofl_group_mod_command_print(FILE *stream, uint16_t command) {
         default: {             fprintf(stream, "?(%u)", command); return; }
     }
 }
+
+void
+ofl_table_mod_prop_type_print(FILE *stream, uint16_t type) {
+    switch (type) {
+        case OFPTMPT_VACANCY:        {    fprintf(stream, "vacancy"); return; }
+        case OFPTMPT_EVICTION:       {    fprintf(stream, "eviction"); return; }
+        default: {                   fprintf(stream, "?(%u)", type); return; }
+    }              
+}        
 
 char *
 ofl_meter_mod_command_to_string(uint16_t command) {
@@ -793,6 +812,7 @@ ofl_stats_type_print(FILE *stream, uint16_t type) {
         case (OFPMP_METER_FEATURES):{ fprintf(stream, "mfeat"); return; }
         case (OFPMP_PORT_DESC):     { fprintf(stream, "port-desc"); return; }   
         case (OFPMP_QUEUE_DESC):    { fprintf(stream, "queue-desc"); return; }   
+        case (OFPMP_TABLE_DESC):{ fprintf(stream, "table-desc"); return; }
         case (OFPMP_EXPERIMENTER):  { fprintf(stream, "exp"); return; }
         default: {                    fprintf(stream, "?(%u)", type); return; }
     }

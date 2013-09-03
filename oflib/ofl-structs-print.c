@@ -635,6 +635,38 @@ ofl_structs_group_stats_print(FILE *stream, struct ofl_group_stats *s) {
     fprintf(stream, "]}");
 }
 
+void
+ofl_structs_table_mod_prop_print(FILE *stream, struct ofl_table_mod_prop_header* s){
+    fprintf(stream, ", {type = ");
+    ofl_table_mod_prop_type_print(stream, s->type);
+    switch(s->type){
+        case(OFPTMPT_VACANCY):{
+            struct ofl_table_mod_prop_vacancy *d = (struct ofl_table_mod_prop_vacancy*)s;
+            fprintf(stream, ", vacancy_down=\"%u\", vacancy_up=\"%u\", vacancy=\"%u\"}",
+                  d->vacancy_down, d->vacancy_up, d->vacancy);         
+            break;
+        }
+        case(OFPTMPT_EVICTION):{  /* modified by dingwanfu_new */
+            struct ofl_table_mod_prop_eviction *d = (struct ofl_table_mod_prop_eviction *)s;
+            fprintf(stream, ", evict_flags=\"%u\"}",
+                  d->flags);         
+            break;
+        }
+    }
+}
+
+void
+ofl_structs_table_desc_print(FILE *stream, struct ofl_table_desc *s){
+    int i;
+    fprintf(stream, "{table=\"");
+    ofl_table_print(stream, s->table_id);  
+    fprintf(stream, "\", config=\"%"PRIu32"\"",
+                  s->config);      
+    for(i =0; i < s->properties_num; i++){
+        ofl_structs_table_mod_prop_print(stream, s->properties[i]);    
+    }    
+}
+
 char*
 ofl_structs_meter_band_to_string(struct ofl_meter_band_header* s){
     char *str;

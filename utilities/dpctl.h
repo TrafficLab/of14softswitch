@@ -248,6 +248,7 @@ static struct names16 band_names[] = {
 
 #define TABLE_MOD_TABLE  "table"
 #define TABLE_MOD_CONFIG "conf"
+#define TABLE_MOD_VACANCY "vacancy"
 
 #define KEY_VAL    "="
 #define KEY_VAL2   ":"

@@ -173,6 +173,84 @@ ofl_structs_instructions_pack(struct ofl_instruction_header *src, struct ofp_ins
 }
 
 size_t
+ofl_structs_table_mod_prop_ofp_len(struct ofl_table_mod_prop_header *table_mod_prop) {
+    switch (table_mod_prop->type) {
+        case OFPTMPT_VACANCY:   
+            return sizeof(struct ofp_table_mod_prop_vacancy);
+        case OFPTMPT_EVICTION:       /* modified by dingwanfu_new */
+            return sizeof(struct ofp_table_mod_prop_eviction);
+        default:
+             OFL_LOG_WARN(LOG_MODULE, "Trying to len unknown table mod prop type.");
+            return 0;
+    }
+}
+
+size_t
+ofl_structs_table_mod_props_ofp_total_len(struct ofl_table_mod_prop_header **table_mod_props, size_t table_mod_props_num) {
+    size_t sum;
+    OFL_UTILS_SUM_ARR_FUN(sum, table_mod_props, table_mod_props_num,
+            ofl_structs_table_mod_prop_ofp_len);
+    return sum;
+}
+
+size_t ofl_structs_table_descs_ofp_total_len(struct ofl_table_desc **table_desc, size_t tables_num, struct ofl_exp * exp UNUSED){
+    
+    int i, total_len;
+    total_len = 0;
+    for(i = 0; i < tables_num; i++){
+        total_len +=  sizeof(struct ofp_table_desc) + ofl_structs_table_mod_props_ofp_total_len(table_desc[i]->properties, table_desc[i]->properties_num);   
+    }
+    return total_len;
+}
+
+size_t
+ofl_structs_table_mod_prop_pack(struct ofl_table_mod_prop_header *src, struct ofp_table_mod_prop_header *dst){
+    
+    dst->type = htons(src->type);
+    switch (src->type) {
+        case OFPTMPT_VACANCY:{
+            struct ofl_table_mod_prop_vacancy *sd = (struct ofl_table_mod_prop_vacancy *)src;
+            struct ofp_table_mod_prop_vacancy *dp = (struct ofp_table_mod_prop_vacancy *)dst;
+            dp->length = htons(sizeof(struct ofp_table_mod_prop_vacancy));
+            dp->vacancy_down = sd->vacancy_down;
+            dp->vacancy_up = sd->vacancy_up;
+            dp->vacancy = sd->vacancy;
+            memset(dp->pad, 0x0, 1);
+            return sizeof(struct ofp_table_mod_prop_vacancy);
+        }
+        case OFPTMPT_EVICTION:{  /* modified by dingwanfu_new */
+            struct ofl_table_mod_prop_eviction *sd = (struct ofl_table_mod_prop_eviction *)src;
+            struct ofp_table_mod_prop_eviction *dp = (struct ofp_table_mod_prop_eviction *)dst;
+            dp->length = htons(sizeof(struct ofp_table_mod_prop_eviction));
+            dp->flags = htonl(sd->flags);
+            return sizeof(struct ofp_table_mod_prop_eviction);            
+        }
+        default:
+            OFL_LOG_WARN(LOG_MODULE, "Trying to pack unknown table mod property.");
+            return 0;
+    }
+}
+
+size_t
+ofl_structs_table_desc_pack(struct ofl_table_desc *src, struct ofp_table_desc *dst, uint8_t *data,  struct ofl_exp *exp UNUSED){
+    size_t total_len;
+    uint8_t *ptr;
+    int i;
+   
+    total_len = sizeof(struct ofp_table_desc) + ofl_structs_table_mod_props_ofp_total_len(src->properties, src->properties_num);
+    dst->table_id = src->table_id;
+    memset(dst->pad, 0x0, 1);
+    dst->config = htonl(src->config);
+    
+    ptr = (uint8_t*) (data + sizeof(struct ofp_table_desc));
+    for(i = 0; i < src->properties_num; i++){
+        ptr += ofl_structs_table_mod_prop_pack(src->properties[i], (struct ofp_table_mod_prop_header*) ptr);
+    }
+    dst->length = htons(total_len);
+    return total_len; 
+}
+
+size_t
 ofl_structs_meter_band_ofp_len(struct ofl_meter_band_header *meter_band) {
     switch (meter_band->type) {
         case OFPMBT_DROP:

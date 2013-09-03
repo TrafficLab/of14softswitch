@@ -1350,6 +1350,89 @@ ofl_structs_bucket_counter_unpack(struct ofp_bucket_counter *src, size_t *len, s
 }
 
 ofl_err
+ofl_structs_table_mod_prop_unpack(struct ofp_table_mod_prop_header *src, size_t *len, struct ofl_table_mod_prop_header **dst){
+	struct ofl_table_mod_prop_header *tp;
+
+	if(*len < sizeof(struct ofp_table_mod_prop_header)){
+		OFL_LOG_WARN(LOG_MODULE, "Received table mod property is too short (%zu).", *len);
+		return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
+	}
+	switch (ntohs(src->type)){
+		case OFPTMPT_VACANCY:{
+			struct ofl_table_mod_prop_vacancy *p = (struct ofl_table_mod_prop_vacancy *)malloc(sizeof(struct ofl_table_mod_prop_vacancy));
+			struct ofp_table_mod_prop_vacancy *s = (struct ofp_table_mod_prop_vacancy *)src;
+			p->type = ntohs(s->type);
+			p->vacancy_down = s->vacancy_down;
+			p->vacancy_up = s->vacancy_up;
+			p->vacancy = s->vacancy;
+			tp = (struct ofl_table_mod_prop_header *)p;
+			*dst = tp;
+			break;
+		}
+        case OFPTMPT_EVICTION:{  /* modified by dingwanfu_new */
+			struct ofl_table_mod_prop_eviction *p = (struct ofl_table_mod_prop_eviction *)malloc(sizeof(struct ofl_table_mod_prop_eviction));
+			struct ofp_table_mod_prop_eviction *s = (struct ofp_table_mod_prop_eviction *)src;
+			p->type = ntohs(s->type);
+			p->flags = ntohl(s->flags);
+			tp = (struct ofl_table_mod_prop_header *)p;
+			*dst = tp;
+			break;
+		}
+	}
+	*len -= ntohs(src->length);
+	return 0;
+}
+
+ofl_err
+ofl_structs_table_desc_unpack(struct ofp_table_desc *src,size_t *len, struct ofl_table_desc **dst, struct ofl_exp *exp UNUSED){
+    struct ofl_table_desc *table_desc;
+    uint8_t *prop;
+    ofl_err error;
+    size_t plen, i;
+    
+    if(*len < sizeof(struct ofp_table_desc)){
+        OFL_LOG_WARN(LOG_MODULE, "Received table desc is too short (%zu).", *len);  
+        return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
+    }
+    
+    if(*len < ntohs(src->length)){
+        OFL_LOG_WARN(LOG_MODULE, "Received table_desc has invalid length (set to %u, but only %zu received).", ntohs(src->length), *len);
+        return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
+    }
+    
+    table_desc = (struct ofl_table_desc*) malloc(sizeof(struct ofl_table_desc));
+
+    table_desc->table_id = src->table_id;
+    table_desc->config = ntohl(src->config);
+    
+    plen = ntohs(src->length) - sizeof(struct ofp_table_desc);
+    error = ofl_utils_count_ofp_table_mod_props((uint8_t*) src->properties, plen, &table_desc->properties_num);
+    if (error) {
+        free(table_desc);
+        return error;
+    }
+    table_desc->properties = (struct ofl_table_mod_prop_header**) malloc(sizeof(struct ofl_table_mod_prop_header *) * table_desc->properties_num);
+    
+    prop = (uint8_t*) src->properties;
+    for(i = 0; i < table_desc->properties_num; i++){
+        error = ofl_structs_table_mod_prop_unpack((struct ofp_table_mod_prop_header*) prop, &plen, &table_desc->properties[i]);
+        if (error) {
+            *len = *len - ntohs(src->length) + plen;
+            /*OFL_UTILS_FREE_ARR_FUN2(b->actions, i,
+                                    ofl_actions_free, exp);*/
+            free(table_desc);
+            return error;
+        }
+        prop += ROUND_UP(ntohs(((struct ofp_table_mod_prop_header*) prop)->length),8);
+    }        
+    
+    *len -= ntohs(src->length);
+
+    *dst = table_desc;
+    return 0;
+}
+
+ofl_err
 ofl_structs_meter_band_unpack(struct ofp_meter_band_header *src, size_t *len, struct ofl_meter_band_header **dst){
 	struct ofl_meter_band_header *mb;
 

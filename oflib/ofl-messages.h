@@ -168,6 +168,14 @@ struct ofl_msg_port_status {
     struct ofl_port       *desc;
 };
 
+struct ofl_msg_table_status {
+    struct ofl_msg_header   header; /* OFPT_TABLE_STATUS */
+
+    enum ofp_table_reason   reason; /* One of OFPTR_*. */
+
+    struct ofl_table_desc * table_desc;
+};
+
 /******************************
  * Controller command messages
  ******************************/
@@ -273,6 +281,11 @@ struct ofl_msg_table_mod {
 
     uint8_t    table_id; /* ID of the table, 0xFF indicates all tables */
     uint32_t   config;   /* Bitmap of OFPTC_* flags */
+
+    size_t  table_mod_prop_num; 
+    struct ofl_table_mod_prop_header **props; /* The props length is
+                                              inferred from the length field
+                                              in the header. */
 };
 
 /* Meter configuration. OFPT_METER_MOD. */
@@ -474,6 +487,13 @@ struct ofl_msg_multipart_reply_queue_desc {
     struct ofl_packet_queue **queues;
 };
 
+struct ofl_msg_multipart_reply_table_desc {
+    struct ofl_msg_multipart_reply_header   header; /* OFPMP_TABLE_DESC */
+
+    size_t tables_num;
+    struct ofl_table_desc ** table_desc;
+};
+
 struct ofl_msg_multipart_reply_experimenter {
     struct ofl_msg_multipart_reply_header   header; /* OFPMP_EXPERIMENTER */
 
@@ -518,6 +538,10 @@ ofl_msg_unpack(uint8_t *buf, size_t buf_len,
 int
 ofl_msg_free(struct ofl_msg_header *msg, struct ofl_exp *exp);
 
+/* Calling this function frees the passed table_mod message.*/
+int 
+ofl_msg_free_table_mod(struct ofl_msg_table_mod * msg, bool with_props);
+
 /* Calling this function frees the passed meter_mod message.*/
 int 
 ofl_msg_free_meter_mod(struct ofl_msg_meter_mod * msg, bool with_bands);
@@ -547,6 +571,10 @@ ofl_msg_free_flow_mod(struct ofl_msg_flow_mod *msg, bool with_match, bool with_i
  * experimenter features, it uses the passed in experimenter callback. */
 int
 ofl_msg_free_flow_removed(struct ofl_msg_flow_removed *msg, bool with_stats, struct ofl_exp *exp);
+
+/* Calling this function frees the passed table_mod message.*/
+int 
+ofl_msg_free_table_status(struct ofl_msg_table_status * msg, bool with_props, struct ofl_exp *exp);
 
 /****************************************************************************
  * Functions for merging messages

@@ -230,6 +230,9 @@ handle_control_stats_request(struct datapath *dp,
         case OFPMP_QUEUE_DESC:{
             return dp_ports_handle_queue_desc_request(dp, (struct ofl_msg_multipart_request_queue *)msg, sender);
         }
+        case (OFPMP_TABLE_DESC):{
+            return pipeline_handle_stats_request_table_desc_request(dp->pipeline, msg, sender);
+        }
         case (OFPMP_EXPERIMENTER): {
             return dp_exp_stats(dp, (struct ofl_msg_multipart_request_experimenter *)msg, sender);
         }
@@ -365,6 +368,9 @@ handle_control_msg(struct datapath *dp, struct ofl_msg_header *msg,
         case OFPT_GET_ASYNC_REQUEST:
         case OFPT_SET_ASYNC:{
             return dp_handle_async_request(dp, (struct ofl_msg_async_config*)msg, sender);
+        }
+        case OFPT_TABLE_STATUS: {
+            return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
         }
         default: {
             return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);

@@ -92,6 +92,74 @@ add_to_timeout_lists(struct flow_table *table, struct flow_entry *entry) {
     }
 }
 
+/* Check vacancy and generate proper vacancy event after any operation
+ * that either change the size of the flow table or change the flow entry
+ * cound. */
+static void
+check_vacancy(struct flow_table *table) {
+    size_t pi;
+    int vacancy = (FLOW_TABLE_MAX_ENTRIES - table->stats->active_count) * 100 / FLOW_TABLE_MAX_ENTRIES;
+
+    for(pi = 0; pi < table->desc->properties_num; pi++) {
+        struct ofl_table_mod_prop_vacancy *prop_vac;
+        prop_vac = (struct ofl_table_mod_prop_vacancy *) table->desc->properties[pi];
+        if(prop_vac->type == OFPTMPT_VACANCY) {
+	    int reason = 0;
+	    if (prop_vac->down_set && (vacancy < prop_vac->vacancy_down)) {
+	        prop_vac->down_set = false;
+		reason = OFPTR_VACANCY_DOWN;
+	    } else if (!prop_vac->down_set && (vacancy > prop_vac->vacancy_up)) {
+	        prop_vac->down_set = true;
+		reason = OFPTR_VACANCY_UP;
+	    }
+	    if (reason) {
+	        struct ofl_msg_table_status msg =
+		  {{.type = OFPT_TABLE_STATUS},
+		   .reason = reason,
+		   .table_desc = table->desc };
+		prop_vac->vacancy = vacancy;
+
+		dp_send_message(table->dp, (struct ofl_msg_header *)&msg, NULL);
+	    }
+	    return;
+	}
+    }
+}
+
+
+/* modified by dingwanfu. */
+/* modified by dingwanfu_new. */
+ofl_err
+flow_table_eviction_lifetime(struct flow_table *table,  struct ofl_msg_flow_mod *mod, bool *match_kept, bool *insts_kept ){
+    struct flow_entry *entry, * tmp_entry, *new_entry;
+    uint16_t min_lifetime= 0xFFFF;
+
+    tmp_entry = NULL;
+
+    LIST_FOR_EACH (entry, struct flow_entry, idle_node, &table->idle_entries) {
+        if ((entry->stats->idle_timeout * 1000 - (time_msec() - entry->last_used)) < min_lifetime) {
+            min_lifetime = (entry->stats->idle_timeout * 1000 - (time_msec() - entry->last_used));
+            tmp_entry = entry;
+        }
+    }
+     
+    table->stats->active_count++;
+    new_entry = flow_entry_create(table->dp, table, mod);
+    *match_kept = true;
+    *insts_kept = true;
+    
+    if ((tmp_entry != NULL)) {
+        list_insert(&table->match_entries, &new_entry->match_node);
+		flow_entry_remove(tmp_entry, OFPRR_EVICTION) ;
+    }else{
+        list_insert(&table->match_entries, &new_entry->match_node);
+    }
+    
+    add_to_timeout_lists(table, new_entry);
+    
+    return 0;
+}
+
 /* Handles flow mod messages with ADD command. */
 static ofl_err
 flow_table_add(struct flow_table *table, struct ofl_msg_flow_mod *mod, bool check_overlap, bool *match_kept, bool *insts_kept) {
@@ -129,13 +197,35 @@ flow_table_add(struct flow_table *table, struct ofl_msg_flow_mod *mod, bool chec
     }
 #endif
 
+#if 0
     if (table->stats->active_count == FLOW_TABLE_MAX_ENTRIES) {
 
 	return flow_table_eviction_importance(table,  mod, match_kept, insts_kept );
 	   	//* modified by dingwanfu.
 		
     }
-
+#endif
+    /* modified by dingwanfu_new */
+    size_t pi;
+    if (table->stats->active_count == FLOW_TABLE_MAX_ENTRIES) {
+        /* Check if authorise table to evict flows. */
+        if (table->desc->config & OFPTC_EVICTION) {
+            for(pi = 0; pi < table->desc->properties_num; pi++) {
+                struct ofl_table_mod_prop_eviction *prop_evi;
+                prop_evi = (struct ofl_table_mod_prop_eviction *) table->desc->properties[pi];
+                if(prop_evi->type == OFPTMPT_EVICTION) {
+                    if (prop_evi->flags & OFPTMPEF_IMPORTANCE){
+                        return flow_table_eviction_importance(table,  mod, match_kept, insts_kept);
+                      }else if (prop_evi->flags & OFPTMPEF_LIFETIME){
+                        return flow_table_eviction_lifetime(table,  mod, match_kept, insts_kept);
+                      }
+                }
+            }
+        }
+        else {
+             return ofl_error(OFPET_FLOW_MOD_FAILED, OFPFMFC_TABLE_FULL);
+        }
+    }
 	
     table->stats->active_count++;
 
@@ -145,6 +235,11 @@ flow_table_add(struct flow_table *table, struct ofl_msg_flow_mod *mod, bool chec
 
     list_insert(&entry->match_node, &new_entry->match_node);
     add_to_timeout_lists(table, new_entry);
+
+    /* Check if we need to generate vacancy events. */
+    if (table->desc->config & OFPTC_VACANCY_EVENTS) {
+        check_vacancy(table);
+    }
 
     return 0;
 }
@@ -209,6 +304,11 @@ flow_table_delete(struct flow_table *table, struct ofl_msg_flow_mod *mod, bool s
             flow_entry_matches(entry, mod, strict, true/*check_cookie*/)) {
              flow_entry_remove(entry, OFPRR_DELETE);
         }
+    }
+
+    /* Check if we need to generate vacancy events. */
+    if (table->desc->config & OFPTC_VACANCY_EVENTS) {
+        check_vacancy(table);
     }
 
     return 0;
@@ -399,6 +499,53 @@ flow_table_features(struct ofl_table_features *features){
     return j;
 }
 
+static void 
+flow_table_create_mod_prop(struct ofl_table_mod_prop_header **prop, enum ofp_table_mod_prop_type type){
+
+    switch(type){
+        case OFPTMPT_VACANCY:{
+            struct ofl_table_mod_prop_vacancy *vacancy_desc;
+            vacancy_desc = xmalloc(sizeof(struct ofl_table_mod_prop_vacancy));
+            vacancy_desc->type = type;
+            vacancy_desc->vacancy_down = 0;
+            vacancy_desc->vacancy_up = 0;
+            vacancy_desc->vacancy = 0;
+            (*prop) =  (struct ofl_table_mod_prop_header *) vacancy_desc;
+            break;        
+        }
+
+/* modified by dingwanfu_new */
+        case OFPTMPT_EVICTION:{
+            struct ofl_table_mod_prop_eviction *evict_desc;
+            evict_desc = xmalloc(sizeof(struct ofl_table_mod_prop_eviction));
+            evict_desc->type = type;
+            evict_desc->flags = g_evict_flags;   /* global configed by command line */
+            (*prop) = (struct ofl_table_mod_prop_header *)evict_desc;
+            break;
+        }
+    }
+}
+
+static int
+flow_table_desc(struct ofl_table_desc *desc){
+
+    int type, j;
+    desc->properties = (struct ofl_table_mod_prop_header **) xmalloc(sizeof(struct ofl_table_mod_prop_header *) * TABLE_DESC_NUM);
+    j = 0;
+	
+/* modified by dingwanfu_new */
+    for(type = OFPTMPT_EVICTION; type <= OFPTMPT_VACANCY; type++){ 
+        flow_table_create_mod_prop(&desc->properties[j], type);
+        j++;
+    }
+    /* Sanity check. Jean II */
+    if(j != TABLE_DESC_NUM) {
+        VLOG_WARN(LOG_MODULE, "Invalid number of table desc, %d instead of %d.", j, TABLE_DESC_NUM);
+        abort();
+    }
+    return j;
+}
+
 struct flow_table *
 flow_table_create(struct datapath *dp, uint8_t table_id) {
     struct flow_table *table;
@@ -422,9 +569,16 @@ flow_table_create(struct datapath *dp, uint8_t table_id) {
     table->features->name          = ds_cstr(&string);
     table->features->metadata_match = 0xffffffffffffffff; 
     table->features->metadata_write = 0xffffffffffffffff;
-    table->features->capabilities  = OFPTC_TABLE_MISS_CONTROLLER;
+    table->features->capabilities   = OFPTC_TABLE_MISS_MASK | OFPTC_EVICTION | OFPTC_VACANCY_EVENTS;
     table->features->max_entries   = FLOW_TABLE_MAX_ENTRIES;
     table->features->properties_num = flow_table_features(table->features);
+
+    /* Init Table desc */
+    table->desc = xmalloc(sizeof(struct ofl_table_desc));
+    table->desc->table_id = table_id;
+    //table->desc->config   = OFPTC_TABLE_MISS_CONTROLLER;
+    table->desc->config   = OFPTC_EVICTION;    /* modified by dingwanfu_new */
+    table->desc->properties_num = flow_table_desc(table->desc);
 
     list_init(&table->match_entries);
     list_init(&table->hard_entries);
@@ -440,6 +594,7 @@ flow_table_destroy(struct flow_table *table) {
     LIST_FOR_EACH_SAFE (entry, next, struct flow_entry, match_node, &table->match_entries) {
         flow_entry_destroy(entry);
     }
+    free(table->desc);
     free(table->features);
     free(table->stats);
     free(table);

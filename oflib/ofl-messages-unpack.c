@@ -427,6 +427,39 @@ ofl_msg_unpack_port_status(struct ofp_header *src, size_t *len, struct ofl_msg_h
 }
 
 static ofl_err
+ofl_msg_unpack_table_status(struct ofp_header *src, size_t *len, struct ofl_msg_header **msg, struct ofl_exp *exp) {
+    struct ofp_table_status *ss;
+    struct ofl_msg_table_status *ds;
+    ofl_err error;
+    size_t tables_num;
+
+    if (*len < sizeof(struct ofp_table_status)) {
+        OFL_LOG_WARN(LOG_MODULE, "Received TABLE_STATUS message has invalid length (%zu).", *len);
+        return OFL_ERROR;
+    }
+    *len -= sizeof(struct ofp_table_status) - sizeof(struct ofp_table_desc);
+
+    ss = (struct ofp_table_status *)src ;
+    ds = (struct ofl_msg_table_status *)malloc(sizeof(struct ofl_msg_table_status));
+
+    ds->reason = (enum ofp_table_reason)ss->reason;
+
+    error = ofl_utils_count_ofp_table_descs(&ss->table, *len, &tables_num);
+    if ((error) || (tables_num != 1)) {
+        if (!error) {
+            OFL_LOG_WARN(LOG_MODULE, "Received TABLE_STATUS message has invalid number of tables (%zd).", tables_num);
+	}
+        free(ds);
+        return error;
+    }
+
+    error = ofl_structs_table_desc_unpack(&ss->table, len, &ds->table_desc, exp);
+
+    *msg = (struct ofl_msg_header *)ds;
+    return 0;
+}
+
+static ofl_err
 ofl_msg_unpack_packet_out(struct ofp_header *src, size_t *len, struct ofl_msg_header **msg, struct ofl_exp *exp) {
     struct ofp_packet_out *sp;
     struct ofl_msg_packet_out *dp;
@@ -809,6 +842,9 @@ static ofl_err
 ofl_msg_unpack_table_mod(struct ofp_header *src, size_t *len, struct ofl_msg_header **msg) {
     struct ofp_table_mod *sm;
     struct ofl_msg_table_mod *dm;
+    struct ofp_table_mod_prop_header *prop;
+    ofl_err error;
+    size_t i;
 
     if (*len < sizeof(struct ofp_table_mod)) {
         OFL_LOG_WARN(LOG_MODULE, "Received TABLE_MOD message has invalid length (%zu).", *len);
@@ -825,6 +861,26 @@ ofl_msg_unpack_table_mod(struct ofp_header *src, size_t *len, struct ofl_msg_hea
 
     dm->table_id = sm->table_id;
     dm->config = ntohl(sm->config);
+
+    error = ofl_utils_count_ofp_table_mod_props(&(sm->properties), *len, &dm->table_mod_prop_num);
+    if (error) {
+        free(dm);
+        return error;
+    }
+
+    dm->props = (struct ofl_table_mod_prop_header **)malloc(dm->table_mod_prop_num * sizeof(struct ofl_table_mod_prop_header *));
+
+    prop = sm->properties;
+    for (i = 0; i < dm->table_mod_prop_num; i++) {
+        error = ofl_structs_table_mod_prop_unpack(prop, len, &(dm->props[i]));
+        if (error) {
+            OFL_UTILS_FREE_ARR_FUN(dm->props, i,
+            		ofl_structs_free_table_mod_prop);
+            free(dm);
+            return error;
+        }
+        prop = (struct ofp_table_mod_prop_header *)((uint8_t *)prop + ntohs(prop->length));
+    }
 
     *msg = (struct ofl_msg_header *)dm;
     return 0;
@@ -1105,7 +1161,8 @@ ofl_msg_unpack_multipart_request(struct ofp_header *src,uint8_t *buf, size_t *le
             error = ofl_msg_unpack_multipart_request_empty(os, len, msg);
             break;
         }
-        case OFPMP_PORT_DESC: {
+        case OFPMP_PORT_DESC:
+        case OFPMP_TABLE_DESC: {
             error = ofl_msg_unpack_multipart_request_empty(os, len, msg);
             break;
         }        
@@ -1571,6 +1628,30 @@ ofl_msg_unpack_multipart_reply_queue_desc(struct ofp_multipart_reply *src, size_
     return 0;
 }
 
+ofl_msg_unpack_multipart_reply_table_desc(struct ofp_multipart_reply *src, size_t *len, struct ofl_msg_header **msg, struct ofl_exp *exp){
+    struct ofl_msg_multipart_reply_table_desc *dm;
+    int i;
+    ofl_err error;
+    uint8_t *table_descs; 
+	
+    dm = (struct ofl_msg_multipart_reply_table_desc*) malloc(sizeof(struct ofl_msg_multipart_reply_table_desc) );
+    
+    error = ofl_utils_count_ofp_table_descs((uint8_t*) src->body, *len, &dm->tables_num);
+    if (error) {
+        free(dm);
+        return error;
+    }
+    dm->table_desc = (struct ofl_table_desc **) malloc(sizeof(struct ofl_table_desc *) * dm->tables_num);
+    table_descs = (uint8_t* ) src->body;
+
+    for(i = 0; i < dm->tables_num; i++){
+        error = ofl_structs_table_desc_unpack((struct ofp_table_desc*) table_descs, len, &dm->table_desc[i] , exp);
+        table_descs += ntohs(((struct ofp_table_desc*) table_descs)->length); 
+    }
+    *msg = (struct ofl_msg_header *)dm;
+    return 0;
+}
+
 static ofl_err
 ofl_msg_unpack_multipart_reply_meter_features(struct ofp_multipart_reply *os, size_t *len, struct ofl_msg_header **msg) {
     struct ofp_meter_features *src;
@@ -1669,6 +1750,10 @@ ofl_msg_unpack_multipart_reply(struct ofp_header *src, uint8_t *buf, size_t *len
 			error = ofl_msg_unpack_multipart_reply_queue_desc(os, len, msg);
 			break;	
 		}
+        case OFPMP_TABLE_DESC: {
+            error = ofl_msg_unpack_multipart_reply_table_desc(os, len, msg, exp);
+            break;
+        }
         case OFPMP_EXPERIMENTER: {
             if (exp == NULL || exp->stats == NULL || exp->stats->reply_unpack == NULL) {
                 OFL_LOG_WARN(LOG_MODULE, "Received EXPERIMENTER stats reply, but no callback was given.");
@@ -1779,6 +1864,9 @@ ofl_msg_unpack(uint8_t *buf, size_t buf_len, struct ofl_msg_header **msg, uint32
             break;
         case OFPT_PORT_STATUS:
             error = ofl_msg_unpack_port_status(oh, &len, msg);
+            break;
+        case OFPT_TABLE_STATUS:
+            error = ofl_msg_unpack_table_status(oh, &len, msg, exp);
             break;
 
         /* Controller command messages. */

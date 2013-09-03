@@ -90,9 +90,10 @@ enum ofp_type {
     OFPT_SET_ASYNC = 28, /* Controller/switch message */
     /* Meters and rate limiters configuration messages. */
     OFPT_METER_MOD = 29, /* Controller/switch message */
-    
     /*modified by dingwanfu*/
     OFPT_ROLE_STATUS =30, /* Async message */
+    /* Asynchronous messages. */
+    OFPT_TABLE_STATUS       = 31, /* Async message */
 };
 
 /* OFPT_HELLO.  This message has an empty body, but implementations must
@@ -722,6 +723,60 @@ enum ofp_table {
                         flow stats and flow deletes. */
 };
 
+enum ofp_table_config {
+    OFPTC_TABLE_MISS_CONTROLLER = 0,    /* Send to controller. */
+    OFPTC_TABLE_MISS_CONTINUE = 1 << 0, /* Continue to the next table in the
+                                           pipeline (OpenFlow 1.0 behavior). */
+    OFPTC_TABLE_MISS_DROP = 1 << 1,     /* Drop the packet. */
+    OFPTC_TABLE_MISS_MASK = 3,
+
+    OFPTC_EVICTION = 1 << 2,	/*Authorize table to evict flows. modified by dingwanfu. */
+    OFPTC_VACANCY_EVENTS        = 1 << 3,  /* Enable vacancy events. */
+};
+
+/* Table Mod property types.
+ */
+enum ofp_table_mod_prop_type {
+    OFPTMPT_EVICTION               = 0x2,    /* Eviction property */ /* modified by dingwanfu_new */
+    OFPTMPT_VACANCY                = 0x3,    /* Vacancy property. */
+};
+
+/* Common header for all Table Mod Properties */
+struct ofp_table_mod_prop_header {
+    uint16_t         type;    /* One of OFPTMPT_*. */
+    uint16_t         length;  /* Length in bytes of this property. */
+};
+OFP_ASSERT(sizeof(struct ofp_table_mod_prop_header) == 4);
+
+/* Vacancy table mod property */
+struct ofp_table_mod_prop_vacancy {
+    uint16_t         type;   /* One of OFPTMPT_VACANCY. */
+    uint16_t         length; /* Length in bytes of this property. */
+    uint8_t vacancy_down;    /* Vacancy threshold when space decreases (%). */
+    uint8_t vacancy_up;      /* Vacancy threshold when space increases (%). */
+    uint8_t vacancy;         /* Current vacancy (%) - only in ofp_table_desc. */
+    uint8_t pad[1];          /* Align to 64 bits. */
+};
+OFP_ASSERT(sizeof(struct ofp_table_mod_prop_vacancy) == 8);
+
+/* modified by dingwanfu_new */
+enum ofp_table_mod_prop_eviction_flag {
+    OFPTMPEF_OTHER          = 1 << 0,        /* Using other factors. */
+    OFPTMPEF_IMPORTANCE     = 1 << 1,        /* Using flow entry importance. */
+    OFPTMPEF_LIFETIME	    = 1 << 2,        /* Using flow entry lifetime. */
+};
+
+/* modified by dingwanfu_new */
+/* Eviction table mod property. 
+ * Mostyly used in OFPMP_TABLE_DESC replies. */
+struct ofp_table_mod_prop_eviction{
+    uint16_t        type;       /* OFPTMPT_EVICTION. */
+    uint16_t        length;     /* Length in bytes of this property. */
+    uint32_t        flags;      /* Bitmap of OFPTMPEF_* flags */
+};
+OFP_ASSERT(sizeof(struct ofp_table_mod_prop_eviction) == 8);
+
+
 /* Configure/Modify behavior of a flow table */
 enum ofp_table_mod_prop_type {
 	OFPTMPT_EXPERIMENTER	= 0xffff, /* Experimenter property. */
@@ -769,6 +824,7 @@ enum ofp_table_config {
 
     OFPTC_EVICTION = 1 << 2,	/*Authorize table to evict flows. modified by dingwanfu. */
 };
+OFP_ASSERT(sizeof(struct ofp_table_mod) == 16);
 
 #define OFP_DEFAULT_PRIORITY 0x8000
 #define OFP_FLOW_PERMANENT 0
@@ -1256,6 +1312,19 @@ struct ofp_table_stats {
 };
 OFP_ASSERT(sizeof(struct ofp_table_stats) == 24);
 
+/* Body of reply to OFPMP_TABLE_DESC request. */
+struct ofp_table_desc {
+    uint16_t length;         /* Length is padded to 64 bits. */
+    uint8_t table_id;        /* Identifier of table.  Lower numbered tables
+                                are consulted first. */
+    uint8_t pad[1];          /* Align to 32-bits. */
+    uint32_t config;         /* Bitmap of OFPTC_* values. */
+
+    /* Table Mod Property list - 0 or more. */
+    struct ofp_table_mod_prop_header properties[0];
+};
+OFP_ASSERT(sizeof(struct ofp_table_desc) == 8);
+
 struct ofp_table_feature_prop_header{
     uint16_t type;  /* One of OFPTFPT_NEXT_TABLES,
                        OFPTFPT_NEXT_TABLES_MISS. */
@@ -1273,7 +1342,7 @@ struct ofp_table_features {
     char name[OFP_MAX_TABLE_NAME_LEN];
     uint64_t metadata_match; /* Bits of metadata table can match. */
     uint64_t metadata_write; /* Bits of metadata table can write. */
-    uint32_t capabilities;   /* Bitmap of OFPTC_* values */
+    uint32_t capabilities;   /* Bitmap of OFPTC_* values. */
     uint32_t max_entries;    /* Max number of entries supported. */
     /* Table Feature Property list */
     struct ofp_table_feature_prop_header properties[0];
@@ -1826,6 +1895,21 @@ enum ofp_port_reason {
     OFPPR_DELETE = 1, /* The port was removed. */
     OFPPR_MODIFY = 2, /* Some attribute of the port has changed. */
 };
+
+/* What changed about the table */
+enum ofp_table_reason {
+    OFPTR_VACANCY_DOWN  = 3,        /* Vacancy down threshold event. */
+    OFPTR_VACANCY_UP    = 4,        /* Vacancy up threshold event. */
+};
+
+/* A table config has changed in the datapath */
+struct ofp_table_status {
+    struct ofp_header header;
+    uint8_t reason;         /* One of OFPTR_*. */
+    uint8_t pad[7];         /* Pad to 64 bits */
+    struct ofp_table_desc table;   /* New table config. */
+};
+OFP_ASSERT(sizeof(struct ofp_table_status) == 24);
 
 /* OFPT_ERROR: Error message (datapath -> controller). */
 struct ofp_error_msg {
