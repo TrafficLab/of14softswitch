@@ -53,6 +53,8 @@ void vconn_close(struct vconn *);
 const char *vconn_get_name(const struct vconn *);
 uint32_t vconn_get_ip(const struct vconn *);
 bool vconn_is_reconnectable(const struct vconn *);
+void vconn_set_spurious_handler(struct vconn *vconn,
+			void (*spurious_handler)(struct ofpbuf *spurious));
 int vconn_connect(struct vconn *);
 int vconn_recv(struct vconn *, struct ofpbuf **);
 int vconn_send(struct vconn *, struct ofpbuf *);

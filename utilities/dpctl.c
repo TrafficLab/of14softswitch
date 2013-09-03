@@ -99,6 +99,9 @@ usage(void) NO_RETURN;
 static void
 parse_options(int argc, char *argv[]);
 
+static uint32_t bundle_id = (uint32_t)-1;
+static uint16_t bundle_flags = 0;
+
 static uint8_t mask_all[] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 
 
@@ -202,6 +205,33 @@ static struct ofl_exp dpctl_exp =
 
 
 static void
+show_error_handler(struct ofpbuf *spurious)
+{
+    uint8_t type;
+    int error;
+
+    type = ((struct ofp_header*) spurious->data)->type;
+    if (type == OFPT_ERROR) {
+        struct ofl_msg_header *error_msg;
+        uint32_t error_xid;
+	char *str;
+
+        error = ofl_msg_unpack(spurious->data, spurious->size, &error_msg, &error_xid, &dpctl_exp);
+
+	if (!error) {
+	    str = ofl_msg_to_string(error_msg, &dpctl_exp);
+	    printf("\nERROR (xid=0x%X):\n%s\n\n", error_xid, str);
+	    free(str);
+	    spurious->base = NULL;
+	    spurious->data = NULL;
+	    ofl_msg_free(error_msg, &dpctl_exp);
+	}
+    }
+
+    ofpbuf_delete(spurious);
+}
+
+static void
 dpctl_transact(struct vconn *vconn, struct ofl_msg_header *req,
 	       struct ofl_msg_header **repl, uint32_t *repl_xid_p) {
     struct ofpbuf *ofpbufreq, *ofpbufrepl;
@@ -290,6 +320,20 @@ dpctl_send(struct vconn *vconn, struct ofl_msg_header *msg) {
     error = ofl_msg_pack(msg, global_xid, &buf, &buf_size, &dpctl_exp);
     if (error) {
         ofp_fatal(0, "Error packing request.");
+    }
+
+    if(bundle_id != (uint32_t)-1) {
+        struct ofl_msg_bundle_add_msg add_msg =
+            {{.type = OFPT_BUNDLE_ADD_MESSAGE},
+	     .bundle_id = bundle_id,
+	     .flags = bundle_flags,
+	     .message = (struct ofp_header *) buf};
+
+        error = ofl_msg_pack((struct ofl_msg_header *) &add_msg, global_xid, &buf, &buf_size, &dpctl_exp);
+        if (error) {
+              ofp_fatal(0, "Error wrapping request into bundle.");
+        }
+        printf("Wrapped in bundle (ID=%u)\n", bundle_id);
     }
 
     ofpbuf = ofpbuf_new(0);
@@ -923,6 +967,35 @@ get_async(struct vconn *vconn, int argc UNUSED, char *argv[] UNUSED){
     dpctl_transact_and_print(vconn, (struct ofl_msg_header *)&msg, NULL);
 }
 
+static void
+bundle_control(struct vconn *vconn, int argc UNUSED, char *argv[] UNUSED) {
+    struct ofl_msg_bundle_control req =
+            {{.type = OFPT_BUNDLE_CONTROL},
+	     .bundle_id = 0,
+	     .type = 0,
+	     .flags = 0};
+
+    if (strcmp(argv[0], "open") == 0) {
+        req.type = OFPBCT_OPEN_REQUEST;
+    } else if (strcmp(argv[0], "close") == 0) {
+        req.type = OFPBCT_CLOSE_REQUEST;
+    } else if (strcmp(argv[0], "commit") == 0) {
+        req.type = OFPBCT_COMMIT_REQUEST;
+    } else if (strcmp(argv[0], "discard") == 0) {
+        req.type = OFPBCT_DISCARD_REQUEST;
+    } else {
+        ofp_fatal(0, "Error parsing bundle subcommand: %s.", argv[0]);
+    }
+
+    req.bundle_id = bundle_id;
+    req.flags = bundle_flags;
+
+    /* Dump error messages with different XID */
+    vconn_set_spurious_handler(vconn, &show_error_handler);
+
+    dpctl_transact_and_print(vconn, (struct ofl_msg_header *)&req, NULL);
+}
+
 static struct command all_commands[] = {
     {"ping", 0, 2, ping},
     {"monitor", 0, 0, monitor},
@@ -955,7 +1028,8 @@ static struct command all_commands[] = {
     {"set-desc", 1, 1, set_desc},
 
     {"queue-mod", 3, 3, queue_mod},
-    {"queue-del", 2, 2, queue_del}
+    {"queue-del", 2, 2, queue_del},
+    {"bundle", 1, 1, bundle_control}
 };
 
 
@@ -1023,6 +1097,8 @@ parse_options(int argc, char *argv[])
     };
     static struct option long_options[] = {
         {"timeout", required_argument, 0, 't'},
+        {"bundle", required_argument, 0, 'b'},
+        {"flags", required_argument, 0, 'f'},
         {"verbose", optional_argument, 0, 'v'},
         {"strict", no_argument, 0, OPT_STRICT},
         {"help", no_argument, 0, 'h'},
@@ -1051,6 +1127,15 @@ parse_options(int argc, char *argv[])
             } else {
                 time_alarm(timeout);
             }
+            break;
+
+        case 'b':
+            bundle_id = strtoul(optarg, NULL, 10);
+            break;
+
+        case 'f':
+            bundle_flags = strtoul(optarg, NULL, 10);
+            // TODO permit comma separated list of identifiers
             break;
 
         case 'h':
@@ -1112,6 +1197,8 @@ usage(void)
             "  SWITCH port-mod ARG                    send port_mod message\n"
             "  SWITCH table-mod ARG                   send table_mod message\n"
             "\n"
+            "  SWITCH bundle [open|close|commit|discard] send bundle control message\n"
+            "\n"
             "OpenFlow extensions\n"
             "  SWITCH set-desc DESC                   sets the DP description\n"
             "  SWITCH queue-mod PORT QUEUE BW         adds/modifies queue\n"
@@ -1123,6 +1210,8 @@ usage(void)
      printf("\nOther options:\n"
             "  --strict                    use strict match for flow commands\n"
             "  -t, --timeout=SECS          give up after SECS seconds\n"
+            "  -b, --bundle=ID             operate on specified bundle\n"
+            "  -f, --flags=INTEGER         flags for bundle operations\n"
             "  -h, --help                  display this help message\n"
             "  -V, --version               display version information\n");
      exit(EXIT_SUCCESS);

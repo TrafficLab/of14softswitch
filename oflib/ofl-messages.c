@@ -304,6 +304,20 @@ ofl_msg_free(struct ofl_msg_header *msg, struct ofl_exp *exp) {
         case OFPT_METER_MOD:{
             return ofl_msg_free_meter_mod((struct ofl_msg_meter_mod*)msg, true);
         }
+        case OFPT_QUEUE_GET_CONFIG_REPLY: {
+            struct ofl_msg_queue_get_config_reply *mod =
+                                (struct ofl_msg_queue_get_config_reply *)msg;
+            OFL_UTILS_FREE_ARR_FUN(mod->queues, mod->queues_num,
+                                   ofl_structs_free_packet_queue);
+            break;
+        }
+        case OFPT_BUNDLE_CONTROL: {
+            break;
+        }
+        case OFPT_BUNDLE_ADD_MESSAGE: {
+            free(((struct ofl_msg_bundle_add_msg *)msg)->message);
+            break;
+        }
     }
     
     free(msg);

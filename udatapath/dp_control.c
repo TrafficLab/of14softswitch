@@ -29,6 +29,7 @@
  *
  */
 
+#include "bundle.h"
 #include "compiler.h"
 #include "dp_capabilities.h"
 #include "dp_control.h"
@@ -359,6 +360,12 @@ handle_control_msg(struct datapath *dp, struct ofl_msg_header *msg,
         case OFPT_METER_MOD:{
 			return meter_table_handle_meter_mod(dp->meters, (struct ofl_msg_meter_mod *)msg, sender);
 		}
+        case OFPT_BUNDLE_CONTROL:{
+            return bundle_handle_control(dp, dp->bundles, (struct ofl_msg_bundle_control *)msg, sender);
+        }
+        case OFPT_BUNDLE_ADD_MESSAGE:{
+            return bundle_handle_add_msg(dp->bundles, (struct ofl_msg_bundle_add_msg *)msg, sender);
+        }
         case OFPT_EXPERIMENTER: {
             return dp_exp_message(dp, (struct ofl_msg_experimenter *)msg, sender);
         }

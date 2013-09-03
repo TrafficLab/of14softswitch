@@ -51,6 +51,7 @@
 #include "ofpbuf.h"
 #include "group_table.h"
 #include "meter_table.h"
+#include "bundle.h"
 #include "oflib/ofl.h"
 #include "oflib-exp/ofl-exp.h"
 #include "oflib-exp/ofl-exp-nicira.h"
@@ -146,6 +147,7 @@ dp_new(void) {
     dp->pipeline = pipeline_create(dp);
     dp->groups = group_table_create(dp);
     dp->meters = meter_table_create(dp);
+    dp->bundles = bundle_table_create(dp);
 
     list_init(&dp->port_list);
     dp->ports_num = 0;
@@ -171,6 +173,28 @@ dp_new(void) {
     return dp;
 }
 
+void
+dp_save_state(struct datapath *dp) {
+
+    dp->saved_config = dp->config;
+    
+    /* TODO log errors returned by following. */
+    (void)pipeline_handle_table_features_save(dp->pipeline);
+
+    /* TODO save additional state
+     * (consider duplicating entire struct datapath) */
+}
+
+void
+dp_restore_state(struct datapath *dp) {
+
+    /* TODO log errors returned by following. */
+    (void)pipeline_handle_table_features_restore(dp->pipeline);
+
+    dp->config = dp->saved_config;
+
+    /* TODO restore additional state */
+}
 
 void
 dp_add_pvconn(struct datapath *dp, struct pvconn *pvconn, struct pvconn *pvconn_aux) {

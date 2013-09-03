@@ -56,6 +56,7 @@ struct flow_table {
     struct datapath           *dp;
     struct ofl_table_features *features;      /*store table features*/
     struct ofl_table_desc     *desc;          /*store table desc*/
+    struct ofl_table_features *saved_features; /* store table features */
     struct ofl_table_stats    *stats;         /* structure storing table statistics. */
     
     struct list               match_entries;  /* list of entries in order. */

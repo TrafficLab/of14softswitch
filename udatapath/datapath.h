@@ -95,7 +95,10 @@ struct datapath {
 
     struct meter_table *meters; /* Meter tables */
 
+    struct bundle_table *bundles; /* Bundle tables */
+
     struct ofl_config config; /* Configuration, set from controller. */
+    struct ofl_config saved_config; /* Saved config. */
 
     /* Switch ports. */
     /* NOTE: ports are numbered starting at 1 in OF 1.1 */

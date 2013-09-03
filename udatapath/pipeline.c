@@ -331,6 +331,30 @@ pipeline_handle_table_mod(struct pipeline *pl,
 }
 
 ofl_err
+pipeline_handle_table_features_save(struct pipeline *pl) {
+
+    size_t i;
+
+    for (i=0; i<PIPELINE_TABLES; i++) {
+        pl->tables[i]->saved_features->config =
+            pl->tables[i]->features->config;
+    }
+    return 0;
+}
+
+ofl_err
+pipeline_handle_table_features_restore(struct pipeline *pl) {
+
+    size_t i;
+
+    for (i=0; i<PIPELINE_TABLES; i++) {
+        pl->tables[i]->features->config =
+            pl->tables[i]->saved_features->config;
+    }
+    return 0;
+}
+
+ofl_err
 pipeline_handle_stats_request_flow(struct pipeline *pl,
                                    struct ofl_msg_multipart_request_flow *msg,
                                    const struct sender *sender) {

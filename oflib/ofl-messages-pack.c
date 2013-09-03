@@ -112,6 +112,46 @@ ofl_msg_pack_role_status(struct ofl_msg_role_status *msg, uint8_t **buf, size_t 
 
 
 static int
+ofl_msg_pack_bundle_control(struct ofl_msg_bundle_control *msg, uint8_t **buf, size_t *buf_len) {
+        struct ofp_bundle_control *ctl;
+
+        *buf_len = sizeof(struct ofp_bundle_control);
+        *buf     = (uint8_t *)malloc(*buf_len);
+
+        ctl = (struct ofp_bundle_control *)(*buf);
+        ctl->bundle_id =  htonl(msg->bundle_id);
+        ctl->type      =  htons(msg->type);
+        ctl->flags     =  htons(msg->flags);
+
+        /* TODO Add support for packing properties. */
+
+        return 0;
+}
+
+static int
+ofl_msg_pack_bundle_add_msg(struct ofl_msg_bundle_add_msg *msg, uint8_t **buf, size_t *buf_len) {
+        struct ofp_bundle_add_msg *add_msg;
+        size_t message_length;
+
+        message_length = ntohs(msg->message->length);
+        *buf_len = sizeof(struct ofp_bundle_add_msg) - sizeof(struct ofp_header) + message_length;
+        *buf     = (uint8_t *)malloc(*buf_len);
+
+        add_msg = (struct ofp_bundle_add_msg *)(*buf);
+        add_msg->bundle_id =  htonl(msg->bundle_id);
+        add_msg->flags     =  htons(msg->flags);
+        memset(add_msg->pad,0,sizeof(add_msg->pad));
+
+        if(message_length > 0) {
+            memcpy(&(add_msg->message), msg->message, message_length);
+        }
+
+        /* TODO Add support for packing properties. */
+
+        return 0;
+}
+
+static int
 ofl_msg_pack_features_reply(struct ofl_msg_features_reply *msg, uint8_t **buf, size_t *buf_len) {
     struct ofp_switch_features *features;
 
@@ -1338,6 +1378,16 @@ ofl_msg_pack(struct ofl_msg_header *msg, uint32_t xid, uint8_t **buf, size_t *bu
             error = ofl_msg_pack_role_status((struct ofl_msg_role_status*)msg, buf, buf_len);
             break;
         }
+
+        /* Bundle messages. */
+        case OFPT_BUNDLE_CONTROL:
+            error = ofl_msg_pack_bundle_control((struct ofl_msg_bundle_control*)msg, buf, buf_len);
+            break;
+
+        case OFPT_BUNDLE_ADD_MESSAGE:
+            error = ofl_msg_pack_bundle_add_msg((struct ofl_msg_bundle_add_msg*)msg, buf, buf_len);
+            break;
+
         default: {
             OFL_LOG_WARN(LOG_MODULE, "Trying to pack unknown message type.");
             error = -1;

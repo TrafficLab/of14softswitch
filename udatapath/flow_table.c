@@ -579,6 +579,8 @@ flow_table_create(struct datapath *dp, uint8_t table_id) {
     //table->desc->config   = OFPTC_TABLE_MISS_CONTROLLER;
     table->desc->config   = OFPTC_EVICTION;    /* modified by dingwanfu_new */
     table->desc->properties_num = flow_table_desc(table->desc);
+    /* Init saved table features */
+    table->saved_features = xmalloc(sizeof(struct ofl_table_features));
 
     list_init(&table->match_entries);
     list_init(&table->hard_entries);
@@ -596,6 +598,7 @@ flow_table_destroy(struct flow_table *table) {
     }
     free(table->desc);
     free(table->features);
+    free(table->saved_features);
     free(table->stats);
     free(table);
 }

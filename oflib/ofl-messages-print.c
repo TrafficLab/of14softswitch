@@ -735,6 +735,27 @@ ofl_msg_print_role_stats_msg(struct ofl_msg_role_status *msg, FILE * stream){
 }
 
 static void
+ofl_msg_print_bundle_control(struct ofl_msg_bundle_control *msg, FILE *stream) {
+    fprintf(stream, "{type=%s,bundle_id=%u}",
+            (msg->type == OFPBCT_OPEN_REQUEST)    ? "OPEN_REQUEST" :
+            (msg->type == OFPBCT_OPEN_REPLY)      ? "OPEN_REPLY" :
+            (msg->type == OFPBCT_CLOSE_REQUEST)   ? "CLOSE_REQUEST" :
+            (msg->type == OFPBCT_CLOSE_REPLY)     ? "CLOSE_REPLY" :
+            (msg->type == OFPBCT_COMMIT_REQUEST)  ? "COMMIT_REQUEST" :
+            (msg->type == OFPBCT_COMMIT_REPLY)    ? "COMMIT_REPLY" :
+            (msg->type == OFPBCT_DISCARD_REQUEST) ? "DISCARD_REQUEST" :
+            (msg->type == OFPBCT_DISCARD_REPLY)   ? "DISCARD_REPLY" :
+            "???",
+            msg->bundle_id);
+}
+
+static void
+ofl_msg_print_bundle_add_msg(struct ofl_msg_bundle_add_msg *msg, FILE *stream) {
+    fprintf(stream, "{bundle_id=%u}", msg->bundle_id);
+
+}
+
+static void
 ofl_msg_print_async(struct ofl_msg_async_config* msg, FILE *stream){
     
     fprintf(stream, "{");
@@ -818,6 +839,9 @@ ofl_msg_print(FILE *stream, struct ofl_msg_header *msg, struct ofl_exp *exp) {
         case OFPT_SET_ASYNC:{ofl_msg_print_async((struct ofl_msg_async_config*)msg, stream); return;}		
 		case OFPT_METER_MOD: {ofl_msg_print_meter_mod((struct ofl_msg_meter_mod*)msg, stream); return;}
 			    	
-	}
+        /* Bundle messages. */
+        case OFPT_BUNDLE_CONTROL: { ofl_msg_print_bundle_control((struct ofl_msg_bundle_control *)msg, stream); return; }
+        case OFPT_BUNDLE_ADD_MESSAGE: { ofl_msg_print_bundle_add_msg((struct ofl_msg_bundle_add_msg *)msg, stream); return; }
+    }
 }
 
