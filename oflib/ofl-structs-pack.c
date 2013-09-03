@@ -539,6 +539,9 @@ ofl_structs_flow_stats_pack(struct ofl_flow_stats *src, uint8_t *dst, struct ofl
     flow_stats->duration_sec = htonl(src->duration_sec);
     flow_stats->duration_nsec = htonl(src->duration_nsec);
     flow_stats->priority = htons(src->priority);
+
+    flow_stats->importance = htons(src->importance);//modified by dingwanfu.
+	
     flow_stats->idle_timeout = htons(src->idle_timeout);
     flow_stats->hard_timeout = htons(src->hard_timeout);
     memset(flow_stats->pad2, 0x00, 6);

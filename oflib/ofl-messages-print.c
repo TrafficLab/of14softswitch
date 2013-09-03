@@ -159,9 +159,9 @@ ofl_msg_print_flow_mod(struct ofl_msg_flow_mod *msg, FILE *stream, struct ofl_ex
     fprintf(stream, "\", cmd=\"");
     ofl_flow_mod_command_print(stream, msg->command);
     fprintf(stream, "\", cookie=\"0x%"PRIx64"\", mask=\"0x%"PRIx64"\", "
-                          "idle=\"%u\", hard=\"%u\", prio=\"%u\", buf=\"",
+                          "idle=\"%u\", hard=\"%u\", prio=\"%u\", impo=\"%u\", buf=\"", //modified by dingwanfu.
                   msg->cookie, msg->cookie_mask,
-                  msg->idle_timeout, msg->hard_timeout, msg->priority);
+                  msg->idle_timeout, msg->hard_timeout, msg->priority, msg->importance);//modified by dingwanfu.
     ofl_buffer_print(stream, msg->buffer_id);
     fprintf(stream, "\", port=\"");
     ofl_port_print(stream, msg->out_port);

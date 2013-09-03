@@ -205,6 +205,9 @@ struct ofl_msg_flow_mod {
     enum ofp_flow_mod_command       command;      /* One of OFPFC_*. */
     uint16_t                        idle_timeout; /* Idle time before discarding (secs). */
     uint16_t                        hard_timeout; /* Max time before discarding (secs). */
+
+    uint16_t                        importance;  /* Importance of flow table. modified by dingwanfu */
+	
     uint16_t                        priority;     /* Priority level of flow entry. */
     uint32_t                        buffer_id;    /* Buffered packet to apply to (or -1).
                                                     Not meaningful for OFPFC_DELETE*. */

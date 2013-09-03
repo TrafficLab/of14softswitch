@@ -123,9 +123,20 @@ flow_table_add(struct flow_table *table, struct ofl_msg_flow_mod *mod, bool chec
         }
     }
 
+#if 0
     if (table->stats->active_count == FLOW_TABLE_MAX_ENTRIES) {
         return ofl_error(OFPET_FLOW_MOD_FAILED, OFPFMFC_TABLE_FULL);
     }
+#endif
+
+    if (table->stats->active_count == FLOW_TABLE_MAX_ENTRIES) {
+
+	return flow_table_eviction_importance(table,  mod, match_kept, insts_kept );
+	   	//* modified by dingwanfu.
+		
+    }
+
+	
     table->stats->active_count++;
 
     new_entry = flow_entry_create(table->dp, table, mod);
@@ -137,6 +148,39 @@ flow_table_add(struct flow_table *table, struct ofl_msg_flow_mod *mod, bool chec
 
     return 0;
 }
+
+
+/* modified by dingwanfu. */
+ofl_err 
+flow_table_eviction_importance(struct flow_table *table,  struct ofl_msg_flow_mod *mod, bool *match_kept, bool *insts_kept ){ 
+	struct flow_entry *entry, * tmp_entry, *new_entry; 
+	uint16_t min_imp= 0xFFFF;
+
+	tmp_entry = NULL;
+	LIST_FOR_EACH (entry, struct flow_entry, match_node, &table->match_entries) { 
+		if (entry->stats->importance < min_imp) {
+					//需要在ofl_flow_stats结构中添加importance域
+			min_imp = entry->stats->importance;
+			tmp_entry = entry;
+		}
+	}
+	if ((tmp_entry != NULL) && (min_imp < mod->importance)) {
+					//需要在ofl_msg_flow_mod结构中添加importance域
+			table->stats->active_count++;
+					//modified by dingwanfu.
+			new_entry = flow_entry_create(table->dp, table, mod); 
+			*match_kept = true;
+    			*insts_kept = true;
+			
+			list_insert(&tmp_entry->match_node, &new_entry->match_node); 
+			flow_entry_remove(tmp_entry, OFPRR_EVICTION) ;
+     		      add_to_timeout_lists(table, new_entry);
+			return 0;
+		}else{
+			return ofl_error(OFPET_FLOW_MOD_FAILED, OFPFMFC_TABLE_FULL); 
+		}
+}
+
 
 /* Handles flow mod messages with MODIFY command. 
     If the flow doesn't exists don't do nothing*/
