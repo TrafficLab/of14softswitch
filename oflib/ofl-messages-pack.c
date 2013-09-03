@@ -322,6 +322,77 @@ ofl_msg_pack_table_status(struct ofl_msg_table_status *msg, uint8_t **buf, size_
 }
 
 static int
+ofl_msg_pack_requestforward(struct ofl_msg_requestforward *msg, uint32_t xid, uint8_t **buf, size_t *buf_len, struct ofl_exp *exp) {
+    struct ofp_requestforward_header *orh;
+    struct ofp_header *oh_sub;
+    size_t request_len;
+    uint8_t *ptr;
+    int i;
+
+    switch(msg->reason) {
+    case OFPRFR_GROUP_MOD:
+      request_len = sizeof(struct ofp_group_mod) + ofl_structs_buckets_ofp_total_len(msg->group_desc->buckets, msg->group_desc->buckets_num, exp);
+      break;
+    case OFPRFR_METER_MOD:
+      request_len = sizeof(struct ofp_meter_mod) + ofl_structs_meter_bands_ofp_total_len(msg->meter_desc->bands, msg->meter_desc->meter_bands_num);
+      break;
+    default:
+      request_len = (sizeof(struct ofp_header));
+    }
+
+    /* Spec does not require the rounding up. */
+    *buf_len = ROUND_UP((sizeof(struct ofp_header)) + request_len, 8);
+    *buf     = (uint8_t *)malloc(*buf_len);
+
+    orh = (struct ofp_requestforward_header *)(*buf);
+
+    /* Note : struct ofp_header is 8 bytes, so alignement is preserved. */
+    oh_sub = (struct ofp_header *) ((*buf) + (sizeof(struct ofp_header)));
+
+    switch(msg->reason) {
+    case OFPRFR_GROUP_MOD:
+      {
+	struct ofp_group_mod *group_mod = (struct ofp_group_mod *) oh_sub;
+	group_mod->command  = htons(msg->group_desc->command);
+	group_mod->type     =       msg->group_desc->type;
+	group_mod->pad = 0x00;
+	group_mod->group_id = htonl(msg->group_desc->group_id);
+
+	ptr = ((uint8_t *) group_mod) + sizeof(struct ofp_group_mod);
+
+	for (i=0; i<msg->group_desc->buckets_num; i++) {
+	  ptr += ofl_structs_bucket_pack(msg->group_desc->buckets[i], (struct ofp_bucket *)ptr, exp);
+	}
+      }
+      oh_sub->type    =        OFPT_GROUP_MOD;
+      break;
+    case OFPRFR_METER_MOD:
+      {
+	struct ofp_meter_mod *meter_mod = (struct ofp_meter_mod *) oh_sub;
+	meter_mod->command = htons(msg->meter_desc->command);
+	meter_mod->flags = htons(msg->meter_desc->flags);
+	meter_mod->meter_id = ntohl(msg->meter_desc->meter_id);
+
+	ptr = ((uint8_t *) meter_mod) + sizeof(struct ofp_meter_mod);
+	for (i=0; i < msg->meter_desc->meter_bands_num; i++) {
+	  ptr += ofl_structs_meter_band_pack(msg->meter_desc->bands[i], (struct ofp_meter_band_header *) ptr);
+	}
+      }
+      oh_sub->type    =        OFPT_METER_MOD;
+      break;
+    default:
+      oh_sub->type    =        OFPT_HELLO;
+    }
+
+    /* Common part to all embedded requests. */
+    oh_sub->version =        OFP_VERSION;
+    oh_sub->length  = htons(request_len);
+    oh_sub->xid     = htonl(xid);
+
+    return 0;
+}
+
+static int
 ofl_msg_pack_packet_out(struct ofl_msg_packet_out *msg, uint8_t **buf, size_t *buf_len, struct ofl_exp *exp) {
     struct ofp_packet_out *packet_out;
     size_t act_len;
@@ -1311,6 +1382,10 @@ ofl_msg_pack(struct ofl_msg_header *msg, uint32_t xid, uint8_t **buf, size_t *bu
         }
         case OFPT_TABLE_STATUS: {
             error = ofl_msg_pack_table_status((struct ofl_msg_table_status *)msg, buf, buf_len, exp);
+            break;
+        }
+        case OFPT_REQUESTFORWARD: {
+            error = ofl_msg_pack_requestforward((struct ofl_msg_requestforward *)msg, xid, buf, buf_len, exp);
             break;
         }
         /* Controller command messages. */

@@ -176,6 +176,14 @@ struct ofl_msg_table_status {
     struct ofl_table_desc * table_desc;
 };
 
+struct ofl_msg_requestforward {
+    struct ofl_msg_header   header; /* OFPT_REQUESTFORWARD */
+
+    enum ofp_requestforward_reason   reason; /* One of OFPRFR_*. */
+    struct ofl_msg_group_mod *group_desc;
+    struct ofl_msg_meter_mod *meter_desc;
+};
+
 /******************************
  * Controller command messages
  ******************************/
@@ -590,6 +598,10 @@ ofl_msg_free_flow_removed(struct ofl_msg_flow_removed *msg, bool with_stats, str
 /* Calling this function frees the passed table_mod message.*/
 int 
 ofl_msg_free_table_status(struct ofl_msg_table_status * msg, bool with_props, struct ofl_exp *exp);
+
+/* Calling this function frees the passed in requestforward message. */
+int
+ofl_msg_free_requestforward(struct ofl_msg_requestforward *msg, struct ofl_exp *exp);
 
 /****************************************************************************
  * Functions for merging messages

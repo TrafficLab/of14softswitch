@@ -96,7 +96,6 @@ group_table_add(struct group_table *table, struct ofl_msg_group_mod *mod) {
     table->entries_num++;
     table->buckets_num += entry->desc->buckets_num;
 
-    ofl_msg_free_group_mod(mod, false, table->dp->exp);
     return 0;
 }
 
@@ -131,7 +130,6 @@ group_table_modify(struct group_table *table, struct ofl_msg_group_mod *mod) {
 
     group_entry_destroy(entry);
 
-    ofl_msg_free_group_mod(mod, false, table->dp->exp);
     return 0;
 }
 
@@ -150,7 +148,6 @@ group_table_delete(struct group_table *table, struct ofl_msg_group_mod *mod) {
         table->entries_num = 0;
         table->buckets_num = 0;
 
-        ofl_msg_free_group_mod(mod, true, table->dp->exp);
         return 0;
 
     } else {
@@ -177,7 +174,6 @@ group_table_delete(struct group_table *table, struct ofl_msg_group_mod *mod) {
 
         /* NOTE: In 1.1 no error should be sent, if delete is for a non-existing group. */
 
-        ofl_msg_free_group_mod(mod, true, table->dp->exp);
         return 0;
     }
 }
@@ -200,18 +196,34 @@ group_table_handle_group_mod(struct group_table *table, struct ofl_msg_group_mod
 
     switch (mod->command) {
         case (OFPGC_ADD): {
-            return group_table_add(table, mod);
+            error = group_table_add(table, mod);
+	    break;
         }
         case (OFPGC_MODIFY): {
-            return group_table_modify(table, mod);
+            error = group_table_modify(table, mod);
+	    break;
         }
         case (OFPGC_DELETE): {
-            return group_table_delete(table, mod);
+            error = group_table_delete(table, mod);
+	    break;
         }
         default: {
-            return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
+            error = ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
         }
     }
+
+    if(!error) {
+        struct ofl_msg_requestforward msg =
+                {{.type = OFPT_REQUESTFORWARD},
+                 .reason = OFPRFR_GROUP_MOD,
+                 .group_desc  = mod};
+
+        dp_send_message(table->dp, (struct ofl_msg_header *)&msg, NULL);
+
+        ofl_msg_free_group_mod(mod, (mod->command == OFPGC_DELETE), table->dp->exp);
+     }
+
+    return error;
 }
 
 ofl_err

@@ -960,6 +960,57 @@ ofl_msg_unpack_bundle_add_msg(struct ofp_header *src, size_t *len, struct ofl_ms
 }
 
 static ofl_err
+ofl_msg_unpack_requestforward(struct ofp_header *src, uint8_t *buf, size_t *len, struct ofl_msg_header **msg, struct ofl_exp *exp) {
+    struct ofp_requestforward_header *sr;
+    struct ofl_msg_requestforward *dr;
+    ofl_err error;
+    struct ofp_header *oh_sub;
+    size_t len_sub;
+
+    if (*len < (sizeof(struct ofp_requestforward_header))) {
+        OFL_LOG_WARN(LOG_MODULE, "Received REQUESTFORWARD message has invalid length (%zu).", *len);
+        return OFL_ERROR;
+    }
+
+    sr = (struct ofp_requestforward_header *)src ;
+    oh_sub = (struct ofp_header *) (buf + sizeof(struct ofp_header));
+    len_sub = *len - sizeof(struct ofp_header);
+
+    if (len_sub != ntohs(oh_sub->length)) {
+        OFL_LOG_WARN(LOG_MODULE, "Received REQUESTFORWARD sub-message length does not match the message length.");
+        return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
+    }
+    *len -=  sizeof(struct ofp_header) + ntohs(oh_sub->length) ;
+
+    dr = (struct ofl_msg_requestforward *)malloc(sizeof(struct ofl_msg_requestforward));
+
+    switch(oh_sub->type) {
+    case OFPT_GROUP_MOD:
+      dr->reason = OFPRFR_GROUP_MOD;
+      error = ofl_msg_unpack_group_mod(oh_sub, &len_sub, (struct ofl_msg_header **) &dr->group_desc, exp);
+      break;
+
+    case OFPT_METER_MOD:
+      dr->reason = OFPRFR_METER_MOD;
+      error = ofl_msg_unpack_meter_mod(oh_sub, &len_sub,  (struct ofl_msg_header **)&dr->meter_desc );
+      break;
+
+    default:
+        OFL_LOG_WARN(LOG_MODULE, "Received REQUESTFORWARD message has invalid sub type (%u).", oh_sub->type);
+	free(dr);
+        return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_MULTIPART);
+    }
+
+    if (error) {
+        free(dr);
+        return error;
+    }
+
+    *msg = (struct ofl_msg_header *)dr;
+    return 0;
+}
+
+static ofl_err
 ofl_msg_unpack_multipart_request_flow(struct ofp_multipart_request *os, uint8_t* buf, size_t *len, struct ofl_msg_header **msg, struct ofl_exp *exp) {
     struct ofp_flow_stats_request *sm;
     struct ofl_msg_multipart_request_flow *dm;
@@ -1940,6 +1991,9 @@ ofl_msg_unpack(uint8_t *buf, size_t buf_len, struct ofl_msg_header **msg, uint32
             break;
         case OFPT_TABLE_STATUS:
             error = ofl_msg_unpack_table_status(oh, &len, msg, exp);
+            break;
+        case OFPT_REQUESTFORWARD:
+            error = ofl_msg_unpack_requestforward(oh, buf, &len, msg, exp);
             break;
 
         /* Controller command messages. */

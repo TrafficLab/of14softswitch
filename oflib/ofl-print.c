@@ -579,6 +579,7 @@ ofl_message_type_print(FILE *stream, uint16_t type) {
 		case OFPT_TABLE_STATUS:		{ fprintf(stream, "table_status"); return;}
         case OFPT_BUNDLE_CONTROL: {           fprintf(stream, "bundle_control"); return; }
         case OFPT_BUNDLE_ADD_MESSAGE: {       fprintf(stream, "bundle_add_message"); return; }
+		case OFPT_REQUESTFORWARD:	{ fprintf(stream, "request_forward"); return;}        
 		default: {                            fprintf(stream, "?(%u)", type); return; }
     }
 }
@@ -683,6 +684,17 @@ ofl_table_status_reason_print(FILE *stream, uint8_t reason) {
         case (OFPTR_VACANCY_DOWN): { fprintf(stream, "vacancy-down"); return; }
         case (OFPTR_VACANCY_UP):   { fprintf(stream, "vacancy-up"); return; }
         default: {             fprintf(stream, "?(%u)", reason); return; }
+    }
+}
+
+
+
+void
+ofl_requestforward_reason_print(FILE *stream, uint8_t reason) {
+    switch(reason) {
+        case (OFPRFR_GROUP_MOD): { fprintf(stream, "group-mod"); return; }
+        case (OFPRFR_METER_MOD): { fprintf(stream, "meter-mod"); return; }
+        default:                 { fprintf(stream, "?(%u)", reason); return; }
     }
 }
 
