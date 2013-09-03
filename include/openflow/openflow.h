@@ -81,6 +81,9 @@ enum ofp_type {
     /* Barrier messages. */
     OFPT_BARRIER_REQUEST = 20, /* Controller/switch message */
     OFPT_BARRIER_REPLY = 21,   /* Controller/switch message */
+    /* Queue Configuration messages. */
+    OFPT_QUEUE_GET_CONFIG_REQUEST = 22, /* Controller/switch message */
+    OFPT_QUEUE_GET_CONFIG_REPLY = 23,   /* Controller/switch message */
     /* Controller role change request messages. */
     OFPT_ROLE_REQUEST = 24, /* Controller/switch message */
     OFPT_ROLE_REPLY = 25,   /* Controller/switch message */
@@ -2326,4 +2329,14 @@ struct ofp_experimenter_msg {
     uint8_t  experimenter_data[0];
 };
 OFP_ASSERT(sizeof(struct ofp_experimenter_msg) == 16);
+
+/* Experimenter extension. */
+struct ofp_experimenter_header {
+    struct ofp_header header; /* Type OFPT_EXPERIMENTER. */
+    uint32_t experimenter;    /* Experimenter ID:
+                               * - MSB 0: low-order bytes are IEEE OUI.
+                               *                                  * - MSB != 0: defined by ONF. */
+    uint32_t exp_type;        /* Experimenter defined. */
+    /* Experimenter-defined arbitrary additional data. */
+};
 #endif /* openflow/openflow.h */

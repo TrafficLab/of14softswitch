@@ -423,8 +423,8 @@ pipeline_handle_table_features_save(struct pipeline *pl) {
     size_t i;
 
     for (i=0; i<PIPELINE_TABLES; i++) {
-        pl->tables[i]->saved_features->config =
-            pl->tables[i]->features->config;
+        pl->tables[i]->saved_features->capabilities =
+            pl->tables[i]->features->capabilities;
     }
     return 0;
 }
@@ -435,8 +435,8 @@ pipeline_handle_table_features_restore(struct pipeline *pl) {
     size_t i;
 
     for (i=0; i<PIPELINE_TABLES; i++) {
-        pl->tables[i]->features->config =
-            pl->tables[i]->saved_features->config;
+        pl->tables[i]->features->capabilities =
+            pl->tables[i]->saved_features->capabilities;
     }
     return 0;
 }

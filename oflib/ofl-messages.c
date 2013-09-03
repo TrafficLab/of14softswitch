@@ -294,7 +294,8 @@ ofl_msg_free(struct ofl_msg_header *msg, struct ofl_exp *exp) {
             return ofl_msg_free_multipart_reply((struct ofl_msg_multipart_reply_header *)msg, exp);
         }
         case OFPT_BARRIER_REQUEST:
-        case OFPT_BARRIER_REPLY: {
+        case OFPT_BARRIER_REPLY: 
+        case OFPT_QUEUE_GET_CONFIG_REQUEST: {
             break;
         }
         case OFPT_ROLE_REPLY:
@@ -465,13 +466,13 @@ ofl_msg_merge_multipart_request_table_features(struct ofl_msg_multipart_request_
 	  }
 	  case OFPTFPT_NEXT_TABLES:
 	  case OFPTFPT_NEXT_TABLES_MISS: {
-	    struct ofl_table_feature_prop_next_tables *old_prop_nt = (struct ofl_table_feature_prop_next_tables*) old_prop;
-	    struct ofl_table_feature_prop_next_tables *new_prop_nt;
-	    new_prop_nt = (struct ofl_table_feature_prop_next_tables*) malloc(sizeof(struct ofl_table_feature_prop_next_tables));
+	    struct ofl_table_feature_prop_tables *old_prop_nt = (struct ofl_table_feature_prop_tables*) old_prop;
+	    struct ofl_table_feature_prop_tables *new_prop_nt;
+	    new_prop_nt = (struct ofl_table_feature_prop_tables*) malloc(sizeof(struct ofl_table_feature_prop_tables));
 	    new_prop = (struct ofl_table_feature_prop_header *) new_prop_nt;
-	    memcpy((char *) new_prop, (char *) old_prop, sizeof(struct ofl_table_feature_prop_next_tables));
-	    new_prop_nt->next_table_ids = (uint8_t*) malloc(sizeof(uint8_t) * old_prop_nt->table_num);
-	    memcpy((char *) new_prop_nt->next_table_ids, (char *) old_prop_nt->next_table_ids, sizeof(uint8_t) * old_prop_nt->table_num);
+	    memcpy((char *) new_prop, (char *) old_prop, sizeof(struct ofl_table_feature_prop_tables));
+	    new_prop_nt->table_ids = (uint8_t*) malloc(sizeof(uint8_t) * old_prop_nt->table_num);
+	    memcpy((char *) new_prop_nt->table_ids, (char *) old_prop_nt->table_ids, sizeof(uint8_t) * old_prop_nt->table_num);
 	    break;
 	  }
 	  case OFPTFPT_WRITE_ACTIONS:

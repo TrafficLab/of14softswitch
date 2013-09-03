@@ -415,7 +415,7 @@ ofl_structs_table_properties_pack(struct ofl_table_feature_prop_header * src, st
             ptr = (uint8_t*) data + (sizeof(struct ofp_table_feature_prop_header));
             for(i = 0; i < sp->ids_num; i++){
                 if(sp->instruction_ids[i].type == OFPIT_EXPERIMENTER){
-                    struct ofp_instruction inst;
+                    struct ofp_instruction_header inst;
                     
                     inst.type = sp->instruction_ids[i].type;
                     if (exp == NULL || exp->inst == NULL || exp->inst->unpack == NULL) {

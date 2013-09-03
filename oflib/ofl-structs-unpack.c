@@ -271,7 +271,7 @@ ofl_structs_table_properties_unpack(struct ofp_table_feature_prop_header * src, 
 			struct ofp_table_feature_prop_tables *sp = (struct ofp_table_feature_prop_tables*) src;
 			struct ofl_table_feature_prop_tables *dp;
 			
-			if (plen < sizeof(struct ofp_table_feature_prop_next_tables)) {
+			if (plen < sizeof(struct ofp_table_feature_prop_tables)) {
                 OFL_LOG_WARN(LOG_MODULE, "Received NEXT TABLE feature has invalid length (%zu).", *len);
                 return ofl_error(OFPET_BAD_PROPERTY, OFPBPC_BAD_LEN);
             }			

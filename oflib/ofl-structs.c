@@ -711,7 +711,7 @@ ofl_instructions_clone(struct ofl_instruction_header **old_instructions, size_t 
     size_t array_size;
     size_t ofp_size;
     uint8_t *ptr;
-    struct ofp_instruction *inst;
+    struct ofp_instruction_header *inst;
     struct ofl_instruction_header **new_instructions;
     size_t i;
     int error;
@@ -730,14 +730,14 @@ ofl_instructions_clone(struct ofl_instruction_header **old_instructions, size_t 
     }
 
     new_instructions = (struct ofl_instruction_header **) buftmp;
-    inst = (struct ofp_instruction *) buftmp + array_size;
+    inst = (struct ofp_instruction_header *) buftmp + array_size;
     for (i = 0; i < instructions_num; i++) {
         error = ofl_structs_instructions_unpack(inst, &ofp_size, &(new_instructions[i]), exp);
         if (error) {
 	    free(buftmp);
             return error;
         }
-        inst = (struct ofp_instruction *)((uint8_t *)inst + ntohs(inst->len));
+        inst = (struct ofp_instruction_header *)((uint8_t *)inst + ntohs(inst->len));
     }
     *new_instructions_p = new_instructions;
 
