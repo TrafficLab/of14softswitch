@@ -162,7 +162,7 @@ flow_table_eviction_lifetime(struct flow_table *table,  struct ofl_msg_flow_mod 
 
 /* Handles flow mod messages with ADD command. */
 static ofl_err
-flow_table_add(struct flow_table *table, struct ofl_msg_flow_mod *mod, bool check_overlap, bool *match_kept, bool *insts_kept) {
+flow_table_add(struct flow_table *table, struct ofl_msg_flow_mod *mod, bool check_overlap, bool *match_kept, bool *insts_kept, struct flow_entry ** entry_p) {
     // Note: new entries will be placed behind those with equal priority
     struct flow_entry *entry, *new_entry;
 
@@ -176,12 +176,19 @@ flow_table_add(struct flow_table *table, struct ofl_msg_flow_mod *mod, bool chec
             new_entry = flow_entry_create(table->dp, table, mod);
             *match_kept = true;
             *insts_kept = true;
+	    *entry_p = new_entry;
+	    /* Transfer mastership, allow to change slave instructions without
+	     * breaking link to master... */
+	    new_entry->sync_master = entry->sync_master;
+	    entry->sync_master = NULL;
+	    new_entry->sync_master->sync_slave = new_entry;
 
-            /* NOTE: no flow removed message should be generated according to spec. */
             list_replace(&new_entry->match_node, &entry->match_node);
-            list_remove(&entry->hard_node);
-            list_remove(&entry->idle_node);
-            flow_entry_destroy(entry);
+	    entry->match_node.prev = NULL;
+	    entry->match_node.next = NULL;
+            /* NOTE: no flow removed message should be generated according to spec. */
+	    flow_entry_remove(entry, 0xFF);
+	    table->stats->active_count++;
             add_to_timeout_lists(table, new_entry);
             return 0;
         }
@@ -232,6 +239,7 @@ flow_table_add(struct flow_table *table, struct ofl_msg_flow_mod *mod, bool chec
     new_entry = flow_entry_create(table->dp, table, mod);
     *match_kept = true;
     *insts_kept = true;
+    *entry_p = new_entry;
 
     list_insert(&entry->match_node, &new_entry->match_node);
     add_to_timeout_lists(table, new_entry);
@@ -283,6 +291,11 @@ static ofl_err
 flow_table_modify(struct flow_table *table, struct ofl_msg_flow_mod *mod, bool strict, bool *insts_kept) {
     struct flow_entry *entry;
 
+    /* I don't understand memory management of instructions. The instructions
+     * are used by reference, and therefore multiple flow entry could end
+     * up pointing to the same instructions. On the other hand, there is
+     * no reference counting of instructions, and they are freed
+     * unconditionally. Puzzling... Jean II */
     LIST_FOR_EACH (entry, struct flow_entry, match_node, &table->match_entries) {
         if (flow_entry_matches(entry, mod, strict, true/*check_cookie*/)) {
             flow_entry_replace_instructions(entry, mod->instructions_num, mod->instructions);
@@ -316,11 +329,11 @@ flow_table_delete(struct flow_table *table, struct ofl_msg_flow_mod *mod, bool s
 
 
 ofl_err
-flow_table_flow_mod(struct flow_table *table, struct ofl_msg_flow_mod *mod, bool *match_kept, bool *insts_kept) {
+flow_table_flow_mod(struct flow_table *table, struct ofl_msg_flow_mod *mod, bool *match_kept, bool *insts_kept, struct flow_entry ** entry_p) {
     switch (mod->command) {
         case (OFPFC_ADD): {
             bool overlap = ((mod->flags & OFPFF_CHECK_OVERLAP) != 0);
-            return flow_table_add(table, mod, overlap, match_kept, insts_kept);
+            return flow_table_add(table, mod, overlap, match_kept, insts_kept, entry_p);
         }
         case (OFPFC_MODIFY): {
             return flow_table_modify(table, mod, false, insts_kept);
@@ -416,14 +429,14 @@ flow_table_create_property(struct ofl_table_feature_prop_header **prop, enum ofp
         }
         case OFPTFPT_NEXT_TABLES:
         case OFPTFPT_NEXT_TABLES_MISS:{
-             struct ofl_table_feature_prop_next_tables *tbl_reachable;
+             struct ofl_table_feature_prop_tables *tbl_reachable;
              int i;
-             tbl_reachable = xmalloc(sizeof(struct ofl_table_feature_prop_next_tables));
+             tbl_reachable = xmalloc(sizeof(struct ofl_table_feature_prop_tables));
              tbl_reachable->header.type = type;
              tbl_reachable->table_num = PIPELINE_TABLES ;
-             tbl_reachable->next_table_ids = xmalloc(sizeof(uint8_t) * tbl_reachable->table_num);
+             tbl_reachable->table_ids = xmalloc(sizeof(uint8_t) * tbl_reachable->table_num);
              for(i=0; i < tbl_reachable->table_num; i++)
-                tbl_reachable->next_table_ids[i] = i;
+                tbl_reachable->table_ids[i] = i;
              tbl_reachable->header.length = ofl_structs_table_features_properties_ofp_len(&tbl_reachable->header, NULL); 
              *prop = (struct ofl_table_feature_prop_header*) tbl_reachable;
              break;
@@ -466,6 +479,7 @@ flow_table_create_property(struct ofl_table_feature_prop_header **prop, enum ofp
             *prop =  (struct ofl_table_feature_prop_header*) oxm_capabilities;
             break;
         }        
+        case OFPTFPT_TABLE_SYNC_FROM:
         case OFPTFPT_EXPERIMENTER:
         case OFPTFPT_EXPERIMENTER_MISS:{
             break;        
@@ -495,6 +509,18 @@ flow_table_features(struct ofl_table_features *features){
     if(j != TABLE_FEATURES_NUM) {
         VLOG_WARN(LOG_MODULE, "Invalid number of table features, %d instead of %d.", j, TABLE_FEATURES_NUM);
         abort();
+    }
+    /* Table 63 is special ! */
+    if(features->table_id == 63) {
+      struct ofl_table_feature_prop_tables *tbl_sync;
+      tbl_sync = xmalloc(sizeof(struct ofl_table_feature_prop_tables));
+      tbl_sync->header.type = OFPTFPT_TABLE_SYNC_FROM;
+      tbl_sync->table_num = 1 ;
+      tbl_sync->table_ids = xmalloc(sizeof(uint8_t) * tbl_sync->table_num);
+      tbl_sync->table_ids[0] = 62;
+      tbl_sync->header.length = ofl_structs_table_features_properties_ofp_len(&tbl_sync->header, NULL); 
+      features->properties[j] = (struct ofl_table_feature_prop_header*) tbl_sync;
+      j++;
     }
     return j;
 }

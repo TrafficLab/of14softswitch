@@ -239,10 +239,11 @@ pipeline_handle_flow_mod(struct pipeline *pl, struct ofl_msg_flow_mod *msg,
     if (msg->table_id == 0xff) {
         if (msg->command == OFPFC_DELETE || msg->command == OFPFC_DELETE_STRICT) {
             size_t i;
+	    struct flow_entry *flow = NULL;
 
             error = 0;
             for (i=0; i < PIPELINE_TABLES; i++) {
-                error = flow_table_flow_mod(pl->tables[i], msg, &match_kept, &insts_kept);
+	      error = flow_table_flow_mod(pl->tables[i], msg, &match_kept, &insts_kept, &flow);
                 if (error) {
                     break;
                 }
@@ -257,10 +258,50 @@ pipeline_handle_flow_mod(struct pipeline *pl, struct ofl_msg_flow_mod *msg,
             return ofl_error(OFPET_FLOW_MOD_FAILED, OFPFMFC_BAD_TABLE_ID);
         }
     } else {
-        error = flow_table_flow_mod(pl->tables[msg->table_id], msg, &match_kept, &insts_kept);
+        struct flow_entry *flow = NULL;
+
+        error = flow_table_flow_mod(pl->tables[msg->table_id], msg, &match_kept, &insts_kept, &flow);
         if (error) {
             return error;
         }
+	/* Table 63 is synchronised with table 62. */
+	if ((msg->table_id == 62) && (msg->command == OFPFC_ADD) && (flow != NULL)) {
+	    struct ofl_msg_flow_mod *slave_msg;
+	    struct flow_entry *slave_flow = NULL;
+	    bool slave_match_kept = false;
+	    bool slave_insts_kept = false;
+
+	    /* Duplicate message to mess with it. */
+	    error = ofl_msg_clone((struct ofl_msg_header *) msg, (struct ofl_msg_header **) &slave_msg, pl->dp->exp);
+	    /* Can't return an error, otherwise remote_rconn_run()
+	     * will free memory we have put into the table.
+	     * To generate an error, we would need to get 'flow'
+	     * out of the table, but flow_entry_remove() will
+	     * generate a flow-removed message.
+	     * Error is unlikely, so don't bother... Jean II
+	     */
+	    if (!error) {
+	        struct ofl_match *slave_match = (struct ofl_match *) slave_msg->match;
+		size_t match_size = slave_match->header.length;
+		/* Transpose the match. */
+		if (match_size) {
+		    struct ofl_match_tlv *oxm;
+		    HMAP_FOR_EACH(oxm, struct ofl_match_tlv, hmap_node, &slave_match->match_fields){                             
+		      if (oxm->header == OXM_OF_ETH_DST)
+			oxm->header = OXM_OF_ETH_SRC;
+		      else if (oxm->header == OXM_OF_ETH_SRC)
+			oxm->header = OXM_OF_ETH_DST;
+		    }
+		}
+
+	        error = flow_table_flow_mod(pl->tables[63], slave_msg, &slave_match_kept, &slave_insts_kept, &slave_flow);
+		ofl_msg_free_flow_mod(slave_msg, !slave_match_kept, !slave_insts_kept, pl->dp->exp);
+		if (!error) {
+		  slave_flow->sync_master = flow;
+		  flow->sync_slave = slave_flow;
+		}
+	    }
+	}
         if ((msg->command == OFPFC_ADD || msg->command == OFPFC_MODIFY || msg->command == OFPFC_MODIFY_STRICT) &&
                             msg->buffer_id != NO_BUFFER) {
             /* run buffered message through pipeline */

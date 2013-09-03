@@ -331,9 +331,10 @@ ofl_structs_table_features_properties_ofp_len(struct ofl_table_feature_prop_head
             return sizeof(struct ofp_table_feature_prop_instructions) + len;
         }
         case OFPTFPT_NEXT_TABLES:
-        case OFPTFPT_NEXT_TABLES_MISS:{
-             struct ofl_table_feature_prop_next_tables * table_prop = (struct ofl_table_feature_prop_next_tables *) prop;
-             return sizeof(struct ofp_table_feature_prop_next_tables) + (table_prop->table_num * sizeof(uint8_t));
+        case OFPTFPT_NEXT_TABLES_MISS:
+        case OFPTFPT_TABLE_SYNC_FROM:{
+             struct ofl_table_feature_prop_tables * table_prop = (struct ofl_table_feature_prop_tables *) prop;
+             return sizeof(struct ofp_table_feature_prop_tables) + (table_prop->table_num * sizeof(uint8_t));
         }
 
         case OFPTFPT_WRITE_ACTIONS:
@@ -411,10 +412,13 @@ ofl_structs_table_properties_pack(struct ofl_table_feature_prop_header * src, st
             uint8_t *ptr;
 
             dp->length = htons(sp->header.length);
-            ptr = (uint8_t*) data + (sizeof(struct ofp_table_feature_prop_header) -4);
-            for (i = 0; i < sp->ids_num; i++) {
-                if (sp->instruction_ids[i].type == OFPIT_EXPERIMENTER) {
-                    if (exp == NULL || exp->inst == NULL || exp->inst->id_pack == NULL) {
+            ptr = (uint8_t*) data + (sizeof(struct ofp_table_feature_prop_header));
+            for(i = 0; i < sp->ids_num; i++){
+                if(sp->instruction_ids[i].type == OFPIT_EXPERIMENTER){
+                    struct ofp_instruction inst;
+                    
+                    inst.type = sp->instruction_ids[i].type;
+                    if (exp == NULL || exp->inst == NULL || exp->inst->unpack == NULL) {
                         OFL_LOG_WARN(LOG_MODULE, "Received EXPERIMENTER instruction, but no callback was given.");
                         return ofl_error(OFPET_BAD_INSTRUCTION, OFPBIC_UNSUP_INST);
                     }
@@ -432,16 +436,17 @@ ofl_structs_table_properties_pack(struct ofl_table_feature_prop_header * src, st
            return ROUND_UP(ntohs(dp->length),8);
         }
         case OFPTFPT_NEXT_TABLES:
-        case OFPTFPT_NEXT_TABLES_MISS:{
+        case OFPTFPT_NEXT_TABLES_MISS:
+        case OFPTFPT_TABLE_SYNC_FROM:{
             int i;
             uint8_t *ptr;
-            struct ofl_table_feature_prop_next_tables *sp = (struct ofl_table_feature_prop_next_tables*) src;
-            struct ofp_table_feature_prop_next_tables *dp = (struct ofp_table_feature_prop_next_tables*) dst;
-
+            struct ofl_table_feature_prop_tables *sp = (struct ofl_table_feature_prop_tables*) src;
+            struct ofp_table_feature_prop_tables *dp = (struct ofp_table_feature_prop_tables*) dst;
+            
             dp->length = htons(sp->header.length);
             ptr = data + (sizeof(struct ofp_table_feature_prop_header));
             for(i = 0; i < sp->table_num; i++){
-                memcpy(ptr, &sp->next_table_ids[i], sizeof(uint8_t));
+                memcpy(ptr, &sp->table_ids[i], sizeof(uint8_t));
                 ptr += sizeof(uint8_t);
             }
             memset(ptr, 0x0, ROUND_UP(sp->header.length,8)-sp->header.length);

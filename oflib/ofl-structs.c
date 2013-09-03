@@ -646,9 +646,10 @@ ofl_structs_free_table_properties(struct ofl_table_feature_prop_header *prop, st
             break;
         }
         case (OFPTFPT_NEXT_TABLES_MISS):
-        case (OFPTFPT_NEXT_TABLES):{
-            struct ofl_table_feature_prop_next_tables *tables = (struct ofl_table_feature_prop_next_tables *)prop ;
-            free(tables->next_table_ids);
+        case (OFPTFPT_NEXT_TABLES):
+        case (OFPTFPT_TABLE_SYNC_FROM):{
+            struct ofl_table_feature_prop_tables *tables = (struct ofl_table_feature_prop_tables *)prop ;
+            free(tables->table_ids);
             break;
         }
         case (OFPTFPT_WRITE_ACTIONS):
@@ -703,3 +704,42 @@ ofl_structs_free_match(struct ofl_match_header *match, struct ofl_exp *exp) {
 }
 
 
+ofl_err
+ofl_instructions_clone(struct ofl_instruction_header **old_instructions, size_t instructions_num, struct ofl_instruction_header ***new_instructions_p, struct ofl_exp *exp) {
+    uint8_t *buftmp;
+    size_t buftmp_size;
+    size_t array_size;
+    size_t ofp_size;
+    uint8_t *ptr;
+    struct ofp_instruction *inst;
+    struct ofl_instruction_header **new_instructions;
+    size_t i;
+    int error;
+
+    /* Pack memory together so that instruction/action memory is freed properly.
+     * The instructions are supposed to reference the packet memory,
+     * but we don't have that here. Jean II */
+    array_size = instructions_num * sizeof(struct ofl_instruction_header *);
+    ofp_size = ofl_structs_instructions_ofp_total_len(old_instructions, instructions_num, exp);
+    buftmp_size = array_size + ofp_size;
+
+    buftmp = (uint8_t *)malloc(buftmp_size);
+    ptr  = buftmp + array_size;
+    for (i=0; i < instructions_num; i++) {
+        ptr += ofl_structs_instructions_pack(old_instructions[i], (struct ofp_instruction *) ptr, exp);
+    }
+
+    new_instructions = (struct ofl_instruction_header **) buftmp;
+    inst = (struct ofp_instruction *) buftmp + array_size;
+    for (i = 0; i < instructions_num; i++) {
+        error = ofl_structs_instructions_unpack(inst, &ofp_size, &(new_instructions[i]), exp);
+        if (error) {
+	    free(buftmp);
+            return error;
+        }
+        inst = (struct ofp_instruction *)((uint8_t *)inst + ntohs(inst->len));
+    }
+    *new_instructions_p = new_instructions;
+
+    return 0;
+}

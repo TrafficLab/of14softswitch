@@ -849,14 +849,15 @@ ofl_structs_table_properties_print(FILE * stream, struct ofl_table_feature_prop_
             break;
         }
         case OFPTFPT_NEXT_TABLES:
-        case OFPTFPT_NEXT_TABLES_MISS:{
-            struct ofl_table_feature_prop_next_tables *tbls = (struct ofl_table_feature_prop_next_tables*) s;
+        case OFPTFPT_NEXT_TABLES_MISS:
+        case OFPTFPT_TABLE_SYNC_FROM:{
+            struct ofl_table_feature_prop_tables *tbls = (struct ofl_table_feature_prop_tables*) s;
             fprintf(stream, "[");
 	    if(tbls->table_num) {
                 for(i = 0; i < tbls->table_num -1; i++){
-                    fprintf(stream, "%d, ", tbls->next_table_ids[i]);
+                    fprintf(stream, "%d, ", tbls->table_ids[i]);
                 }
-                fprintf(stream, "%d]", tbls->next_table_ids[tbls->table_num -1]);
+                fprintf(stream, "%d]", tbls->table_ids[tbls->table_num -1]);
 	    }
             break;
         }
