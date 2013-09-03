@@ -48,7 +48,7 @@
 #include "shash.h"
 #include "svec.h"
 #include "timeval.h"
-//#include "xtoxll.h"
+#include "xtoxll.h"
 #include "vlog.h"
 #include "oflib/ofl-structs.h"
 

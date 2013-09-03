@@ -812,10 +812,6 @@ ofl_msg_print(FILE *stream, struct ofl_msg_header *msg, struct ofl_exp *exp) {
  	    ofl_msg_print_role_stats_msg((struct ofl_msg_role_request*)msg, stream);
 	}
 
-        /* Queue Configuration messages. */
-        case OFPT_QUEUE_GET_CONFIG_REQUEST: { ofl_msg_print_queue_get_config_request((struct ofl_msg_queue_get_config_request *)msg, stream); return; }
-        case OFPT_QUEUE_GET_CONFIG_REPLY: { ofl_msg_print_queue_get_config_reply((struct ofl_msg_queue_get_config_reply *)msg, stream); return; }
-		
 		/* Asynchronous message configuration. */
 		case OFPT_GET_ASYNC_REQUEST:{return;}
         case OFPT_GET_ASYNC_REPLY:

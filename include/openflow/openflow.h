@@ -776,19 +776,6 @@ struct ofp_table_mod_prop_eviction{
 };
 OFP_ASSERT(sizeof(struct ofp_table_mod_prop_eviction) == 8);
 
-
-/* Configure/Modify behavior of a flow table */
-enum ofp_table_mod_prop_type {
-	OFPTMPT_EXPERIMENTER	= 0xffff, /* Experimenter property. */
-};
-
-/* Common header for all Table Mod Properties */
-struct ofp_table_mod_prop_header {
-	uint16_t type;		/* One of OFPTMPT_*. */
-	uint16_t length;	/* Length in bytes of this property. */
-};
-OFP_ASSERT(sizeof(struct ofp_table_mod_prop_header) == 4);
-
 struct ofp_table_mod {
 	struct ofp_header header;
 	uint8_t table_id;	/* ID of the table, OFPTT_ALL indicates all tables */
@@ -814,17 +801,6 @@ struct ofp_table_mod_prop_experimenter {
 	uint32_t experimenter_data[0];
 };
 OFP_ASSERT(sizeof(struct ofp_table_mod_prop_experimenter) == 12);
-
-enum ofp_table_config {
-    OFPTC_TABLE_MISS_CONTROLLER = 0,    /* Send to controller. */
-    OFPTC_TABLE_MISS_CONTINUE = 1 << 0, /* Continue to the next table in the
-                                           pipeline (OpenFlow 1.0 behavior). */
-    OFPTC_TABLE_MISS_DROP = 1 << 1,     /* Drop the packet. */
-    OFPTC_TABLE_MISS_MASK = 3,
-
-    OFPTC_EVICTION = 1 << 2,	/*Authorize table to evict flows. modified by dingwanfu. */
-};
-OFP_ASSERT(sizeof(struct ofp_table_mod) == 16);
 
 #define OFP_DEFAULT_PRIORITY 0x8000
 #define OFP_FLOW_PERMANENT 0
@@ -2191,6 +2167,9 @@ enum ofp_meter_mod_failed_code {
 enum ofp_table_features_failed_code {
     OFPTFFC_BAD_TABLE = 0,    /* Specified table does not exist. */
     OFPTFFC_BAD_METADATA = 1, /* Invalid metadata mask. */
+    OFPTFFC_BAD_TYPE = 2,     /* Unknown property type. */
+    OFPTFFC_BAD_LEN = 3,      /* Length problem in properties. */
+    OFPTFFC_BAD_ARGUMENT = 4, /* Unsupported property value. */
     OFPTFFC_EPERM = 5,        /* Permissions error. */
 };
 
